@@ -541,6 +541,40 @@ law Rat.mk.rep:
   for +d: Nat
   {Rat.mk(Rat.num(U, V), d) == Rat.mk(I.Int{U, V}, d) : Rat}
 
+# Rat.mk.canon.go: mk is blind to which representative of the numerator's *value*
+# it is handed, at the raw-pair level: mk(Int{xp,xn}, d) and
+# mk(canon.go(c, xp, xn), d) are the same Rat, for the comparison c that
+# Int.canon.go itself cases on. (The name is .go because this is the
+# comparison-threaded coordinate spelling, exactly as Int.canon.go is; Rat.mk.canon
+# above is the unrelated fixed-point law.)
+#
+# This is the bridge the additive composing laws need. An Int.add numerator is a
+# sum of two difference pairs, so its two coordinates are both non-zero for a
+# mixed-sign sum -- a *different representative* of the same integer from the
+# one-sided pair the canonical laws are stated over -- and mk.eqv.raw compares
+# cross products of the representation it is given, so it can never equate the
+# two: mul(X, unit d) == mul(Y, unit d) is simply false for two different
+# representatives. Canonicalizing both numerators first is what makes "two pairs
+# of equal value have equal mks" reachable, and with it the already-proved
+# Int.canon.eqv supplies that fact.
+#
+# The comparison is a parameter with its evidence, for the usual reason: mk.canon
+# reaches canon.go's body, which matches on it, and a computed Nat.cmp is not a
+# legal scrutinee.
+#
+# The fill is two steps: one congruence putting Rat.num(xp,xn) where canon.go's
+# branch value is -- the two are the same pair, since the branch's own sign
+# forces one of the two truncations to zero (canon.go's GT value is
+# Int{sub(xp,xn), 0}, and sub(xn,xp) is 0 under GT) -- and then Rat.mk.rep read
+# backwards, which is that statement verbatim.
+law Rat.mk.canon.go:
+  for c: Cmp
+  for +xp: Nat
+  for +xn: Nat
+  for +d: Nat
+  for +e: {c == Nat.cmp(xp, xn) : Cmp}
+  {Rat.mk(I.Int{xp, xn}, d) == Rat.mk(I.Int.canon.go(c, xp, xn), d) : Rat}
+
 # The product shape
 # =================
 #

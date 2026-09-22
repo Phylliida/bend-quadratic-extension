@@ -1353,3 +1353,37 @@ measurement; the first item is the one that looks cheap now.
 3. Only then `add_assoc`/`add_exchange` themselves, and then
    `mul_distrib`/`mul_add_left`, which have the same composite shape with a
    product as the outer operation.
+
+### `Rat.mk.canon.go` landed; the planned name was taken, and the fill is two steps
+
+Item 1 of the plan above is in, under the name **`Rat.mk.canon.go`** --
+`Rat.mk.canon` was already the *fixed-point* law (`mk.go(np,nn,1+dp) ==
+Rat{Rat.num(np,nn),1+dp}` under coprimality), so the new law's name had to
+differ; `.go` is the file's marker for a comparison-threaded coordinate
+spelling (`Int.canon.go`, `Rat.mk.go`, `mk.scale.go`, `mk.value.go`), which is
+exactly what this is:
+
+    law Rat.mk.canon.go:
+      for c: Cmp, +xp, +xn, +d, +e: {c == Nat.cmp(xp,xn)}
+      {Rat.mk(I.Int{xp,xn}, d) == Rat.mk(I.Int.canon.go(c,xp,xn), d) : Rat}
+
+The planned fill ("a cong putting canon(X) where `Rat.num(Xp,Xn)` sits, then
+`mk.rep` verbatim") is right, with one orientation detail: what the cong needs
+is `Rat.num(xp,xn) == canon.go(c,xp,xn)`, i.e. the *branch value* of `canon.go`
+spelled as the difference pair, and the two are the same pair because the
+branch's own sign forces one truncation to zero (GT: `sub(xn,xp) = 0` by
+`sub_of_lt` at the flipped comparison; LT: `sub(xp,xn) = 0`; EQ: both, via
+`cmp_eq` + one cong + `sub_self`). `Rat.mk.rep(xp,xn,d)` then closes it read
+backwards. No positivity, no divisibility witness, no case split on a gcd:
+every rewrite is an `Equal.cong` over the `Int` constructor.
+
+One checker detail paid for by the fill: a **let-bound `Equal.cong` needs an
+expected type**. `+ev = Equal.cong(Nat, I.Int, u => ...)` is rejected with
+`expected : an annotated term (cannot infer)` (the motive's codomain is the
+cong's second type argument and nothing determines it), while the same cong
+inline as an argument of `Equal.trans`/another `cong` is fine, because the
+endpoints of the surrounding term fix it. So the congs live inline; only the
+`Equal.trans` chains (whose endpoints are all spelled) are let-bound.
+
+Measured state after this commit: `rat.bend` alone 188 TODOs (was 187), the
+other three unchanged (nat 124, int 32, qext 34), and all five gates green.

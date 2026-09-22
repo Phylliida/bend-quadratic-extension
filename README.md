@@ -65,7 +65,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 124, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 187 = 124 Nat + 32 Int + 31 Rat.
+QExt, rat.bend 188 = 124 Nat + 32 Int + 32 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -144,7 +144,14 @@ Known gaps, in dependency order:
    value it is handed, and the two `sub_diag`s that collapse the `mag` of a
    one-sided pair are instances at the explicit comparisons (every rewrite is an
    `Equal.cong` with a motive, never a `%`, since all of them reach under a
-   `Nat.div`). `Rat.add.value` is the newest: **add of two normal forms is the
+   `Nat.div`). `Rat.mk.canon.go` (the comparison-threaded spelling of "mk is
+   blind to the representative", named `.go` because `Rat.mk.canon` is the
+   fixed-point law) is the same statement one level up: it puts
+   `mk(Int{xp,xn}, d)` and `mk(Int.canon.go(c, xp, xn), d)` together, and it is
+   what makes "equal-value pairs have equal mks" reachable at all -- the cross
+   product `mk.eqv.raw` consumes can never show it, since
+   `mul(X, unit d) == mul(Y, unit d)` is false for two different representatives
+   of the same value. `Rat.add.value` is the newest: **add of two normal forms is the
    normal form of their *unreduced* sum**, the additive twin of the product
    shape. A sum of two difference pairs is *not* one-sided, so no shape law can
    relate it and the cross product has to be assembled instead — the fill is
