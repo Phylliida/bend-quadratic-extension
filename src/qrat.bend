@@ -102,3 +102,25 @@ law QExt.sub_eq_add_neg:
   for +x: QExt
   for +y: QExt
   {QExt.sub(x, y) == QExt.add(x, QExt.neg(y)) : QExt}
+
+# QExt.neg_neg: -(-x) = x -- false unconditionally, exactly like Rat.neg_neg,
+# and for the same reason: == on QExt is structural, and the coordinates of a
+# negated QExt are mk-headed with div/gcd fields.
+#
+# The hypothesis is the coprimality of *both* coordinates -- the two Rat-level
+# values the QExt value is made of, each at the divisor spelling
+# Rat.mag(np,nn) that Rat.mk.fixed consumes. It is not a convenience:
+# QExt.neg_neg is componentwise Rat.neg_neg, and that Rat law is conditional for
+# exactly this reason (rat.bend records np = 4, nn = 0, dp = 1 as a witness).
+law QExt.neg_neg:
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +g: {N.Nat.gcd(R.Rat.mag(np, nn), 1n+dp) == 1n : Nat}
+  for +mq: Nat
+  for +mn: Nat
+  for +dq: Nat
+  for +h: {N.Nat.gcd(R.Rat.mag(mq, mn), 1n+dq) == 1n : Nat}
+  {QExt.neg(QExt.neg(QExt{R.Rat{R.Rat.num(np, nn), 1n+dp},
+                          R.Rat{R.Rat.num(mq, mn), 1n+dq}}))
+   == QExt{R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat{R.Rat.num(mq, mn), 1n+dq}} : QExt}
