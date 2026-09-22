@@ -519,3 +519,67 @@ def I.Int.canon.eqv.bwd(c1, xp, xn, c2, yp, yn, e1, e2, e):
                 Equal.trans(Nat, Nat.add(yp, xn), Nat.add(xp, yn), Nat.add(yn, xp),
                   Equal.sym(Nat, Nat.add(xp, yn), Nat.add(yp, xn), e),
                   N.add_comm(xp, yn)))))
+
+
+# Int.scale_cross: one % step per rewrite, left to right, because the goal *is*
+# the chain the two sides are rewritten onto each other along.
+#
+#   - 1-7 pull the yd out of the goal's left numerator and next to the factors
+#     e1 knows about: the scale xd*b splits, the yd is swapped left past b and
+#     xd, and the result is regrouped as (A*(xd*yd))*(zn*b);
+#   - 8-9 are e1 and the regrouping that presents it as A*(xd*yd) == R1*a;
+#   - 10 is s1, landing the left side on xn*yn*a*zn*b;
+#   - 11-17 permute that onto the middle term e2 can consume, ((yn*zn)*b)*(xn*a);
+#   - 18-19 are s2 and e2 the other way round;
+#   - 20-30 take (B*(yd*zd))*(xn*a) apart into the goal's right side: split
+#     yd*zd, recombine a*zd, and permute the factors into place.
+#
+# The rewrite orientation of each step is the `%` rule read literally: the
+# evidence is {new == old}, so a step that left-nests (a*(b*c) -> (a*b)*c) uses
+# mul_assoc as it stands and a step that right-nests uses it through Equal.sym;
+# the swaps are the same story with mul_swap and mul_comm.
+def I.Int.scale_cross(A, R1, B, R2, xn, yn, zn, a, b, xd, zd, dyp, e1, e2, s1, s2):
+  +Yd = I.Int.unit(1n+dyp)
+  +Xd = I.Int.unit(xd)
+  +Zd = I.Int.unit(zd)
+  +As = I.Int.unit(a)
+  +Bs = I.Int.unit(b)
+  +D1 = I.Int.unit(Nat.mul(xd, 1n+dyp))
+  +D2 = I.Int.unit(Nat.mul(1n+dyp, zd))
+  +Sa = I.Int.unit(Nat.mul(xd, b))
+  +Sb = I.Int.unit(Nat.mul(a, zd))
+  +XA = I.Int.mul(xn, As)
+  +ZB = I.Int.mul(zn, Bs)
+  +Y  = I.Int.mul(I.Int.mul(xn, B), Sb)
+  %Equal.sym(I.Int, Sa, I.Int.mul(Xd, Bs), I.Int.scale.pair(xd, b)) : {I.Int.mul(I.Int.mul(I.Int.mul(A, zn), _), Yd) == I.Int.mul(Y, Yd) : I.Int}
+  %I.Int.mul_assoc(I.Int.mul(A, zn), Xd, Bs) : {I.Int.mul(_, Yd) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(I.Int.mul(A, zn), Xd), Bs), Yd), I.Int.mul(I.Int.mul(I.Int.mul(I.Int.mul(A, zn), Xd), Yd), Bs), I.Int.mul_swap(I.Int.mul(I.Int.mul(A, zn), Xd), Bs, Yd)) : {_ == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(A, zn), Xd), I.Int.mul(I.Int.mul(A, Xd), zn), I.Int.mul_swap(A, zn, Xd)) : {I.Int.mul(I.Int.mul(_, Yd), Bs) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(A, Xd), zn), Yd), I.Int.mul(I.Int.mul(I.Int.mul(A, Xd), Yd), zn), I.Int.mul_swap(I.Int.mul(A, Xd), zn, Yd)) : {I.Int.mul(_, Bs) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(I.Int.mul(A, Xd), Yd), zn), Bs), I.Int.mul(I.Int.mul(I.Int.mul(A, Xd), Yd), ZB), I.Int.mul_assoc(I.Int.mul(I.Int.mul(A, Xd), Yd), zn, Bs)) : {_ == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(A, Xd), Yd), I.Int.mul(A, I.Int.mul(Xd, Yd)), I.Int.mul_assoc(A, Xd, Yd)) : {I.Int.mul(_, ZB) == I.Int.mul(Y, Yd) : I.Int}
+  %I.Int.scale.pair(xd, 1n+dyp) : {I.Int.mul(I.Int.mul(A, _), ZB) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(A, D1), I.Int.mul(R1, As), e1) : {I.Int.mul(_, ZB) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, R1, I.Int.mul(xn, yn), s1) : {I.Int.mul(I.Int.mul(_, As), ZB) == I.Int.mul(Y, Yd) : I.Int}
+  %I.Int.mul_assoc(I.Int.mul(I.Int.mul(xn, yn), As), zn, Bs) : {_ == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(xn, yn), I.Int.mul(yn, xn), I.Int.mul_comm(xn, yn)) : {I.Int.mul(I.Int.mul(I.Int.mul(_, As), zn), Bs) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(yn, xn), As), zn), I.Int.mul(I.Int.mul(I.Int.mul(yn, xn), zn), As), I.Int.mul_swap(I.Int.mul(yn, xn), As, zn)) : {I.Int.mul(_, Bs) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(yn, xn), zn), I.Int.mul(I.Int.mul(yn, zn), xn), I.Int.mul_swap(yn, xn, zn)) : {I.Int.mul(I.Int.mul(_, As), Bs) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(I.Int.mul(yn, zn), xn), As), Bs), I.Int.mul(I.Int.mul(I.Int.mul(I.Int.mul(yn, zn), xn), Bs), As), I.Int.mul_swap(I.Int.mul(I.Int.mul(yn, zn), xn), As, Bs)) : {_ == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(yn, zn), xn), Bs), I.Int.mul(I.Int.mul(I.Int.mul(yn, zn), Bs), xn), I.Int.mul_swap(I.Int.mul(yn, zn), xn, Bs)) : {I.Int.mul(_, As) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(I.Int.mul(yn, zn), Bs), xn), As), I.Int.mul(I.Int.mul(I.Int.mul(yn, zn), Bs), XA), I.Int.mul_assoc(I.Int.mul(I.Int.mul(yn, zn), Bs), xn, As)) : {_ == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(yn, zn), Bs), I.Int.mul(R2, Bs),
+    Equal.cong(I.Int, I.Int, w => I.Int.mul(w, Bs), I.Int.mul(yn, zn), R2, Equal.sym(I.Int, R2, I.Int.mul(yn, zn), s2))) : {I.Int.mul(_, XA) == I.Int.mul(Y, Yd) : I.Int}
+  %e2 : {I.Int.mul(_, XA) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, D2, I.Int.mul(Yd, Zd), I.Int.scale.pair(1n+dyp, zd)) : {I.Int.mul(I.Int.mul(B, _), XA) == I.Int.mul(Y, Yd) : I.Int}
+  %I.Int.mul_assoc(B, Yd, Zd) : {I.Int.mul(_, XA) == I.Int.mul(Y, Yd) : I.Int}
+  %I.Int.mul_assoc(I.Int.mul(I.Int.mul(B, Yd), Zd), xn, As) : {_ == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(I.Int.mul(B, Yd), Zd), xn), As), I.Int.mul(I.Int.mul(I.Int.mul(I.Int.mul(B, Yd), Zd), As), xn), I.Int.mul_swap(I.Int.mul(I.Int.mul(B, Yd), Zd), xn, As)) : {_ == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(B, Yd), Zd), As), I.Int.mul(I.Int.mul(I.Int.mul(B, Yd), As), Zd), I.Int.mul_swap(I.Int.mul(B, Yd), Zd, As)) : {I.Int.mul(_, xn) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(B, Yd), As), Zd), I.Int.mul(I.Int.mul(B, Yd), I.Int.mul(As, Zd)), I.Int.mul_assoc(I.Int.mul(B, Yd), As, Zd)) : {I.Int.mul(_, xn) == I.Int.mul(Y, Yd) : I.Int}
+  %I.Int.scale.pair(a, zd) : {I.Int.mul(I.Int.mul(I.Int.mul(B, Yd), _), xn) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(B, Yd), Sb), xn), I.Int.mul(I.Int.mul(I.Int.mul(B, Yd), xn), Sb), I.Int.mul_swap(I.Int.mul(B, Yd), Sb, xn)) : {_ == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(B, Yd), xn), I.Int.mul(I.Int.mul(B, xn), Yd), I.Int.mul_swap(B, Yd, xn)) : {I.Int.mul(_, Sb) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(B, xn), I.Int.mul(xn, B), I.Int.mul_comm(B, xn)) : {I.Int.mul(I.Int.mul(_, Yd), Sb) == I.Int.mul(Y, Yd) : I.Int}
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(xn, B), Yd), Sb), I.Int.mul(I.Int.mul(I.Int.mul(xn, B), Sb), Yd), I.Int.mul_swap(I.Int.mul(xn, B), Yd, Sb)) : {_ == I.Int.mul(Y, Yd) : I.Int}
+  {==}

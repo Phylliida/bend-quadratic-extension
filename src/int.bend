@@ -36,6 +36,12 @@ def Int.zero() -> Int:
 def Int.one() -> Int:
   Int{1n, 0n}
 
+# Int.unit(n): the natural n as a non-negative Int. The name of the scaled
+# units Int{d, 0n} the Rat operations multiply by, so that a proof can bind one
+# (`Int.unit d`) instead of writing the constructor out at every mention.
+def Int.unit(n: Nat) -> Int:
+  Int{n, 0n}
+
 def Int.add(x: Int, y: Int) -> Int:
   Int{+xp, +xn} = x
   Int{+yp, +yn} = y
@@ -384,3 +390,39 @@ law Int.canon.eqv.bwd:
   for +e2: {c2 == Nat.cmp(yp, yn) : Cmp}
   for +e: {Nat.add(xp, yn) == Nat.add(yp, xn) : Nat}
   {Int.canon.go(c1, xp, xn) == Int.canon.go(c2, yp, yn) : Int}
+
+# Int.scale_cross: the cross product two scaled value equations give -- the
+# assembly step of every Rat law that composes two normalized results.
+#
+# e1 and e2 are two value equations in mk.value's shape (a numerator against a
+# positive denominator), s1/s2 say the two difference-pair numerators are the
+# raw products xn*yn and yn*zn (that is Rat.num.mul), and the conclusion is the
+# cross product of the *composed* fraction: (A*zn)*(xd*b) == (xn*B)*(a*zd).
+#
+# The proof is one cancellation: both sides are scaled by 1+dyp -- which both
+# denominators carry (d1 = xd*yd, d2 = yd*zd) -- and over that common factor the
+# two sides meet at the single middle product xn*yn*a*zn*b, reached from e1
+# (scaled by zn*b, with s1) and from e2 (scaled by xn*a, with s2). Everything
+# else in the fill is the ring bookkeeping that moves the scales past the
+# factors they have to sit next to, which is why the scales get split
+# (Int.scale.pair) and why the statement is a law of its own: with letters
+# instead of the spelled-out fractions, every motive stays short.
+law Int.scale_cross:
+  for +A: Int
+  for +R1: Int
+  for +B: Int
+  for +R2: Int
+  for +xn: Int
+  for +yn: Int
+  for +zn: Int
+  for +a: Nat
+  for +b: Nat
+  for +xd: Nat
+  for +zd: Nat
+  for +dyp: Nat
+  for e1: {Int.mul(A, Int{Nat.mul(xd, 1n+dyp), 0n}) == Int.mul(R1, Int{a, 0n}) : Int}
+  for e2: {Int.mul(B, Int{Nat.mul(1n+dyp, zd), 0n}) == Int.mul(R2, Int{b, 0n}) : Int}
+  for s1: {R1 == Int.mul(xn, yn) : Int}
+  for s2: {R2 == Int.mul(yn, zn) : Int}
+  {Int.mul(Int.mul(Int.mul(A, zn), Int{Nat.mul(xd, b), 0n}), Int{1n+dyp, 0n})
+   == Int.mul(Int.mul(Int.mul(xn, B), Int{Nat.mul(a, zd), 0n}), Int{1n+dyp, 0n}) : Int}
