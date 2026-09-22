@@ -1280,6 +1280,24 @@ law mul_pos:
   for +pb: {Nat.cmp(0n, b) == LT{} : Cmp}
   {Nat.cmp(0n, Nat.mul(a, b)) == LT{} : Cmp}
 
+# mul_right_cancel: a positive scale can be cancelled on the right of a
+# product. This is injectivity of "multiply by 1+kp" -- what a proof needs
+# whenever it has scaled both sides of an equation up to a common denominator
+# and then wants the unscaled equation back (the Rat composing laws scale a
+# value equation by the other side's denominator, and the factor has to come
+# off again before mk.eqv can see the cross product).
+#
+# By induction on a: a = 0 forces b = 0 (the other side would be a successor
+# equal to zero), and a = 1+ap makes both sides successors -- succ_inj peels the
+# outer one, add_cancel the kp that mul leaves inside, and the induction
+# hypothesis does the rest.
+law mul_right_cancel:
+  for +a: Nat
+  for +b: Nat
+  for +kp: Nat
+  for e: {Nat.mul(a, 1n+kp) == Nat.mul(b, 1n+kp) : Nat}
+  {a == b : Nat}
+
 # div_pos_wit: a positive dividend divided by a divisor of it is positive --
 # the denominator of Rat.mk's output is never zero, which is the one
 # canonicality clause of mk that the normalization proves by itself (the

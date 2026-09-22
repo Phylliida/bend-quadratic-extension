@@ -172,6 +172,23 @@ law Int.mul_scale:
   for +d: Nat
   {Int.mul(Int{xp, xn}, Int{d, 0n}) == Int{Nat.mul(xp, d), Nat.mul(xn, d)} : Int}
 
+# Int.scale.cancel: a positive scale can be cancelled -- multiplication by
+# Int{1+kp, 0n} is injective. The Nat content is Nat.mul_right_cancel; what
+# this law adds is the Int spelling, and a consumer needs it whenever it has
+# scaled *both* sides of an equation by a denominator to put them over a common
+# one and then wants the unscaled equation back (which is what the cross
+# product Rat.mk.eqv consumes looks like after the scaling).
+#
+# Int.mul_scale names the coordinate pair both sides reduce to, so the two
+# coordinate equations are Int.eq.pos / Int.eq.neg at that pair, and the goal
+# is rebuilt from them with two congs.
+law Int.scale.cancel:
+  for +u: Int
+  for +v: Int
+  for +kp: Nat
+  for e: {Int.mul(u, Int{1n+kp, 0n}) == Int.mul(v, Int{1n+kp, 0n}) : Int}
+  {u == v : Int}
+
 # Int.mul_distrib: x * (y + z) = x*y + x*z
 law Int.mul_distrib:
   for +x: Int

@@ -1473,6 +1473,47 @@ def NL.mul_pos(a, b, pa, pb):
         b, 1n+Nat.sub(b, 1n), NL.pos_witness(b, pb))),
     {==})
 
+# mul_right_cancel: induction on a, with b split inside each case. a = 0 leaves
+# 0 = mul(b, 1+kp), which is a successor when b = 1+bp -- so that branch is
+# Empty, and the equality has to be turned round (pos_ne_zero wants the
+# successor on the left). a = 1+ap makes both sides the successor
+# 1 + add(kp, ..), so succ_inj peels it, add_cancel removes kp, and the
+# induction hypothesis finishes; the goal is the successor form of what the
+# call returns, which is one cong.
+def NL.mul_right_cancel(a, b, kp, e):
+  match a:
+    case 0n:
+      match b:
+        case 0n:
+          {==}
+        case 1n+bp:
+          Empty.absurd({0n == 1n+bp : Nat},
+            Nat.pos_ne_zero(Nat.add(kp, Nat.mul(bp, 1n+kp)),
+              Equal.sym(Nat, Nat.mul(0n, 1n+kp), Nat.mul(1n+bp, 1n+kp), e)))
+    case 1n+ap:
+      match b:
+        case 0n:
+          Empty.absurd({1n+ap == 0n : Nat},
+            Nat.pos_ne_zero(Nat.add(kp, Nat.mul(ap, 1n+kp)), e))
+        case 1n+bp:
+          Equal.cong(Nat, Nat, u => 1n+u, ap, bp,
+            NL.mul_right_cancel(ap, bp, kp,
+              NL.add_cancel(Nat.mul(ap, 1n+kp), Nat.mul(bp, 1n+kp), kp,
+                Equal.trans(Nat,
+                  Nat.add(Nat.mul(ap, 1n+kp), kp),
+                  Nat.add(kp, Nat.mul(ap, 1n+kp)),
+                  Nat.add(Nat.mul(bp, 1n+kp), kp),
+                  NL.add_comm(Nat.mul(ap, 1n+kp), kp),
+                  Equal.trans(Nat,
+                    Nat.add(kp, Nat.mul(ap, 1n+kp)),
+                    Nat.add(kp, Nat.mul(bp, 1n+kp)),
+                    Nat.add(Nat.mul(bp, 1n+kp), kp),
+                    NL.succ_inj(Nat.add(kp, Nat.mul(ap, 1n+kp)),
+                      Nat.add(kp, Nat.mul(bp, 1n+kp)), e),
+                    Equal.sym(Nat, Nat.add(Nat.mul(bp, 1n+kp), kp),
+                      Nat.add(kp, Nat.mul(bp, 1n+kp)),
+                      NL.add_comm(Nat.mul(bp, 1n+kp), kp)))))))
+
 # div_pos_wit: the witness gives div(1+ap, g) = q (div_exact, once g is written
 # as the successor pos_witness provides), so the goal is cmp(0, q) = LT, which
 # is mul_pos_right at the same witness.
