@@ -2239,3 +2239,63 @@ is ever left half-rewritten. The alternative, if that fails too, is to have the
 worker supply positivity at the projections' own `Rat.denof` spelling (`pq`),
 which `mk_idem.raw` requires but which no caller can currently write
 definitionally.
+
+### The bridge, attempted: the coordinates do not reduce, and the reducer is `Nat.sub` (measured)
+
+The spelling above **was** tried, and the attempt turned the three guessed facts
+below into measurements. The helper was written out in full, in five variants, in
+`rat_proofs.bend`; each one failed at the same place, and the tree was restored.
+
+- **`Nat.div(sub(sub(a,b),sub(b,a)), G2)` does not reduce to `Nat.div(sub(a,b), G2)`**,
+  and neither do the two `Nat.sub` terms alone. `Nat.sub` matches on **both**
+  arguments (`base.bend`: four cases, `0n 0n` onwards), so a diagonal
+  `sub(sub(X,Y), sub(Y,X))` is stuck: nothing about it is a constructor, and the
+  comparison that would collapse it lives in `sub_diag`'s *fill*, not in the
+  evaluator. Measured directly: the goal `{sub(sub(sub(a,b),sub(b,a)), ...) == sub(sub(a,b),sub(b,a))}` is
+  `All terms check.` (that is `sub_diag`'s own statement), while
+  `{Nat.div(sub(sub(a,b),sub(b,a)), G2) == Nat.div(sub(a,b), G2)}` is **not**,
+  with `{==}`. So "the collapse is definitional under the division" -- the
+  assumption the round above was built on -- is **false**, and the two collapses
+  are genuinely needed as rewrites.
+
+- **`sub_diag` is only half an answer, and that is a statement and not a fill
+  problem.** It gives `sub(sub(X,Y),sub(Y,X)) == sub(X,Y)`; the cross sum
+  `mk.eqv.val` asks for needs `sub(X,Y) == sub(sub(X,Y),sub(Y,X))` -- the same
+  equation read the other way -- and `Equal.sym` is the only thing that turns one
+  into the other. `sub_diag` in that orientation is rejected, and `Equal.sym`
+  around it is rejected too, with the two ends of the error **swapped**:
+
+      - expected : {sub(sub(b,a),sub(a,b)) == sub(b,a)}
+      - observed : {sub(sub(sub(b,a),sub(a,b)), sub(sub(a,b),sub(b,a))) == sub(sub(b,a),sub(a,b))}
+
+  Swapping `Equal.sym`'s arguments, and swapping the `Equal.cong`'s `(a, b)`
+  pair, each only swap the same two messages: every one of the four combinations
+  was run, and in each the demand and the evidence come back as each other's
+  reverse. So at this argument shape **`Equal.sym` cannot be composed with
+  `Equal.cong`**, whichever way round it is written -- a new checker entry for
+  this file's list, and the reason the "one pass" plan above cannot be assembled
+  the obvious way. (What *does* work at these shapes: a **named def** as the
+  congruence motive. `u => Nat.mul(u, W)` is rejected where
+  `def Rat.mul.W(+W, u) = Nat.mul(u, W)` checks, and
+  `u => Nat.add(A, u)` is rejected where a named `Rat.add.L`/`Rat.add.R` checks --
+  both measured, both at the real argument shapes.)
+
+- **The cross sum needs the *first* coordinate stated non-collapsed**, which is
+  why `mk.rep` cannot be the closing step either. `mk.eqv.val` instantiates
+  `xp := div(sub(P,Q), G2)`, and the first coordinate of a *quotient* has no
+  collapse (`div(Pq, G2)` is not `div(sub(P,Q), G2)`), so the cross sum's left
+  side is stuck with `Pq` and the right with both raw coordinates. The only
+  product identity that then closes it is `sub_cross`'s cross sum
+  (`(a-b) + b == (b-a) + a`) at the raw pair, lifted through `mul_add_left` on
+  both sides and `add_comm` -- and that lift is exactly where the `sub_diag`
+  orientation above bites.
+
+**State of the rung-2 law after this round.** The mathematics is settled: the
+cross sum is `Nat.sub_cross` at `(sub(a,b), sub(b,a))`, the two product spellings
+are two `Nat.mul_add_left`s, and the closing is `Rat.mk.eqv.val` + `Rat.mk.trunc`
+-- all four verified in isolation (`All terms check.`). What is missing is one
+composition: a `Equal.cong` whose evidence is a `sub_diag` used in the reverse of
+its stated orientation. The two ways out that the measurements leave open are (a)
+a `sub_diag`-shaped law **stated in the reverse orientation** (which is legal and
+would make the evidence direct -- no `Equal.sym` anywhere), and (b) a cross-sum
+law stated over the collapse so that no re-orientation is needed at all.
