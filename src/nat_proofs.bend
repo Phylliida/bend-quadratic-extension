@@ -984,3 +984,135 @@ def NL.divides_add(g, q1, q2, a, b, p1, p2):
     Equal.trans(Nat, Nat.add(Nat.mul(g, q1), b), Nat.add(Nat.mul(g, q1), Nat.mul(g, q2)), Nat.mul(g, Nat.add(q1, q2)),
       Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(g, q1), u), b, Nat.mul(g, q2), p2),
       NL.mul_distrib(g, q1, q2)))
+
+# gcd divides both arguments
+# ==========================
+#
+# gcd.divides_lt / gcd.divides_gt: one loop step, as a function from the
+# induction hypothesis's witness pair to the step's goal. Both destructure the
+# pair into its two Nat.Div witnesses, take each witness apart into (quotient,
+# equation), and hand back the *old* half unchanged -- rebuilt from the fields
+# it just took apart -- next to the new one, whose equation is divides_add with
+# the two quotients added.
+#
+# The rebuild is the whole reason Nat.Div exists: q1, q2, p1 and p2 are each
+# read twice (once into the rebuilt witness, once into divides_add), which a
+# Sigma's linear fields could not do. Here the pattern is plain -- a +field
+# comes out Many without any `+` marker -- and the destructure pattern is the
+# ADT's own constructor (a `(q, e) = d` pair pattern would be Tuple, and the
+# checker would look for a Tuple of the wrong type).
+def NL.gcd.divides_lt(g, x, s, y, d, e):
+  (d1, d2) = d
+  NL.Div{q2, p2} = d1
+  NL.Div{q1, p1} = d2
+  (NL.Div{q2, p2}, NL.Div{Nat.add(q1, q2), Equal.trans(Nat, y, Nat.add(s, x), Nat.mul(g, Nat.add(q1, q2)),
+    Equal.sym(Nat, Nat.add(s, x), y, e),
+    NL.divides_add(g, q1, q2, s, x, p1, p2))})
+
+# gcd.divides_gt: the mirror. The pair covers (1+xp, y), so the rebuilt half
+# is the *second* one (the y slot of the step, which the loop leaves alone) and
+# the new half is the first (the difference).
+def NL.gcd.divides_gt(g, xp, y, x, d, e):
+  (d1, d2) = d
+  NL.Div{q1, p1} = d1
+  NL.Div{q2, p2} = d2
+  (NL.Div{Nat.add(q1, q2), Equal.trans(Nat, x, Nat.add(1n+xp, y), Nat.mul(g, Nat.add(q1, q2)),
+    Equal.sym(Nat, Nat.add(1n+xp, y), x, e),
+    NL.divides_add(g, q1, q2, 1n+xp, y, p1, p2))},
+   NL.Div{q2, p2})
+
+# gcd.go.divides: induction on the fuel s, exactly like gcd.go.fuel, and for
+# the same reason -- every recursive call is one step of the loop, and the
+# induction hypothesis is the *pair* the step helper wants as its d parameter,
+# so it is passed straight in with no destructure of a computed value.
+#
+# s = 0: impossible. Nat.gcd.go answers 0 there and e2 would make
+# (1+xp + y) + t zero, so the goal is vacuous -- Nat.succ_add_ne_zero turns e2
+# into Empty and Empty.absurd closes it. The goal has to be spelled with the
+# loop term unfolded because `Nat.gcd.go(0n, ..)` is what the checker reduces
+# the goal's head to.
+#
+# y = 0 and c = EQ: no step happens, the loop answers the x slot 1 + xp, so the
+# goal is "1+xp divides 1+xp and y". The y half needs the equation to be turned
+# around: mul_one proves {1+xp == 1+xp*1}, and the goal wants {y == 1+xp*1}
+# with y = 1+xp (EQ) or y = 0 (the y = 0 branch, where mul_zero gives the same
+# thing with 0 on the left).
+def NL.gcd.go.divides(s, y, c, xp, t, e1, e2):
+  match s:
+    case 0n:
+      Empty.absurd(NL.Nat.divides_both(NL.Nat.gcd.go(0n, y, c, 1n+xp), 1n+xp, y),
+        Nat.succ_add_ne_zero(xp, y, t, e2))
+    case 1n+sp:
+      match y:
+        case 0n:
+          (NL.Div{1n, NL.mul_one(1n+xp)},
+           NL.Div{0n, Equal.sym(Nat, Nat.mul(1n+xp, 0n), 0n, NL.mul_zero(1n+xp))})
+        case 1n+yp:
+          match c:
+            case EQ{}:
+              (NL.Div{1n, NL.mul_one(1n+xp)},
+               NL.Div{1n, Equal.trans(Nat, 1n+yp, 1n+xp, Nat.mul(1n+xp, 1n),
+                 Equal.sym(Nat, 1n+xp, 1n+yp, NL.cmp_eq(1n+xp, 1n+yp, Equal.sym(Cmp, EQ{}, Nat.cmp(1n+xp, 1n+yp), e1))),
+                 NL.mul_one(1n+xp))})
+            # LT: the loop's next state is (1+xp, (1+yp) - (1+xp)) at fuel sp --
+            # the x slot is unchanged, so the induction hypothesis's x slot is
+            # 1+xp again and the helper's equation is cmp_lt_sub_add, which is
+            # literally {(y - x) + x == y}. The fuel hypothesis is the same
+            # transport gcd.go.fuel uses: (slack_lt says the new state plus
+            # (xp + t) is the old state plus t, and one successor comes off
+            # both sides, which is why the new slack is xp + t).
+            case LT{}:
+              NL.gcd.divides_lt(
+                NL.Nat.gcd.go(sp, Nat.sub(1n+yp, 1n+xp), Nat.cmp(1n+xp, Nat.sub(1n+yp, 1n+xp)), 1n+xp),
+                1n+xp, Nat.sub(1n+yp, 1n+xp), 1n+yp,
+                NL.gcd.go.divides(sp, Nat.sub(1n+yp, 1n+xp), Nat.cmp(1n+xp, Nat.sub(1n+yp, 1n+xp)), xp, Nat.add(xp, t), {==},
+                  Equal.trans(Nat,
+                    Nat.add(Nat.add(1n+xp, Nat.sub(1n+yp, 1n+xp)), Nat.add(xp, t)),
+                    Nat.add(Nat.add(xp, 1n+yp), t),
+                    sp,
+                    NL.gcd.slack_lt(xp, yp, t, Equal.sym(Cmp, LT{}, Nat.cmp(1n+xp, 1n+yp), e1)),
+                    NL.succ_inj(Nat.add(Nat.add(xp, 1n+yp), t), sp, e2))),
+                NL.cmp_lt_sub_add(1n+xp, 1n+yp, Equal.sym(Cmp, LT{}, Nat.cmp(1n+xp, 1n+yp), e1)))
+            # GT: the next state is ((1+xp) - (1+yp), 1+yp) and the y slot is
+            # unchanged, so the pair the helper consumes is the *rewritten*
+            # (1 + (xp - (1+yp)), 1+yp) -- note the second component is a
+            # successor, which is exactly the spelling gcd.divides_gt's d
+            # parameter demands. The x slot of the recursive call must be
+            # 1 + (xp - (1+yp)) for a different reason -- a constructor, so the
+            # call's own fuel 1+xp' + y reduces -- and that is what the sub_pos
+            # rewrite below is for: it replaces the goal's stuck Nat.sub(xp, yp)
+            # with exactly that spelling, in both places the loop term mentions
+            # it.
+            #
+            # The helper's equation is then NOT cmp_gt_sub_add (whose
+            # subtraction is (1+xp) - (1+yp) = xp - yp, a different term):
+            # with the x slot rewritten it is ge_sub_add, one successor added
+            # to both sides by Equal.cong.
+            case GT{}:
+              %Equal.sym(Nat, Nat.sub(xp, yp), 1n+Nat.sub(xp, 1n+yp),
+                NL.sub_pos(xp, yp, Equal.sym(Cmp, GT{}, Nat.cmp(1n+xp, 1n+yp), e1)))
+                : NL.Nat.divides_both(NL.Nat.gcd.go(sp, 1n+yp, Nat.cmp(_, 1n+yp), _), 1n+xp, 1n+yp)
+              NL.gcd.divides_gt(
+                NL.Nat.gcd.go(sp, 1n+yp, Nat.cmp(1n+Nat.sub(xp, 1n+yp), 1n+yp), 1n+Nat.sub(xp, 1n+yp)),
+                Nat.sub(xp, 1n+yp), 1n+yp, 1n+xp,
+                NL.gcd.go.divides(sp, 1n+yp, Nat.cmp(1n+Nat.sub(xp, 1n+yp), 1n+yp), Nat.sub(xp, 1n+yp), Nat.add(yp, t), {==},
+                  Equal.trans(Nat,
+                    Nat.add(Nat.add(1n+Nat.sub(xp, 1n+yp), 1n+yp), Nat.add(yp, t)),
+                    Nat.add(Nat.add(xp, 1n+yp), t),
+                    sp,
+                    NL.gcd.slack_gt(xp, yp, t, Equal.sym(Cmp, GT{}, Nat.cmp(1n+xp, 1n+yp), e1)),
+                    NL.succ_inj(Nat.add(Nat.add(xp, 1n+yp), t), sp, e2))),
+                Equal.cong(Nat, Nat, u => 1n+u, Nat.add(Nat.sub(xp, 1n+yp), 1n+yp), xp,
+                  NL.ge_sub_add(xp, 1n+yp, Equal.sym(Cmp, GT{}, Nat.cmp(1n+xp, 1n+yp), e1))))
+
+# gcd_divides: the top level. a = 0 hands the loop a state it never sees
+# (Nat.gcd answers b directly), so the two witnesses are the trivial ones:
+# b divides 0 with quotient 0, and b divides b with quotient 1. a = 1 + ap is
+# gcd.go.divides at t = 0 -- the state's fuel a + b is (a + b) + 0.
+def NL.gcd_divides(a, b):
+  match a:
+    case 0n:
+      (NL.Div{0n, Equal.sym(Nat, Nat.mul(b, 0n), 0n, NL.mul_zero(b))},
+       NL.Div{1n, NL.mul_one(b)})
+    case 1n+ap:
+      NL.gcd.go.divides(Nat.add(1n+ap, b), b, Nat.cmp(1n+ap, b), ap, 0n, {==}, NL.add_zero(Nat.add(1n+ap, b)))

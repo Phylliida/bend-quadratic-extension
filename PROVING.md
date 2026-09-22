@@ -423,8 +423,9 @@ i.e. more division correctness.
    gives. This blocks everything else. **Done** (`divmod.go.spec`,
    `divmod.go.mod_lt`, `div_add_mod`, `mod_lt`).
 2. `Nat.gcd` + `gcd` divides both arguments + `gcd(m*k, d*k) == k*gcd(m,d)`.
-   **Scaling done** (`gcd.go.scale`, `gcd.go.fuel`, `gcd_scale`); the
-   "divides both" half is open, see the section below.
+   **Done**: scaling (`gcd.go.scale`, `gcd.go.fuel`, `gcd_scale`) and
+   divisibility (`gcd.go.divides`, `gcd.divides_lt`/`gcd.divides_gt`,
+   `gcd_divides`) -- see the last section for what the divisibility half cost.
 3. `Int.canon.scale`, and `Int.canon.eqv` (the quotient lemma,
    `canon x == canon y` iff `xp + yn == yp + xn`) if it fits.
 4. `Rat`: the type, `Rat.mk`, canonicality by the scaling route, then the
@@ -497,41 +498,79 @@ The `Nat.gcd.go` sketch in "Nat gcd" does not compute the gcd as written.
   that every law of this family needs `sub_pos` to undo the loop's own
   `Nat.sub` in the GT branch before the induction hypothesis applies.
 
-### Why "gcd divides both arguments" is still open
+### "gcd divides both arguments": solved, and what the obstacle actually was
 
-The per-step arithmetic is done and proved: `Nat.divides` /
-`Nat.divides_both` (a witness pair), `divides_add` (a multiple plus a multiple
-is a multiple, quotients added), `Nat.succ_add_ne_zero` (the fuel hypothesis
-at `s = 0` is contradictory), and the branch assembly for both LT and GT.
-What does not close is the loop-level induction, and the obstacle is the
-checker's affinity rules rather than arithmetic:
+Proved. The laws are `gcd.go.divides` (the loop invariant), `gcd.divides_lt` /
+`gcd.divides_gt` (one step each, as helper laws) and `gcd_divides` (the top
+level); the fills are in `src/nat_proofs.bend`, and the shape of the witness
+type in `src/nat.bend` is part of the proof, not a style choice.
 
-- The induction hypothesis returns a *pair* of divisibility witnesses, and the
-  step needs the quotients from both halves plus the original pair back. But
-  `match` only scrutinizes a parameter or a pattern-bound field ("a match
-  cannot scrutinize a computed value"), so the returned pair cannot be taken
-  apart in place -- the step has to run inside a helper `def` whose binder is
-  the pair.
-- Inside that helper the two quotients are each needed twice (once in the
-  rebuilt witness, once in `divides_add`). Fields of a `Sigma` are linear --
-  `Sigma<&2, &2, ..>` does *not* make them copyable, the *field* quantities
-  are what count, and `Tuple{fst, snd}` defaults them to `&1` -- so each needs
-  a `+q = q` re-bind first. Those re-binds typecheck on their own (a minimal
-  `def` with a nested destructure, a `+` re-bind and a rebuilt pair passes),
-  but inside the real fill the checker rejects the whole def with
-  `expected : an annotated term (cannot infer) / observed : q => {a ==
-  Nat.mul(g, q) : Nat}` -- i.e. it wants the existential's family annotated at
-  a point where the source has no lambda at all. That is a checker behaviour
-  worth understanding before another attempt; the arithmetic is not the
-  problem.
-- A `+` re-bind of the *pair* itself is not available either: `Nat.divides_both`
-  is a `Sigma<&1,&1,..>`, whose kind is `Type`, and `+` forms only at `Data`.
-  The plausible repair -- give the witnesses a `Data` pair type of your own --
-  is untried.
+The arithmetic was never the problem. The step needs the quotients and the
+equations from *both* halves of the induction hypothesis's witness pair, plus
+the pair back, and the checker's rules around that cost three attempts:
 
-Do not weaken the statement to dodge this (`Ex`, `Nat.div`-shaped or
-"divides one argument"): the Rat step below consumes the *witness* of
-`g | n.pos + n.neg`.
+1. `match` refuses a computed scrutinee ("a match cannot scrutinize a computed
+   value"), so the returned pair cannot be taken apart where it is produced.
+   The step therefore runs inside a helper `def` whose binder *is* the pair, and
+   the recursive call's result is passed straight in as that binder -- the pair
+   is never destructured in place.
+2. Fields of a `Sigma` are linear and each quotient/equation is needed twice, so
+   the fields have to be copied. `Sigma<&2, &2, ..>` does not do it (a field's
+   *own* quantity is what counts, and `Tuple`'s default is `&1`).
+3. The copy spelling `+e = e` (or a `+e` pattern field) is where the checker
+   stops. `+p = p` makes it *re-check the field's type*; for a `Sigma` that type
+   is the dependent field `B(fst)`, which after whnf sharing arrives as
+   `App(Var("_", -1, <the lambda>), fst)` -- an application whose head is a
+   *cell holding a lambda*. `term_infer`'s App rule beta-steps a literal `Lam`
+   head but not a cell wrapping one, so inference falls to the `default` branch
+   and reports `expected : an annotated term (cannot infer) / observed : q => {x
+   == Nat.mul(g, q) : Nat}`, with the span pointing at `Nat.divides`'s body --
+   the lambda's own source. The check that triggers it is `check-let`'s
+   `term_check(v_inf.ty, .., Typ(Qua(lhs_kind(lhs, q))))`: the `Let` is the
+   re-bind, `v_inf.ty` is the field type, and inferring *that* is what dies.
+   (Traced with a throwaway patched copy of the checker in `/tmp`, never
+   touching `bend2/`: the diagnostic there is `console.error(new
+   Error().stack)` inside `Err` plus a dump of `tm.k[j]`, `tm.v[j]` and
+   `v_inf.ty` in `check-let`. That is the cheap way to localize this class of
+   failure.)
+
+Two properties of a `+field` in a hand-written `Data` ADT make all three
+problems disappear, and that is what `Nat.Div` is:
+
+    type Nat.Div<+g: Nat, +a: Nat> is Data:
+      Div{+q: Nat, +e: {a == Nat.mul(g, q) : Nat}}
+
+- a `+field` is Many *at the declaration*, so a plain pattern already yields it
+  Many and no re-bind is ever written -- nothing to type-check, nothing to
+  break;
+- a constructor's field types mention its own earlier fields *directly*, so
+  there is no family parameter applied to `fst` and no cell-headed redex is
+  ever rebuilt;
+- the pair itself is not copied (each half is destructured once), so
+  `Nat.divides_both` can stay the `A & B` `Sigma` it was.
+
+Two shape details that are not free choices:
+
+- the destructure pattern must be the ADT's own constructor (`NL.Div{q, e} =
+  d`); `(q, e) = d` is a `Tuple` pattern, and the checker reports "a constructor
+  of Nat.Div (missing, or already matched)".
+- `gcd.divides_gt`'s `d` parameter is `Nat.divides_both(g, 1n+xp, y)`, *not*
+  `Nat.divides_both(g, s, y)`: `gcd.go.divides` always states the state's x slot
+  as a successor, so the recursive call's first dividend is literally `1n + xp'`
+  and a law stated over an arbitrary `s` cannot be fed it. The GT branch of the
+  loop rewrites the goal with `sub_pos` first (replacing the stuck
+  `Nat.sub(xp, yp)` with `1n + Nat.sub(xp, 1n+yp)` in both places the loop term
+  mentions it) and then needs `ge_sub_add` rather than `cmp_gt_sub_add` for the
+  helper's equation, since the helper's subtraction is now `xp - (1+yp)`.
+  `Equal.cong(Nat, Nat, u => 1n+u, ..)` adds the successor.
+
+Cost: `nat.bend` +~90 lines of statement and comment, `nat_proofs.bend` +~120 of
+fill. The two helper laws and the loop induction were each right on the first
+run once the witness type was a `Data` ADT with `+` fields.
+
+The same trick is the general lesson: **when a proof has to use a witness twice,
+give the witness a `Data` ADT with `+` fields rather than an `Exists`, and never
+write a `+` re-bind.**
 
 ### Small harness facts that cost time
 
@@ -551,3 +590,19 @@ Do not weaken the statement to dodge this (`Ex`, `Nat.div`-shaped or
 - A `%` motive may mention the hole more than once, and that is how two
   occurrences of the same stuck subterm get rewritten together (`sub_pos` on
   the GT branch touches four positions in one step).
+- A `%` motive that is not an equation must be written *without* braces. `{P}`
+  parses as the annotation form `{x : T}` and fails with `expected ':' observed
+  '}'`; `{a == b}` is the equation form. So a motive that is a bare predicate
+  application (`Nat.divides_both(..)`) goes in bare:
+  `%e : NL.Nat.divides_both(<hole>, ..)`.
+- A destructure pattern must name the constructor the scrutinee's type actually
+  declares: `(q, e) = d` only ever matches `Sigma`/`Tuple`, so a hand-written
+  witness ADT needs `Div{q, e} = d`. The error when you forget is `a
+  constructor of <your type> (missing, or already matched)`.
+- `+field`s in a hand-written `Data` ADT are the copy mechanism that works: a
+  `+` re-bind or `+` pattern field of a *Sigma* field makes the checker re-check
+  the dependent field type `B(fst)`, which after whnf sharing is an application
+  whose head is a share cell holding a lambda -- `term_infer` cannot see through
+  the cell and reports `an annotated term (cannot infer)`. `Data` ADT `+field`s
+  are Many by declaration, so a plain pattern suffices and nothing is
+  re-checked.
