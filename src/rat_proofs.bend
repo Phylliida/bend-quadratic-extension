@@ -879,6 +879,71 @@ def R.Rat.mk_idem(c, np, nn, dp, e):
       Pair.snd(N.Nat.divides(G, R.Rat.mag(P, Q)), N.Nat.divides(G, 1n+dp),
         N.gcd_divides(R.Rat.mag(P, Q), 1n+dp))))
 
+# Rat.mk.rep: the goal's two sides are
+#   mk(Rat.num(U,V), d)   and   mk(Int{U,V}, d)
+# which unfold -- mk destructures its argument -- to
+#   Rat{Int{div(sub(P,Q), G1), div(sub(Q,P), G1)}, div(d, G1)}   and
+#   Rat{Int{div(P, G2), div(Q, G2)}, div(d, G2)}
+# with P = sub(U,V), Q = sub(V,U), G1 = gcd(mag(P,Q), d), G2 = gcd(mag(U,V), d).
+# The two agree coordinate by coordinate once the mag of the *one-sided* pair is
+# collapsed: the two sub_diags mk.fixed's fill makes, here at the explicit
+# comparisons cmp(U,V) and cmp(V,U) -- so no flip evidence and no comparison
+# parameter.
+#
+# The rewrites have to reach three places each (both div dividends and the gcd
+# that is the divisor), and the dividends sit under Nat.div, which is why every
+# step is an Equal.cong with a motive rather than a %:
+#
+#   eg      the gcds agree -- the two summands of mag(P,Q) collapse, and what is
+#           left is literally mag(U,V);
+#   E1/E2/E3 the three coordinates agree, one cong on the dividend and one on
+#           the divisor apiece;
+#   En      the numerator pair, one cong per slot;
+#   and then one cong per Rat slot, the denominator of the value not moving at
+#   all.
+#
+# No division is ever evaluated, so nothing needs positivity or a divisibility
+# witness: this is a rewrite of the quotients' arguments, which is what
+# Equal.cong delivers.
+def R.Rat.mk.rep(U, V, d):
+  +P = Nat.sub(U, V)
+  +Q = Nat.sub(V, U)
+  +G1 = R.Rat.g(P, Q, d)
+  +G2 = R.Rat.g(U, V, d)
+  +A = Nat.div(Nat.sub(P, Q), G1)
+  +B = Nat.div(Nat.sub(Q, P), G1)
+  +Rr = Nat.div(d, G1)
+  +A2 = Nat.div(P, G2)
+  +B2 = Nat.div(Q, G2)
+  +Rr2 = Nat.div(d, G2)
+  +ePQ = N.sub_diag(Nat.cmp(U, V), U, V, {==})
+  +eQP = N.sub_diag(Nat.cmp(V, U), V, U, {==})
+  +eg = Equal.cong(Nat, Nat, u => N.Nat.gcd(u, d),
+    Nat.add(Nat.sub(P, Q), Nat.sub(Q, P)),
+    Nat.add(P, Q),
+    Equal.trans(Nat,
+      Nat.add(Nat.sub(P, Q), Nat.sub(Q, P)),
+      Nat.add(P, Nat.sub(Q, P)),
+      Nat.add(P, Q),
+      Equal.cong(Nat, Nat, u => Nat.add(u, Nat.sub(Q, P)), Nat.sub(P, Q), P, ePQ),
+      Equal.cong(Nat, Nat, u => Nat.add(P, u), Nat.sub(Q, P), Q, eQP)))
+  +E1 = Equal.trans(Nat, A, Nat.div(P, G1), A2,
+    Equal.cong(Nat, Nat, u => Nat.div(u, G1), Nat.sub(P, Q), P, ePQ),
+    Equal.cong(Nat, Nat, u => Nat.div(P, u), G1, G2, eg))
+  +E2 = Equal.trans(Nat, B, Nat.div(Q, G1), B2,
+    Equal.cong(Nat, Nat, u => Nat.div(u, G1), Nat.sub(Q, P), Q, eQP),
+    Equal.cong(Nat, Nat, u => Nat.div(Q, u), G1, G2, eg))
+  +E3 = Equal.cong(Nat, Nat, u => Nat.div(d, u), G1, G2, eg)
+  +En = Equal.trans(I.Int, I.Int{A, B}, I.Int{A2, B}, I.Int{A2, B2},
+    Equal.cong(Nat, I.Int, u => I.Int{u, B}, A, A2, E1),
+    Equal.cong(Nat, I.Int, u => I.Int{A2, u}, B, B2, E2))
+  Equal.trans(R.Rat,
+    R.Rat{I.Int{A, B}, Rr},
+    R.Rat{I.Int{A2, B2}, Rr},
+    R.Rat{I.Int{A2, B2}, Rr2},
+    Equal.cong(I.Int, R.Rat, u => R.Rat{u, Rr}, I.Int{A, B}, I.Int{A2, B2}, En),
+    Equal.cong(Nat, R.Rat, u => R.Rat{I.Int{A2, B2}, u}, Rr, Rr2, E3))
+
 # The product shape
 # =================
 #

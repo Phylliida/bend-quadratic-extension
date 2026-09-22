@@ -517,6 +517,30 @@ law Rat.mk_idem.raw:
   {Rat.mk(Rat.numof(Rat.mk(Rat.num(np, nn), d)), Rat.denof(Rat.mk(Rat.num(np, nn), d)))
    == Rat.mk(Rat.num(np, nn), d) : Rat}
 
+# The representative bridge
+# =========================
+#
+# Rat.num(U, V) and Int{U, V} are the same integer in two *representations*:
+# Rat.num is the one-sided difference pair (sub(U,V), sub(V,U)), Int{U,V} is the
+# raw pair. They are equal in value and not ==, and that difference is invisible
+# to mk as long as the value is one-sided -- but mk *destructures* what it is
+# handed, so it sees the two presentations as different raw coordinates:
+# mag(sub(U,V),sub(V,U)) is a sum of two truncations where mag(U,V) is the pair
+# itself. The bridge says the normalization does not care: mk's output is the
+# same Rat either way. This is what the additive laws need, because an Int.add
+# numerator is a sum of two difference pairs and Rat.mk.value names *that* sum
+# in Rat.num spelling, while the Int ring laws see the raw pair.
+
+# Rat.mk.rep: mk is blind to which representative of the numerator's value it is
+# handed. Unconditional, and no comparison parameter is needed: the two
+# sub_diags that collapse mag(sub(U,V),sub(V,U)) are instances at the explicit
+# comparisons cmp(U,V) and cmp(V,U), so nothing has to be flipped in.
+law Rat.mk.rep:
+  for +U: Nat
+  for +V: Nat
+  for +d: Nat
+  {Rat.mk(Rat.num(U, V), d) == Rat.mk(I.Int{U, V}, d) : Rat}
+
 # The product shape
 # =================
 #
