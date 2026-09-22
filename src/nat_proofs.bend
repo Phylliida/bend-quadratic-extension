@@ -1483,3 +1483,30 @@ def NL.div_self_scale(q, b):
       Nat.mul(1n+b, q),
       NL.mul_comm(q, 1n+b),
       Equal.cong(Nat, Nat, u => Nat.mul(u, q), 1n+b, 1n+b, {==})))
+
+# div_cross: the divisor becomes the successor pos_witness provides -- one
+# rewrite touching both divisions -- and the two witness equations are
+# re-spelled to the same divisor (one cong each, on the g inside the product).
+# div_exact then collapses div(d, 1+b) to r and div(p, 1+b) to q, so the goal
+# is mul(q, mul(1+b, r)) == mul(mul(1+b, q), r): mul_assoc pulls the left
+# product inside out, mul_comm orders the two factors, and the sides meet.
+def NL.div_cross(p, g, q, d, r, gp, e1, e2):
+  +e1b = Equal.trans(Nat, p, Nat.mul(g, q), Nat.mul(1n+Nat.sub(g, 1n), q), e1,
+    Equal.cong(Nat, Nat, u => Nat.mul(u, q), g, 1n+Nat.sub(g, 1n), NL.pos_witness(g, gp)))
+  +e2b = Equal.trans(Nat, d, Nat.mul(g, r), Nat.mul(1n+Nat.sub(g, 1n), r), e2,
+    Equal.cong(Nat, Nat, u => Nat.mul(u, r), g, 1n+Nat.sub(g, 1n), NL.pos_witness(g, gp)))
+  %Equal.sym(Nat, g, 1n+Nat.sub(g, 1n), NL.pos_witness(g, gp))
+    : {Nat.mul(Nat.div(p, _), d) == Nat.mul(p, Nat.div(d, _)) : Nat}
+  %Equal.sym(Nat, Nat.div(d, 1n+Nat.sub(g, 1n)), r, NL.div_exact(d, Nat.sub(g, 1n), r, e2b))
+    : {Nat.mul(Nat.div(p, 1n+Nat.sub(g, 1n)), d) == Nat.mul(p, _) : Nat}
+  %Equal.sym(Nat, Nat.div(p, 1n+Nat.sub(g, 1n)), q, NL.div_exact(p, Nat.sub(g, 1n), q, e1b))
+    : {Nat.mul(_, d) == Nat.mul(p, r) : Nat}
+  %Equal.sym(Nat, d, Nat.mul(1n+Nat.sub(g, 1n), r), e2b)
+    : {Nat.mul(q, _) == Nat.mul(p, r) : Nat}
+  %Equal.sym(Nat, p, Nat.mul(1n+Nat.sub(g, 1n), q), e1b)
+    : {Nat.mul(q, Nat.mul(1n+Nat.sub(g, 1n), r)) == Nat.mul(_, r) : Nat}
+  %NL.mul_assoc(q, 1n+Nat.sub(g, 1n), r)
+    : {_ == Nat.mul(Nat.mul(1n+Nat.sub(g, 1n), q), r) : Nat}
+  %NL.mul_comm(q, 1n+Nat.sub(g, 1n))
+    : {Nat.mul(Nat.mul(q, 1n+Nat.sub(g, 1n)), r) == Nat.mul(_, r) : Nat}
+  {==}

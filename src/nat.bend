@@ -1217,6 +1217,34 @@ law div_self_scale:
   for +b: Nat
   {Nat.div(Nat.mul(q, 1n+b), 1n+b) == q : Nat}
 
+# div_cross: the value of an exact division -- the cross product
+#
+#     div(p, g) * d == p * div(d, g)
+#
+# for a dividend and a cofactor that are both known to be multiples of g
+# (p = g*q, d = g*r, which is what the two witness hypotheses say, one quotient
+# per side). This is the Nat content of the Rat value lemma
+# (num(mk(n,d))*d == n*den(mk(n,d))): each coordinate of that cross product is
+# an instance, at g := the gcd mk cancels.
+#
+# The divisor is a *variable* with a positivity hypothesis rather than the
+# literal 1 + b every other law in this block is stated over. That is the one
+# deliberate difference: the Rat caller's divisor is a computed gcd, and
+# re-spelling it as a successor at the call site would be an Equal.cong over
+# the whole goal for every use, in every branch of a case split. The fill pays
+# that rewrite once instead (pos_witness), after which div_exact applies to
+# both divisions.
+law div_cross:
+  for +p: Nat
+  for +g: Nat
+  for +q: Nat
+  for +d: Nat
+  for +r: Nat
+  for +gp: {Nat.cmp(0n, g) == LT{} : Cmp}
+  for +e1: {p == Nat.mul(g, q) : Nat}
+  for +e2: {d == Nat.mul(g, r) : Nat}
+  {Nat.mul(Nat.div(p, g), d) == Nat.mul(p, Nat.div(d, g)) : Nat}
+
 # divides_pos_wit: a positive multiple of g forces g to be a successor, stated
 # over the divisibility witness -- the positivity half of what div_scale needs
 # of its divisor.

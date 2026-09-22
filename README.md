@@ -36,10 +36,11 @@ case analysis, and that case analysis is what the switch removed. See
 Laws and proofs live in separate files; each `*_proofs.bend` fills every
 law of its sibling via `def <alias>.<name>(...)`:
 
-- `src/nat.bend` — the 121 Nat/Cmp laws (including the `Nat.divmod` and
+- `src/nat.bend` — the 122 Nat/Cmp laws (including the `Nat.divmod` and
   `Nat.gcd` blocks, the exact-division block, the difference-pair helpers, the
-  scaling/divisibility bridges, and the cross-sum lemmas the Int quotient lemma
-  rests on),
+  scaling/divisibility bridges, `div_cross` -- the exact-division cross
+  product the Rat value lemma is built from -- and the cross-sum lemmas the Int
+  quotient lemma rests on),
   plus `Cmp.flip`, the gcd defs and the `Nat.Div` witness type. No proofs.
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
@@ -60,8 +61,8 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `*_proofs.bend` files and `scratch.bend` are the gates and print
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
-transitive over imports: nat.bend 121, int.bend 28, qext.bend 30 = 28 Int + 2
-QExt, rat.bend 167 = 121 Nat + 28 Int + 18 Rat.
+transitive over imports: nat.bend 122, int.bend 28, qext.bend 30 = 28 Int + 2
+QExt, rat.bend 168 = 122 Nat + 28 Int + 18 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
