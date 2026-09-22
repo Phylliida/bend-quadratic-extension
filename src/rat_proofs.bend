@@ -633,3 +633,12 @@ def R.Rat.mk.eqv(n1, dp1, n2, dp2, e):
         Equal.cong(Nat, R.Rat, u => R.Rat.mk(I.Int.mul(n2, I.Int{1n+dp1, 0n}), u),
           Nat.mul(1n+dp1, 1n+dp2), Nat.mul(1n+dp2, 1n+dp1), N.mul_comm(1n+dp1, 1n+dp2)),
         R.Rat.mk.scale(n2, dp2, dp1))))
+
+# Rat.mk.den.pos: one call of div_pos_wit at the second half of the
+# divisibility witness gcd_divides returns for (mag, 1+dp) -- Pair.snd takes it
+# out of the pair.
+def R.Rat.mk.den.pos(np, nn, dp):
+  N.div_pos_wit(R.Rat.g(np, nn, 1n+dp), dp,
+    Pair.snd(N.Nat.divides(R.Rat.g(np, nn, 1n+dp), R.Rat.mag(np, nn)),
+      N.Nat.divides(R.Rat.g(np, nn, 1n+dp), 1n+dp),
+      N.gcd_divides(R.Rat.mag(np, nn), 1n+dp)))

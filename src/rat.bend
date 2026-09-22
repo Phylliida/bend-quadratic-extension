@@ -331,3 +331,13 @@ law Rat.mk.eqv:
   for +dp2: Nat
   for +e: {I.Int.mul(n1, I.Int{1n+dp2, 0n}) == I.Int.mul(n2, I.Int{1n+dp1, 0n}) : I.Int}
   {Rat.mk(n1, 1n+dp1) == Rat.mk(n2, 1n+dp2) : Rat}
+
+# Rat.mk.den.pos: the denominator of a normalized fraction is positive. This is
+# the one canonicality clause of Rat.mk's output the normalization proves by
+# itself -- the numerator is a difference pair by construction, and coprimality
+# of the output is the deep part this route deliberately avoids.
+law Rat.mk.den.pos:
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  {Nat.cmp(0n, Nat.div(1n+dp, Rat.g(np, nn, 1n+dp))) == LT{} : Cmp}
