@@ -16,7 +16,7 @@ type QExt is Data:
 
 # a natural radicand as an integer
 def QExt.nat(d: Nat) -> I.Int:
-  I.Int{False{}, d}
+  I.Int{d, 0n}
 
 def QExt.add(x: QExt, y: QExt) -> QExt:
   QExt{+xr, +xi} = x

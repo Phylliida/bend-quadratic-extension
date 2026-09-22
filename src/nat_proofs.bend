@@ -67,6 +67,14 @@ def NL.mul_succ(a, b):
       %NL.add_exchange(ap, b, Nat.mul(ap, b)) : {1n+Nat.add(ap, Nat.add(b, Nat.mul(ap, b))) == 1n+_ : Nat}
       {==}
 
+def NL.mul_one(a):
+  match a:
+    case 0n:
+      {==}
+    case 1n+ap:
+      %NL.mul_one(ap) : {1n+ap == 1n+_ : Nat}
+      {==}
+
 def NL.mul_comm(a, b):
   match a:
     case 0n:
