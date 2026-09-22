@@ -998,3 +998,26 @@ law Rat.mul_distrib:
            Rat.add(Rat{Rat.num(np2, nn2), 1n+dp2}, Rat{Rat.num(np3, nn3), 1n+dp3}))
    == Rat.add(Rat.mul(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np2, nn2), 1n+dp2}),
               Rat.mul(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np3, nn3), 1n+dp3})) : Rat}
+
+# Rat.mul_add_left
+# ================
+#
+# (x + y) * z = x*z + y*z for canonical values -- the mirror of the law above,
+# and free from it: `(x + y)*z = z*(x + y) = z*x + z*y = x*z + y*z` is
+# Rat.mul_comm, Rat.mul_distrib (at the summands in the other order) and two
+# Rat.mul_comms under a congruence -- the same three-step shape Rat.add_exchange
+# has on the additive side. No new arithmetic, no cross sum, no case split.
+law Rat.mul_add_left:
+  for +np1: Nat
+  for +nn1: Nat
+  for +dp1: Nat
+  for +np2: Nat
+  for +nn2: Nat
+  for +dp2: Nat
+  for +np3: Nat
+  for +nn3: Nat
+  for +dp3: Nat
+  {Rat.mul(Rat.add(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np2, nn2), 1n+dp2}),
+           Rat{Rat.num(np3, nn3), 1n+dp3})
+   == Rat.add(Rat.mul(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np3, nn3), 1n+dp3}),
+              Rat.mul(Rat{Rat.num(np2, nn2), 1n+dp2}, Rat{Rat.num(np3, nn3), 1n+dp3})) : Rat}
