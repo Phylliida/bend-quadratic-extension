@@ -7,6 +7,14 @@ whoever picks this up next. Everything here was learned by hitting the
 checker; each pattern below appears in a file in this repo that currently
 passes `All terms check.`
 
+`Int` has since been re-represented as a `(pos, neg)` difference pair, which
+retired the whole `Int.add_assoc` case-analysis campaign described below. See
+"Why Int is a (pos, neg) difference pair" for the measurement, and the
+campaign section (kept as the record of what the previous representation
+cost). The rewrite discipline, the affinity rules, the `%` orientation trap
+and the termination rules are unchanged by that switch: they are properties
+of the checker, not of `Int`.
+
 ## Toolchain
 
 - No `bend` binary needed: `node bend2/main.ts file.bend` from a bend
@@ -123,19 +131,23 @@ verified empirically on this checkout:
   cannot use it)`.
 - **A laws-only file does not check.** Open laws count as TODOs, so
   `node bend2/main.ts src/nat.bend` exits 1 with
-  `Error: 78 TODOs found. The code is incomplete, and not a valid proof
-  yet.` — and the count is transitive over imports (int.bend reports
-  101 = 78 Nat + 23 Int; qext.bend 103). This is expected; the
-  `*_proofs.bend` files are the gates that print `All terms check.`
+  `Error: 79 TODOs found. The code is incomplete, and not a valid proof
+  yet.` — and the count is transitive over imports (int.bend reports 19 on
+  its own, since it imports only `Base`; qext.bend 21 = 19 Int + 2 QExt).
+  This is expected; the `*_proofs.bend` files are the gates that print
+  `All terms check.`
 - **Defs are not laws**: a def a law *statement* needs (`Cmp.flip` in
   `cmp_antisym`, `flip_eq_lt`, ...) must live in the laws file; anything
   only proofs touch (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`) moves
-  to the proofs file. int.bend's one cross-module statement dependency
-  is `N.Cmp.flip` in `Int.add.opp_comm`, so it keeps its
-  `import ./nat.bend as N` even though the proofs all moved out.
+  to the proofs file. int.bend used to need `import ./nat.bend as N` for
+  `N.Cmp.flip` in `Int.add.opp_comm`; with the `(pos, neg)` representation
+  no Int law statement mentions `Nat` at all, so int.bend imports only
+  `Base` and the transitive TODO count no longer includes nat.bend.
 - **Files with a `main`** that returns a value print only the normalized
   value, not `All terms check.` — scratch.bend printing
-  `src/int.Int{False{}, 5n}` with exit 0 *is* the pass signal there.
+  `(src/int.Int{10n, 5n}, src/int.Int{10n, 5n})` with exit 0 *is* the pass
+  signal there (both sides of `(3 + -5) + 7` land on the same non-canonical
+  representative of 5, which is what `(pos, neg)` equality looks like).
 
 ## Gotchas
 
@@ -161,7 +173,13 @@ verified empirically on this checkout:
   `-`/`+` glued to a name starts a binder, not an operator; space your
   operators.
 
-## Int.add_assoc campaign
+## Int.add_assoc campaign (historical: sign-magnitude `Int`)
+
+Kept as the record of what the old representation cost. Under the `(pos, neg)`
+`Int` this whole campaign is seven lines (see the next section); nothing below
+applies to the current `src/int.bend`. The `Nat` inventory it forced into
+existence (`ci1`..`ci10`, the `cmp_*` bridges) is still in `src/nat.bend` and
+is still what `Int.canon` and gcd will want.
 
 How `Int.add_assoc` actually fell (int.bend 494 → 890 lines, no new Nat
 lemmas needed — the ci1..ci10 inventory built for it covered everything):
@@ -206,19 +224,80 @@ lemmas needed — the ci1..ci10 inventory built for it covered everything):
   but ~120 of that is mechanical mirror text (ttf = fft with signs
   swapped) and per-branch `%e` duplication.
 
+## Why Int is a (pos, neg) difference pair
+
+The trigger was `Int.mul_distrib`, which turned out to be **false** under the
+sign-magnitude representation, not merely unproved. `Int.add` canonicalized
+its zero (through `Int.mk`), `Int.mul` did not, so the two sides of
+distributivity disagreed on the *representation* of 0:
+
+    Int.mul(Int{True,0}, Int{False,1} + Int{True,1}) = Int{True,0}
+    Int.mul(Int{True,0},Int{False,1}) + Int.mul(Int{True,0},Int{True,1}) = Int{False,0}
+
+and it fails even for the canonical zero: x = `Int{False,0}`, y = `Int{True,3}`,
+z = `Int{False,1}` gives `Int{True,0}` against `Int{False,0}`. It holds only
+for nonzero x. Making `Int.mul` canonicalize through `Int.mk` fixes it, but
+`Int.mk` matches on its magnitude, so `Int.mul(Int.mk(s,m), y)` is a *stuck*
+term while `m` is symbolic — which then infects every composite product in
+every downstream proof. Two unfolding laws (`Int.mul.mk_left`,
+`Int.mul.mk_right`, stated flipped so `%e` fires left-to-right) unstick just
+the existing laws; the distributivity proof itself would still need sign cases
+crossed with magnitude cases crossed with cmp cases.
+
+`Int{pos, neg}` = `pos - neg` removes the problem at the root: every operation
+is a constructor, so nothing is ever stuck and no law sees a case split.
+
+Measured on a throwaway prototype of the same five laws, before committing:
+
+| law | `(pos, neg)` proof lines | sign-magnitude proof lines |
+|---|---|---|
+| `add_comm` | 7 | 13 |
+| `add_assoc` | **7** | **545** (+ ~124 lines of helper-law statements) |
+| `mul_comm` | 14 | 7 |
+| `mul_distrib` | **17, one branch, zero case analysis** | not proved; false as stated |
+| `mul_assoc` | 38 (two `Nat`-half chains + assembly) | 9 (+16 lines of `Int.mul.mk_*` unfoldings) |
+
+The trade, stated plainly so nobody re-derives it the hard way: `Int` is now a
+*presentation*, not a canonical form. `Int{1,0}` and `Int{2,1}` are both 1 and
+are not `==`, so `==` no longer decides equality. That obligation moves to
+`Int.canon` (a `Nat.cmp` on the two sides) plus its quotient lemma
+(`canon x == canon y` iff `xp + yn == yp + xn`), and then to `Rat`
+normalization. It does not disappear — it relocates to exactly the gcd
+territory that was always going to be the hard part, which is the right place
+for it: the ring laws are bookkeeping, and `(pos, neg)` makes them formal.
+
+## Splitting a law into its two Nat halves
+
+When a `Z`-level goal is two independent coordinate equations, prove the
+coordinates as their own laws and assemble:
+
+    def Z.mul_assoc(x, y, z):
+      match x y z:
+        case Z{xp, xn} Z{yp, yn} Z{zp, zn}:
+          %Equal.sym(Nat, <pos LHS>, <pos RHS>, Z.mul_assoc.pos(xp, xn, yp, yn, zp, zn))
+            : {Z{_, <neg LHS>} == Z{<pos RHS>, <neg LHS>} : Z}
+          %Equal.sym(Nat, <neg LHS>, <neg RHS>, Z.mul_assoc.neg(xp, xn, yp, yn, zp, zn))
+            : {Z{<pos RHS>, _} == Z{<pos RHS>, <neg RHS>} : Z}
+          {==}
+
+Each chain's `%e` annotations then spell only one coordinate instead of the
+whole goal — roughly half the text — and the assembly is three lines. The
+`Equal.sym` is needed to orient the half-law's equation so `%` replaces the
+half-LHS with the half-RHS; state the halves either way round, but pick one
+and say so in the law comment.
+
 ## Rough cost model (calibrated on this spike)
 
 - Nat lemma (comm/assoc class): ~15 lines, minutes each once the style
   clicks.
 - Discrimination bridge: ~10 lines each, write the set once.
 - mul_distrib-class shuffle: ~25 lines, the trans chain is the bulk.
-- Int.mul_comm / QExt.mul_comm: nearly free given the layer below (~6–60
-  lines, first-try).
-- `Int.add_assoc` (sign-magnitude): done — +396 lines on top of the
-  truncated-sub/ordering library, inside the 300–500 estimate (see the
-  campaign section above). `Rat` with gcd
-  normalization needs a division correctness proof — the hardest single
-  lemma on the path to the field axioms.
+- Int law under `(pos, neg)`: 3–8 lines each (`{==}` when the operation is
+  structural in the right way, e.g. `Int.neg_invol`, `Int.neg_add`,
+  `Int.sub_eq_add_neg`); a shuffle (distributivity, associativity) is 15–40.
+  Under sign-magnitude the same laws were 7–545.
+- `Rat` with gcd normalization needs a division correctness proof — the
+  hardest single lemma on the path to the field axioms.
 - Unary `Nat` is O(value) at runtime. Proofs don't care; CAD-sized
   coordinates will. A binary-nat layer is the right next investment.
 

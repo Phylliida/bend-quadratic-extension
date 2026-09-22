@@ -51,6 +51,11 @@ law mul_succ:
   for +b: Nat
   {Nat.add(a, Nat.mul(a, b)) == Nat.mul(a, 1n+b) : Nat}
 
+# mul_one: a = a*1  (stated flipped so rewrites fire left-to-right)
+law mul_one:
+  for +a: Nat
+  {a == Nat.mul(a, 1n) : Nat}
+
 # mul_comm: a * b = b * a
 law mul_comm:
   for +a: Nat
