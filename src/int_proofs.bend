@@ -354,6 +354,14 @@ def I.Int.eq.neg(a, b, c, d, e):
 # motive marks the subterm the evidence's right side sits at, so a step that
 # rewrites a difference inside a sum spells the sum around the hole; a motive
 # that does not mention the subterm at all would rewrite nothing.
+# Int.scale.pair: the right side unfolds to Int{add(p*q, 0), add(p*0, 0)}; the
+# two zero products come off (mul_zero for the stuck one, computation for
+# mul(0,q)) and add(0,0) is 0 by computation.
+def I.Int.scale.pair(p, q):
+  %Equal.sym(Nat, Nat.add(Nat.mul(p, q), 0n), Nat.mul(p, q), N.add_zero(Nat.mul(p, q))) : {I.Int{Nat.mul(p, q), 0n} == I.Int{_, Nat.add(Nat.mul(p, 0n), 0n)} : I.Int}
+  %Equal.sym(Nat, Nat.mul(p, 0n), 0n, N.mul_zero(p)) : {I.Int{Nat.mul(p, q), 0n} == I.Int{Nat.mul(p, q), Nat.add(_, 0n)} : I.Int}
+  {==}
+
 # Int.scale.cancel: both sides of the hypothesis go to the coordinate pair
 # Int.mul_scale names (one sym rewrite each), the two coordinates are read off
 # with Int.eq.pos / Int.eq.neg, Nat.mul_right_cancel turns each into the

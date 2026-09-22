@@ -172,6 +172,15 @@ law Int.mul_scale:
   for +d: Nat
   {Int.mul(Int{xp, xn}, Int{d, 0n}) == Int{Nat.mul(xp, d), Nat.mul(xn, d)} : Int}
 
+# Int.scale.pair: a Nat-scaled unit is the product of the two units -- the
+# shape law that lets a proof take a single scale apart into its factors (and
+# put it back together), which is what a *ring* permutation of a product needs:
+# a factor that is a scale has to become factors before it can be moved.
+law Int.scale.pair:
+  for +p: Nat
+  for +q: Nat
+  {Int{Nat.mul(p, q), 0n} == Int.mul(Int{p, 0n}, Int{q, 0n}) : Int}
+
 # Int.scale.cancel: a positive scale can be cancelled -- multiplication by
 # Int{1+kp, 0n} is injective. The Nat content is Nat.mul_right_cancel; what
 # this law adds is the Int spelling, and a consumer needs it whenever it has
