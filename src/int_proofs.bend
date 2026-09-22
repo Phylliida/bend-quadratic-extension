@@ -410,3 +410,59 @@ def I.Int.canon.eqv.fwd(c1, xp, xn, c2, yp, yn, e1, e2, e):
           %Equal.sym(Nat, Nat.add(Nat.sub(xn, xp), xp), xn, N.cmp_lt_sub_add(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1))) : {Nat.add(_, yp) == Nat.add(yp, xn) : Nat}
           %Equal.sym(Nat, Nat.add(xn, yp), Nat.add(yp, xn), N.add_comm(xn, yp)) : {_ == Nat.add(yp, xn) : Nat}
           {==}
+
+# Int.canon.eqv.bwd: the reverse of the quotient lemma. The branch structure is
+# the case split on the two comparisons, and each branch is one law from
+# nat.bend (cross_gt_gt / cross_cmp) plus a congruence -- the arithmetic all
+# happened there, so nothing below is longer than a call.
+#
+# The goal in a branch has canon.go applied to a *constructor* comparison, so
+# it reduces to the branch's Int: what the cong's endpoints spell is that
+# reduced Int, and the Int equation the goal wants is exactly
+# {Int{A, 0n} == Int{B, 0n}} (GT), {Int{0n, A} == Int{0n, B}} (LT) or
+# {Int{0n, 0n} == Int{0n, 0n}} (EQ).
+def I.Int.canon.eqv.bwd(c1, xp, xn, c2, yp, yn, e1, e2, e):
+  match c1:
+    case GT{}:
+      match c2:
+        case GT{}:
+          Equal.cong(Nat, I.Int, u => I.Int{u, 0n},
+            Nat.sub(xp, xn), Nat.sub(yp, yn),
+            N.cross_gt_gt(xp, xn, yp, yn,
+              Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e1),
+              Equal.sym(Cmp, GT{}, Nat.cmp(yp, yn), e2), e))
+        case EQ{}:
+          Empty.absurd({I.Int{Nat.sub(xp, xn), 0n} == I.Int{0n, 0n} : I.Int},
+            N.gt_ne_eq(N.cross_cmp(GT{}, xp, xn, EQ{}, yp, yn, e1, e2, e)))
+        case LT{}:
+          Empty.absurd({I.Int{Nat.sub(xp, xn), 0n} == I.Int{0n, Nat.sub(yn, yp)} : I.Int},
+            N.gt_ne_lt(N.cross_cmp(GT{}, xp, xn, LT{}, yp, yn, e1, e2, e)))
+    case EQ{}:
+      match c2:
+        case GT{}:
+          Empty.absurd({I.Int{0n, 0n} == I.Int{Nat.sub(yp, yn), 0n} : I.Int},
+            N.eq_ne_gt(N.cross_cmp(EQ{}, xp, xn, GT{}, yp, yn, e1, e2, e)))
+        case EQ{}:
+          {==}
+        case LT{}:
+          Empty.absurd({I.Int{0n, 0n} == I.Int{0n, Nat.sub(yn, yp)} : I.Int},
+            N.eq_ne_lt(N.cross_cmp(EQ{}, xp, xn, LT{}, yp, yn, e1, e2, e)))
+    case LT{}:
+      match c2:
+        case GT{}:
+          Empty.absurd({I.Int{0n, Nat.sub(xn, xp)} == I.Int{Nat.sub(yp, yn), 0n} : I.Int},
+            N.lt_ne_gt(N.cross_cmp(LT{}, xp, xn, GT{}, yp, yn, e1, e2, e)))
+        case EQ{}:
+          Empty.absurd({I.Int{0n, Nat.sub(xn, xp)} == I.Int{0n, 0n} : I.Int},
+            N.lt_ne_eq(N.cross_cmp(LT{}, xp, xn, EQ{}, yp, yn, e1, e2, e)))
+        case LT{}:
+          Equal.cong(Nat, I.Int, u => I.Int{0n, u},
+            Nat.sub(xn, xp), Nat.sub(yn, yp),
+            N.cross_gt_gt(xn, xp, yn, yp,
+              N.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1)),
+              N.cmp_gt_of_lt(yp, yn, Equal.sym(Cmp, LT{}, Nat.cmp(yp, yn), e2)),
+              Equal.trans(Nat, Nat.add(xn, yp), Nat.add(yp, xn), Nat.add(yn, xp),
+                N.add_comm(xn, yp),
+                Equal.trans(Nat, Nat.add(yp, xn), Nat.add(xp, yn), Nat.add(yn, xp),
+                  Equal.sym(Nat, Nat.add(xp, yn), Nat.add(yp, xn), e),
+                  N.add_comm(xp, yn)))))

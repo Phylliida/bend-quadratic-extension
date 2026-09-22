@@ -86,11 +86,7 @@ def NL.mul_comm(a, b):
       {==}
 
 # Discrimination predicates: CmpIsEQ(c) is Unit when c is EQ, else Empty.
-law CmpIsEQ:
-  for c: Cmp
-  Type
-
-def CmpIsEQ(c):
+def CmpIsEQ(c: Cmp) -> Type:
   match c:
     case EQ{}:
       Unit
@@ -99,11 +95,7 @@ def CmpIsEQ(c):
     case GT{}:
       Empty
 
-law CmpIsGT:
-  for c: Cmp
-  Type
-
-def CmpIsGT(c):
+def CmpIsGT(c: Cmp) -> Type:
   match c:
     case GT{}:
       Unit
@@ -485,11 +477,7 @@ def NL.succ_inj(a, b, e):
   Equal.cong(Nat, Nat, Nat.pred, 1n+a, 1n+b, e)
 
 # NatIsPos: discrimination family, Unit on successors, Empty on zero
-law NatIsPos:
-  for n: Nat
-  Type
-
-def NatIsPos(n):
+def NatIsPos(n: Nat) -> Type:
   match n:
     case 0n:
       Empty
@@ -716,6 +704,95 @@ def NL.mul_sub(a, b, c, e):
     Nat.mul(c, Nat.sub(a, b)),
     NL.sub_of_add(Nat.mul(c, Nat.sub(a, b)), Nat.mul(c, b), Nat.mul(c, a),
       NL.mul_sub_add(a, b, c, e)))
+
+# The cross-sum lemmas
+# ====================
+#
+# Neither fill is an induction: both are single Equal chains, because neither
+# statement is about a recursive Nat -- only cmp_add_right, cmp_gt_sub_add,
+# add_assoc and add_comm are involved, one step each.
+
+# cross_gt_gt: cancel the common add(xn,yn) from the cross sum, after expanding
+# the two differences. The first half is
+#   A + (xn+yn) = (A+xn) + yn = xp + yn          (add_assoc backwards,
+#                                                 cmp_gt_sub_add)
+# and the second is the hypothesis, then the mirrored expansion of yp inside
+# its right side, then add_assoc and add_comm to swing the trailing xn in:
+#   xp + yn = yp + xn = (B+yn) + xn = B + (yn+xn) = B + (xn+yn).
+def NL.cross_gt_gt(xp, xn, yp, yn, e1, e2, e):
+  NL.add_cancel(Nat.sub(xp, xn), Nat.sub(yp, yn), Nat.add(xn, yn),
+    Equal.trans(Nat,
+      Nat.add(Nat.sub(xp, xn), Nat.add(xn, yn)),
+      Nat.add(xp, yn),
+      Nat.add(Nat.sub(yp, yn), Nat.add(xn, yn)),
+      Equal.trans(Nat,
+        Nat.add(Nat.sub(xp, xn), Nat.add(xn, yn)),
+        Nat.add(Nat.add(Nat.sub(xp, xn), xn), yn),
+        Nat.add(xp, yn),
+        Equal.sym(Nat,
+          Nat.add(Nat.add(Nat.sub(xp, xn), xn), yn),
+          Nat.add(Nat.sub(xp, xn), Nat.add(xn, yn)),
+          NL.add_assoc(Nat.sub(xp, xn), xn, yn)),
+        Equal.cong(Nat, Nat, u => Nat.add(u, yn),
+          Nat.add(Nat.sub(xp, xn), xn), xp,
+          NL.cmp_gt_sub_add(xp, xn, e1))),
+      Equal.trans(Nat,
+        Nat.add(xp, yn),
+        Nat.add(yp, xn),
+        Nat.add(Nat.sub(yp, yn), Nat.add(xn, yn)),
+        e,
+        Equal.trans(Nat,
+          Nat.add(yp, xn),
+          Nat.add(Nat.add(Nat.sub(yp, yn), yn), xn),
+          Nat.add(Nat.sub(yp, yn), Nat.add(xn, yn)),
+          Equal.cong(Nat, Nat, u => Nat.add(u, xn),
+            yp, Nat.add(Nat.sub(yp, yn), yn),
+            Equal.sym(Nat, Nat.add(Nat.sub(yp, yn), yn), yp,
+              NL.cmp_gt_sub_add(yp, yn, e2))),
+          Equal.trans(Nat,
+            Nat.add(Nat.add(Nat.sub(yp, yn), yn), xn),
+            Nat.add(Nat.sub(yp, yn), Nat.add(yn, xn)),
+            Nat.add(Nat.sub(yp, yn), Nat.add(xn, yn)),
+            NL.add_assoc(Nat.sub(yp, yn), yn, xn),
+            Equal.cong(Nat, Nat, u => Nat.add(Nat.sub(yp, yn), u),
+              Nat.add(yn, xn), Nat.add(xn, yn), NL.add_comm(yn, xn)))))))
+
+# cross_cmp: c1 reaches the common scaled comparison in one step (the branch's
+# own evidence, then cmp_add_right backwards); that comparison reaches c2
+# through the hypothesis, commutation, cmp_add_right on the other pair, and the
+# second branch's evidence backwards.
+def NL.cross_cmp(c1, xp, xn, c2, yp, yn, e1, e2, e):
+  Equal.trans(Cmp,
+    c1,
+    Nat.cmp(Nat.add(xp, yn), Nat.add(xn, yn)),
+    c2,
+    Equal.trans(Cmp,
+      c1,
+      Nat.cmp(xp, xn),
+      Nat.cmp(Nat.add(xp, yn), Nat.add(xn, yn)),
+      e1,
+      Equal.sym(Cmp,
+        Nat.cmp(Nat.add(xp, yn), Nat.add(xn, yn)),
+        Nat.cmp(xp, xn),
+        NL.cmp_add_right(xp, xn, yn))),
+    Equal.trans(Cmp,
+      Nat.cmp(Nat.add(xp, yn), Nat.add(xn, yn)),
+      Nat.cmp(Nat.add(yp, xn), Nat.add(yn, xn)),
+      c2,
+      Equal.trans(Cmp,
+        Nat.cmp(Nat.add(xp, yn), Nat.add(xn, yn)),
+        Nat.cmp(Nat.add(yp, xn), Nat.add(xn, yn)),
+        Nat.cmp(Nat.add(yp, xn), Nat.add(yn, xn)),
+        Equal.cong(Nat, Cmp, u => Nat.cmp(u, Nat.add(xn, yn)),
+          Nat.add(xp, yn), Nat.add(yp, xn), e),
+        Equal.cong(Nat, Cmp, u => Nat.cmp(Nat.add(yp, xn), u),
+          Nat.add(xn, yn), Nat.add(yn, xn), NL.add_comm(xn, yn))),
+      Equal.trans(Cmp,
+        Nat.cmp(Nat.add(yp, xn), Nat.add(yn, xn)),
+        Nat.cmp(yp, yn),
+        c2,
+        NL.cmp_add_right(yp, yn, xn),
+        Equal.sym(Cmp, c2, Nat.cmp(yp, yn), e2))))
 
 # Nat.divmod
 # ==========

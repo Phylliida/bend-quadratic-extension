@@ -303,10 +303,13 @@ and say so in the law comment.
 
 ## The Rat route: remaining plan
 
-State at handoff: `Int` is `Int{pos, neg}` = `pos - neg` with all 19 ring laws
-proved; `Int.canon` (+ `canon.pos`, `canon.neg`, `canon.idem`) is in; the Nat
+State at handoff (updated after the `Int.canon.eqv.bwd` unit): `Int` is
+`Int{pos, neg}` = `pos - neg` with all 19 ring laws proved; `Int.canon` (+
+`canon.pos`, `canon.neg`, `canon.idem`, `canon.scale`) is in, and so is the
+quotient lemma in both directions (`Int.canon.eqv.fwd` / `.bwd`); the Nat
 scaling groundwork (`cmp_add_left`, `cmp_mul_right`, `mul_sub_add`,
-`sub_of_add`, `mul_sub`, `mul_one`) is in. Everything below is still open.
+`sub_of_add`, `mul_sub`, `mul_one`) is in. Everything from "The target" down is
+still open.
 
 Check with (from a bend checkout):
 
@@ -427,7 +430,11 @@ i.e. more division correctness.
    divisibility (`gcd.go.divides`, `gcd.divides_lt`/`gcd.divides_gt`,
    `gcd_divides`) -- see the last section for what the divisibility half cost.
 3. `Int.canon.scale`, and `Int.canon.eqv` (the quotient lemma,
-   `canon x == canon y` iff `xp + yn == yp + xn`) if it fits.
+   `canon x == canon y` iff `xp + yn == yp + xn`). **Done**: scaling
+   (`Int.canon.scale.go`/`Int.canon.scale`) and both halves of the quotient
+   lemma (`Int.canon.eqv.fwd`, `Int.canon.eqv.bwd`), on top of the Nat
+   cross-sum lemmas `cross_gt_gt`/`cross_cmp` -- see the last section for the
+   route that turned out to be cheaper than the plan.
 4. `Rat`: the type, `Rat.mk`, canonicality by the scaling route, then the
    field axioms.
 5. `QExt` over `Rat`: field axioms plus the inverse
@@ -574,9 +581,10 @@ write a `+` re-bind.**
 
 ## Int.canon: what the scaling and quotient lemmas cost
 
-`Int.canon.scale` (`canon(x*(1+kp)) == canon(x)*(1+kp)`) and the forward half of
-the quotient lemma (`Int.canon.eqv.fwd`: equal canonical forms force
-`xp + yn == yp + xn`) are proved. Notes for whoever picks up the rest.
+`Int.canon.scale` (`canon(x*(1+kp)) == canon(x)*(1+kp)`) and both halves of the
+quotient lemma (`Int.canon.eqv.fwd`: equal canonical forms force
+`xp + yn == yp + xn`; `Int.canon.eqv.bwd`: the reverse) are proved. Notes for
+whoever picks up the rest.
 
 ### Shape: thread the comparison, or you cannot case on it
 
@@ -644,32 +652,50 @@ ends up on the left, and the checker does not complain if it disagrees with `e`.
 The reliable spelling is: to replace the goal's subterm `X` with `Y`, write the
 evidence `{Y == X}`, i.e. `Equal.sym(T, X, Y, <lemma stated {X == Y}>)`.
 
-### The backward half: not proved, and what it needs
+### The backward half: proved, and the plan it did not need
 
-`xp + yn == yp + xn` giving the canon equation is *not* in the tree (so it is not
-stated either -- an unfilled law would make every dependent gate report TODOs).
-The plan, if it is wanted:
+`Int.canon.eqv.bwd` is in the tree (statement in `src/int.bend`, fill in
+`src/int_proofs.bend`), so the two halves together are the quotient lemma. The
+plan above works, but it is not the cheap route: the disagreeing branches need
+neither three helper laws nor `sub_pos`/`succ_ne_zero`, and the agreeing
+branches want their `add_cancel` chain *factored into Nat* rather than written
+inline twice. Two moves replaced the whole thing:
 
-- (GT/GT), (LT/LT): `cmp_gt_sub_add` / `cmp_lt_sub_add` turn the hypothesis into
-  `add(A, add(xn,yn)) == add(B, add(xn,yn))` with `A = sub(xp,xn)`,
-  `B = sub(yp,yn)` -- an `Equal.trans` chain of about six `cong`/assoc/comm links
-  -- and `add_cancel` then gives `{A == B}`. `Equal.sym` on that is the whole
-  rewrite the goal needs. (EQ/EQ) is `{==}`.
-- The six disagreeing pairs need a contradiction, and the clean way to get one
-  uniformly is three Nat helper laws (`GT vs EQ`, `GT vs LT`, `EQ vs LT`, each
-  with the cross-sum equation as a hypothesis), because the other three follow
-  by calling them with the arguments swapped and `Equal.sym` on the cross sum.
-  For `GT vs EQ`: `cmp_eq` turns the EQ side into an equality, cancelling gives
-  `xp == xn`, and `Nat.cmp(xp,xn) == GT` with `xp == xn` collapses to
-  `GT{} == EQ{}` (`cmp_refl` through a `cong`), which `gt_ne_eq` refutes. For
-  `GT vs LT`: cancel `xn + yp` out of the cross sum to get
-  `{add(A, B') == 0n}`, rewrite `A` with `sub_pos` to make the left side a
-  successor, and `Nat.succ_ne_zero` refutes it.
+- **State the whole case analysis as one lemma whose conclusion is what the
+  caller refutes.** `cross_cmp` (`src/nat.bend`) concludes `{c1 == c2 : Cmp}`,
+  so its own fill has no case split at all: `cmp_add_right` says adding the
+  same amount to both sides preserves a comparison, so the cross sum rewrites
+  `cmp(add(xp,yn), add(xn,yn))` (which is `c1`, by `cmp_add_right(xp,xn,yn)`)
+  into `cmp(add(yp,xn), add(yn,xn))` (which is `c2`, same law on the other pair
+  plus `add_comm`) -- congruence and commutation, no arithmetic, one `Equal`
+  chain. The *caller* then refutes the equation with whichever of the six
+  discrimination laws names its branch (`gt_ne_eq`, `gt_ne_lt`, `eq_ne_lt`, ...:
+  the file ships all six orientations), which makes each of the six vacuities
+  two lines. Compare the plan's three GT/EQ, GT/LT, EQ/LT laws, each with its
+  own induction and its own `sub_pos`/`succ_ne_zero` endgame: one lemma whose
+  fill is a `trans` chain beats three whose fills are case analyses.
+- **Push the arithmetic down to a Nat law whose statement *is* the caller's
+  goal.** `cross_gt_gt` states GT/GT as the Nat equation
+  `sub(xp,xn) == sub(yp,yn)`; its fill expands both differences with
+  `cmp_gt_sub_add` and cancels the common `add(xn,yn)` -- that is the plan's
+  6-link chain, written once, in Nat, where no goal-orientation decision is
+  left to get wrong. LT/LT is the same law with the two arguments swapped
+  (`cmp_gt_of_lt` flips both evidences, the cross sum is commuted, and the
+  conclusion `sub(xn,xp) == sub(yn,yp)` is exactly what the LT canon form
+  holds), so the second agreeing branch costs no new mathematics either.
 
-`Int.canon.eqv` itself is then the pair of the two halves; it is *not* needed for
-the Rat route (that uses the forward direction of normalization, i.e.
-`canon.scale`, and the reverse direction of the quotient lemma is trivial there
-because two equal canonical Rats have equal fields).
+What is left in the Int fill is nine branches of assembly -- a `Equal.cong`
+into the `Int` constructor for the two agreeing non-zero branches, `Empty.absurd`
+for the six vacuities and `{==}` for EQ/EQ -- and the only thing that needs
+care there is that the goal in a branch has already reduced
+(`canon.go(GT{}, ..)` is `Int{sub(xp,xn), 0n}`, which is what the `cong`'s
+endpoints and the `Empty.absurd` goal have to spell).
+
+`Int.canon.eqv` as a single "iff" statement is still not in the tree: what the
+two halves give is the pair of implications, and the `Rat` route consumes only
+the forward one (`canon.scale`), with the reverse direction of the *quotient*
+lemma coming for free because two equal canonical `Rat`s have equal fields.
+
 
 ### Small harness facts that cost time
 

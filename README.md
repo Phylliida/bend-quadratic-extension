@@ -36,9 +36,9 @@ case analysis, and that case analysis is what the switch removed. See
 Laws and proofs live in separate files; each `*_proofs.bend` fills every
 law of its sibling via `def <alias>.<name>(...)`:
 
-- `src/nat.bend` — the 101 Nat/Cmp laws (including the `Nat.divmod` and
-  `Nat.gcd` blocks), plus `Cmp.flip`, the gcd defs and the `Nat.Div` witness
-  type. No proofs.
+- `src/nat.bend` — the 103 Nat/Cmp laws (including the `Nat.divmod` and
+  `Nat.gcd` blocks, and the cross-sum lemmas the Int quotient lemma rests on),
+  plus `Cmp.flip`, the gcd defs and the `Nat.Div` witness type. No proofs.
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 - `src/int.bend` — `Int` type, the ops (`Int.zero`, `Int.one`, `Int.add`,
@@ -55,7 +55,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The three
 `*_proofs.bend` files and `scratch.bend` are the gates and print
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
-transitive over imports: nat.bend 101, int.bend 27, qext.bend 29 = 27 Int +
+transitive over imports: nat.bend 103, int.bend 28, qext.bend 30 = 28 Int +
 2 QExt.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
@@ -68,20 +68,21 @@ arguments* (`gcd.go.divides`, with the two per-step assembly laws
 loop itself is defined in `src/nat.bend` (`Nat.gcd.go` / `Nat.gcd`); two errors
 in the PROVING.md sketch were found and fixed there (see that file).
 
+`Int.canon` is proved idempotent, natural under scaling
+(`Int.canon.scale`), and a *decider* of Int equality: `Int.canon.eqv.fwd` and
+`Int.canon.eqv.bwd` are the two halves of the quotient lemma (`canon x ==
+canon y` exactly when `xp + yn == yp + xn`). The Nat halves both halves rest on
+are `cross_gt_gt` and `cross_cmp` in `src/nat.bend`. Only the forward direction
+is on the Rat route; the reverse one is here because it is what "canon
+decides equality" means.
+
 Known gaps, in dependency order:
 
-1. `Int.canon.eqv` — the quotient lemma (`canon x == canon y` iff
-   `xp + yn == yp + xn`). Its forward half (`Int.canon.eqv.fwd`) and
-   `Int.canon.scale` (`canon(x*k) == canon(x)*k`, `k >= 1`) — what Rat
-   normalization uses — *are* proved. The backward half (the cross-sum
-   equation giving the canon equation) is not proved yet and is therefore not
-   stated either; the quotient lemma is currently in the tree as its forward
-   half only.
-2. `Rat{num: Int, den: Nat}` with `Rat.mk` normalizing via `Int.canon` +
+1. `Rat{num: Int, den: Nat}` with `Rat.mk` normalizing via `Int.canon` +
    gcd, then the field axioms. Canonicality is proved by the scaling route
    (`norm(n*k, d*k) == norm(n,d)`), which needs only the *forward*
    direction — "equal values have equal normal forms" — and therefore does
    not need coprime-ness or Euclid's lemma.
-3. `QExt` over `Rat`: field axioms plus the multiplicative inverse
+2. `QExt` over `Rat`: field axioms plus the multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`).
-4. Binary nats for performance (unary `Nat` is O(value)).
+3. Binary nats for performance (unary `Nat` is O(value)).

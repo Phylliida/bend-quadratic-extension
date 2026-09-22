@@ -615,6 +615,56 @@ law cmp_sub_flip_of:
   for +eb: {Nat.cmp(c, b) == GT{} : Cmp}
   {Cmp.flip(d) == Nat.cmp(a, Nat.sub(c, b)) : Cmp}
 
+# The cross-sum lemmas
+# ====================
+#
+# Int.canon.eqv.bwd -- "xp + yn = yp + xn forces canon x = canon y" -- needs
+# two Nat facts, one per shape of its case split (the two comparisons agree, or
+# they disagree):
+#
+#   - cross_gt_gt: the comparisons agree and are GT, so both canon forms are a
+#     difference against zero and the cross sum has to yield the difference
+#     itself.
+#   - cross_cmp: the comparisons disagree, so the cross sum is impossible.
+#     Stated as the comparison equation {c1 == c2} so the caller refutes it
+#     with whichever of the six discrimination laws fits its branch
+#     (gt_ne_eq, gt_ne_lt, ...) -- one lemma for all six branches, and none of
+#     them needs any arithmetic: adding the same amount to both sides preserves
+#     a comparison (cmp_add_right), so the cross sum carries cmp(xp,xn) to
+#     cmp(yp,yn) by congruence and commutation alone.
+
+# cross_gt_gt: sub(xp,xn) = sub(yp,yn) from the cross sum, when both
+# comparisons are GT. A = sub(xp,xn) and B = sub(yp,yn) are the two canon
+# coordinates, and A + xn = xp (B + yn = yp) by cmp_gt_sub_add, so the cross
+# sum is an equation about A and B whose common add(xn,yn) cancels.
+law cross_gt_gt:
+  for +xp: Nat
+  for +xn: Nat
+  for +yp: Nat
+  for +yn: Nat
+  for +e1: {Nat.cmp(xp, xn) == GT{} : Cmp}
+  for +e2: {Nat.cmp(yp, yn) == GT{} : Cmp}
+  for +e: {Nat.add(xp, yn) == Nat.add(yp, xn) : Nat}
+  {Nat.sub(xp, xn) == Nat.sub(yp, yn) : Nat}
+
+# cross_cmp: the cross sum forces the two comparisons to agree. Both sides of
+# the conclusion are the *same* comparison of the *same* two sums: c1 is
+# reached by scaling cmp(xp,xn) on the right (cmp_add_right), c2 through the
+# hypothesis, commutation and cmp_add_right on the other pair. d is not a
+# parameter here -- the branches' evidence is worthless, the equation itself is
+# what the caller refutes.
+law cross_cmp:
+  for c1: Cmp
+  for +xp: Nat
+  for +xn: Nat
+  for c2: Cmp
+  for +yp: Nat
+  for +yn: Nat
+  for +e1: {c1 == Nat.cmp(xp, xn) : Cmp}
+  for +e2: {c2 == Nat.cmp(yp, yn) : Cmp}
+  for +e: {Nat.add(xp, yn) == Nat.add(yp, xn) : Nat}
+  {c1 == c2 : Cmp}
+
 # Nat.divmod
 # ==========
 #
