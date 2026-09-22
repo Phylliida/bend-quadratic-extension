@@ -50,14 +50,17 @@ law of its sibling via `def <alias>.<name>(...)`:
   nat.bend, filled by the nat_proofs.bend import).
 - `src/qext.bend` — `QExt` type, `QExt.nat`/`add`/`mul`, and the two laws.
 - `src/qext_proofs.bend` — fills both qext.bend laws.
+- `src/rat.bend` — `Rat{num, den}`, `Rat.mk` (gcd normalization, match-free),
+  `Rat.add`/`neg`/`sub`/`mul`/`zero`/`one`, and the laws.
+- `src/rat_proofs.bend` — fills every rat.bend law.
 - `scratch.bend` — smoke test with a `main`.
 
-Check with `node bend2/main.ts <file>` from a bend checkout. The three
+Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `*_proofs.bend` files and `scratch.bend` are the gates and print
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
-transitive over imports: nat.bend 109, int.bend 28, qext.bend 30 = 28 Int +
-2 QExt.
+transitive over imports: nat.bend 109, int.bend 28, qext.bend 30 = 28 Int + 2
+QExt, rat.bend 140 = 109 Nat + 28 Int + 3 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -79,11 +82,19 @@ decides equality" means.
 
 Known gaps, in dependency order:
 
-1. `Rat{num: Int, den: Nat}` with `Rat.mk` normalizing via `Int.canon` +
-   gcd, then the field axioms. Canonicality is proved by the scaling route
-   (`norm(n*k, d*k) == norm(n,d)`), which needs only the *forward*
-   direction — "equal values have equal normal forms" — and therefore does
-   not need coprime-ness or Euclid's lemma.
+1. `Rat`: the type, `Rat.mk` and the operations are in (`src/rat.bend`), with
+   `Rat.add_comm`, `Rat.mul_comm` and `Rat.sub_eq_add_neg` proved — the laws
+   whose two sides are `Rat.mk` of the same raw arguments. Still open, in
+   dependency order:
+   - `Rat.mk.canon` (mk is the identity on a reduced fraction) and
+     `Rat.mk.scale` (`mk(n*k, d*k) == mk(n,d)`), which need the Nat exact
+     division block already in place, then
+   - `Rat.mk.eqv` (`n1*d2 == n2*d1` implies `mk(n1,d1) == mk(n2,d2)`, i.e.
+     `==` decides rational equality), and
+   - the laws that compose two normalized results — `add_zero`, `mul_one`,
+     `mul_zero`, `neg_neg`, `mul_assoc`, `add_assoc`, `mul_distrib`: each of
+     those needs `mk.scale`/`mk.eqv` because the inner `Rat.mk` has already
+     cancelled a gcd before the outer one looks at its arguments.
 2. `QExt` over `Rat`: field axioms plus the multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`).
 3. Binary nats for performance (unary `Nat` is O(value)).
