@@ -157,6 +157,21 @@ law Int.mul_swap:
   for +c: Int
   {Int.mul(Int.mul(a, b), c) == Int.mul(Int.mul(a, c), b) : Int}
 
+# Int.mul_scale: the raw spelling of "multiply by the natural d", Int.mul(x,
+# Int{d, 0n}), is the coordinate pair (xp*d, xn*d).
+#
+# This is a *shape* law, not a ring law: it names what the Int product reduces
+# to once the two zero products are off, and that shape is what the Rat value
+# lemma's consumers want on both sides of their equations (num(mk(n,d))*d is
+# Int.mul of the numerator with Int{d,0}, and the cleaned form is the same
+# coordinates scaled). Stated over raw coordinates because Int.mul destructures
+# its left argument, so the cleaned pair has to name xp and xn.
+law Int.mul_scale:
+  for +xp: Nat
+  for +xn: Nat
+  for +d: Nat
+  {Int.mul(Int{xp, xn}, Int{d, 0n}) == Int{Nat.mul(xp, d), Nat.mul(xn, d)} : Int}
+
 # Int.mul_distrib: x * (y + z) = x*y + x*z
 law Int.mul_distrib:
   for +x: Int
