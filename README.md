@@ -57,19 +57,14 @@ law of its sibling via `def <alias>.<name>(...)`:
   nat.bend, filled by the nat_proofs.bend import).
 - `src/qext.bend` — `QExt` type, `QExt.nat`/`add`/`mul`, and the two laws.
 - `src/qext_proofs.bend` — fills both qext.bend laws.
-- `src/qrat_rat.bend` — `Rat` core: rat.bend's definitions (`Rat{num, den}`,
-  `Rat.mk`/`num`/`mag`/`g`/`mk.go`, `add`/`neg`/`sub`/`mul`) plus the Rat laws
-  the layer above consumes (`add_comm`, `mul_comm`, `mk.canon`, `mk.fixed`,
-  `neg_neg`, and the whole value machinery `Rat.add_assoc` needs: the
-  `mk.scale` block, `mk.value`, `mk.rep`, `mk.trunc`, `mk.eqv.val` and the
-  mixed value law). All twenty statements are transcription-identical to
-  rat.bend's (checked verbatim, key by key). A second copy of rat.bend's
-  *definitions* and *statements*, because rat_proofs.bend (which fills
-  rat.bend's own laws) cannot be imported — see PROVING.md.
 - `src/qrat.bend` — `QExt` over `Rat`: the type, `QExt.nat`/`zero`/`one`/
-  `add`/`neg`/`sub`/`mul`, and the four laws.
-- `src/qrat_proofs.bend` — fills every qrat.bend law and the five Rat facts
-  qrat_rat.bend declares.
+  `add`/`neg`/`sub`/`mul`, and the four laws. Its coefficients are rat.bend's
+  `Rat` (`import ./rat.bend as R`); there is no second copy of the Rat layer.
+- `src/qrat_proofs.bend` — fills every qrat.bend law, and only those: the two
+  coordinate witnesses, the `QExt.mul` coordinate chains, and the four fills.
+  The Rat laws it calls (`R.Rat.add_comm`, `R.Rat.mul_comm`, `R.Rat.neg_neg`)
+  are rat.bend's own, filled by the `rat_proofs.bend` import — the same
+  three-file arrangement `int_proofs.bend` uses for nat.bend.
 - `src/rat.bend` — `Rat{num, den}` with the field projections `Rat.numof` /
   `Rat.denof`, `Rat.mk` (gcd normalization, match-free),
   `Rat.add`/`neg`/`sub`/`mul`/`zero`/`one`, and the laws.
@@ -81,8 +76,9 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The five
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 126, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 197 = 126 Nat + 32 Int + 39 Rat, qrat_rat.bend 178 = 126 Nat +
-32 Int + 20 Rat core, qrat.bend 182 = 178 + 4 QExt.
+QExt, rat.bend 197 = 126 Nat + 32 Int + 39 Rat, qrat.bend 201 = 126 Nat +
+32 Int + 39 Rat + 4 QExt (it imports rat.bend itself, so its count is
+rat.bend's plus its own four laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -258,36 +254,37 @@ Known gaps, in dependency order:
    `QExt.neg_neg` is componentwise `Rat.neg_neg` and therefore carries that
    law's coprimality hypothesis on *both* coordinates -- the Rat law is false
    unconditionally for the same reason (== is structural, and a negated value
-   comes back mk-headed), and the QExt statement inherits exactly that. Landing
-   it needed two more Rat laws in the `qrat_rat.bend` copy (`mk.fixed` and
-   `neg_neg`, both transcription-identical to rat.bend's, since rat_proofs.bend
-   is not importable) plus one Nat helper: the divisor `mk` computes for the
-   *negated* coordinate is `sub(sub(nn,np),sub(np,nn)) + sub(np,nn)`, and the
-   step to `Rat.mag(np,nn)` is `nat.sub.min` (`(a-b) - min(a,b) = (a-b)`, three
-   branches on Nat.cmp) -- not `sub_self`, whose conclusion needs its two
-   arguments to be the same term (measured: `expected : {Nat.sub(nn, np) == 0n}`
-   / `observed : {Nat.sub(Nat.sub(nn, np), Nat.sub(nn, np)) == 0n}`), and not
-   `sub_cross` + `add_cancel`, which relates the two *padded* quantities and
-   cannot cancel a padding that sits on the right of both products.
+   comes back mk-headed), and the QExt statement inherits exactly that. It is
+   now two `R.Rat.neg_neg` calls, one per coordinate, into rat.bend's own
+   (rat_proofs.bend-filled) law. The earlier round could not call it and
+   restated it instead -- a Nat helper (`nat.sub.min`, `(a-b) - min(a,b) =
+   (a-b)`, three branches on Nat.cmp, not `sub_self` and not `sub_cross` +
+   `add_cancel`) plus two Rat helpers (`rat.mk.fixed.neg`, `rat.neg.neg`) went
+   with the copy. All five are deleted: the Rat-level work is
+   `rat_proofs.bend`'s fill, called at the law's own telescope with a literal
+   `Nat.cmp` and `{==}` evidence.
    `QExt.add_assoc` is *not* yet in, and the reason is measured rather than
    guessed. Its statement is componentwise -- `add` of QExt values is `Rat.add`
    per coordinate -- so the fill looks like one `Rat.add_assoc` per coordinate,
    but `Rat.add_assoc` is stated over the *canonical presentation*
    (`Rat{Rat.num(np,nn), 1+dp}`) while the coordinates here are the *outputs*
    of `Rat.add`, i.e. `mk`-headed; calling it with a `Rat` argument fails with
-   `expected : Nat / observed : qrat_rat.Rat`, because the law's parameters are
+   `expected : Nat / observed : qrat_rat.Rat` (the spelling the deleted copy
+   had; it is `rat.Rat` now), because the law's parameters are
    the nine `Nat`s of that presentation. So the composing laws need one more
    Rat lemma each, stated for `mk`-headed arguments
    (`add(add(x,y),z) == add(x,add(y,z))` with `x`, `y`, `z` operations'
-   outputs), whose fill is the ported proof below with the argument heads
-   generalised: in the ported `Rat.add_assoc`, every argument appears only
+   outputs), whose fill is rat_proofs.bend's own `Rat.add_assoc` proof with the
+   argument heads generalised: in that proof, every argument appears only
    through `Rat.mk.trunc` on its own raw pair (`(U1,V1)` for the canonical
    argument, computed from `np1`, `nn1` in the fill), so the same chain runs
    with `(A_pos, A_neg) = (numof(x), denof(x))` in those slots -- the
    `mk.trunc` step becomes the `mk_idem.raw`/`mk.rep` bridge that turns `x`
    into `mk(Rat.num(numof(x),denof(x)), denof(x))`. `mul_assoc` and
    `mul_distrib` need the same treatment; the value machinery and the whole
-   `add_assoc` proof are now in place for it (see below). The multiplicative inverse
+   `add_assoc` proof are now in place for it, in `rat_proofs.bend` itself (the
+   machinery is rat.bend's, and the fills are reachable from here now). The
+   multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`) is the step after that,
    and it is the one that needs `Rat.sub` under both distributive laws.
 3. Binary nats for performance (unary `Nat` is O(value)).
