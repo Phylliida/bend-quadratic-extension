@@ -2098,3 +2098,78 @@ rather than as a rule.
 generalised wrongly. When a wall appears, compare it against the mechanism this
 document already describes -- the helper-naming rule was written down for
 `nat_proofs` long before it bit `rat_proofs`.
+
+## The composing QExt laws: what the canonical presentation buys, what blocks the general form
+
+`QExt.add_assoc` landed in the *canonical presentation* -- six coordinates, each
+`Rat{Rat.num(np,nn), 1n+dp}` -- and its fill is exactly what the componentwise
+shape promised: one `R.Rat.add_assoc` per coordinate, two calls, no hypothesis
+and no case analysis. That is the same convention `QExt.neg_neg` already uses and
+the one qrat.bend's header documents, and it is what makes the call possible at
+all: `Rat.add_assoc`'s nine parameters *are* that presentation.
+
+**The form over arbitrary QExt values is not in, and the reason is a proof-side
+wall, not a false statement.** Both halves of that claim were measured.
+
+*Truth side: nine witnesses, no counterexample.* Law-level reasoning is not
+available here (the checker cannot reduce `Rat.add` on a variable), so the law
+was **evaluated**: the operations were called on witnesses outside the canonical
+presentation -- zero denominators, non-successor denominators, two-sided and
+gcd-reducible numerators -- and the two sides compared. Writing
+`Rat{Int{p,q}, d}` for `(p - q)/d`, all nine triples agree:
+
+    (1/0, 1/1, 1/1)         both Rat{Int{1,0}, 0}
+    (1/1, 1/0, 1/0)         both Rat{Int{0,0}, 0}
+    (9/4, 2/6, 7/0)         both Rat{Int{1,0}, 0}
+    (0/0, 3-1/2, 1-1/0)     both Rat{Int{0,0}, 0}
+    (3-1/2, 1/3, -2/5)      both Rat{Int{14,0}, 15}
+    (7-2/4, 1-5/6, 3-3/2)   both Rat{Int{7,0}, 12}
+    (2-1/0, -3/0, 5/0)      both Rat{Int{0,0}, 0}
+    (2-3/0, 5-1/0, -4/0)    both Rat{Int{0,0}, 0}
+    (4/6, -5/0, 2-2/2)      both Rat{Int{0,1}, 0}
+
+The pattern behind them is that a zero denominator makes both sides collapse to
+the *sign* of one coordinate (the gcd of the inner sum's magnitude with a zero
+denominator is that magnitude, so `div` turns the numerator into +-1 and the
+outer denominator into 0), and the two sides collapse with the same sign. So no
+evaluated witness justifies a hypothesis.
+
+*Proof side: the closing lemma needs positivity, which nothing can supply.* For
+arbitrary coordinates the Rat-level goal's two sides are `mk`-headed terms, and
+the only lemma that compares two such terms is `Rat.mk.eqv.val`, whose
+hypotheses include `Nat.cmp(0n, d1) == LT{}` and `Nat.cmp(0n, d2) == LT{}` --
+positivity of the two denominators it compares. An arbitrary `Rat` has none:
+`Rat{Int{1,0}, 0}` is a legal argument, `mk`'s behaviour there is junk (rat.bend
+says so where it defines `mk.go`), and every value lemma in the layer carries the
+same hypothesis for the same reason (`mk.value`, `mk_idem.raw`,
+`add.value.mixed`, and `Nat.div_pos_wit` under them). Reaching the general form
+therefore needs one of:
+
+- an mk-headed `Rat.add_assoc` stated at those same hypotheses -- and then a way
+  to *discharge* them for arbitrary coordinates, which does not exist (an
+  arbitrary coordinate's denominator is not positive, and no bridge turns an
+  arbitrary `Rat` into a canonical one: `==` is structural, so
+  `Rat{Int{4,0}, 2}` is not `Rat{Rat.num(4,0), 2}`); or
+- a proof of the zero-denominator cases on their own: a case analysis on which of
+  the three input denominators is zero, with the collapse lemmas under it
+  (`gcd(a, 0) = a`, `div(a, a) = 1`, `mul(x, 0) = 0`, `div(0, g) = 0`), which the
+  nine witnesses above say would work but which is a campaign of its own.
+
+**The multiplicative composing laws are further out, for a second reason.**
+`QExt.mul`'s coordinates are *sums of products* (`xa*ya + d*xb*yb`), so
+`QExt.mul_assoc` and `QExt.mul_distrib` are not componentwise
+`Rat.mul_assoc`/`Rat.mul_distrib` calls at all -- the derivation needs those Rat
+laws at **mk-headed** arguments (every product and every sum in the goal is an
+operation's output), i.e. the same rung-2 work, and it needs it for three Rat
+laws rather than one.
+
+**The rung-2 shape, when it is built.** The statement that both a fill and a
+caller can use is over *arbitrary Rat variables*
+(`for +x: Rat, +y: Rat, +z: Rat {add(add(x,y),z) == add(x,add(y,z)) : Rat}`), not
+over `Rat.mk(...)` applications: a caller's coordinates are pattern variables,
+`Rat.add` on a variable is stuck, and a law whose arguments are constructor
+literals cannot be instantiated at a stuck term. Its fill is reachable in the
+same way the fills in this repo already reach past a match -- one helper def per
+level of destructuring, since a def's *parameters* may be matched at its body
+head (`match xa ya za:` inside the helper that takes them), which sidesteps the
+"no nested matches on pattern variables" rule without weakening anything.
