@@ -2173,3 +2173,69 @@ same way the fills in this repo already reach past a match -- one helper def per
 level of destructuring, since a def's *parameters* may be matched at its body
 head (`match xa ya za:` inside the helper that takes them), which sidesteps the
 "no nested matches on pattern variables" rule without weakening anything.
+
+## The rung-2 mk-headed `Rat.add_assoc`: the one bridge, and why the `Int` endpoint cannot carry it
+
+The rung-2 additive law over arbitrary Rat variables with the positivity of the
+three inputs as hypotheses (`{Nat.cmp(0n, Rat.denof(x)) == LT{}}` on `x`, `y`,
+`z`) is settled except for **one bridge**: "mk of a projection pair is mk of
+`Rat.num(a,b)`". Everything else about it was derived and nothing about it is a
+fill problem; the bridge is where the round stopped, and the three measurements
+below are why it is not the step it looks like.
+
+**What the bridge's left side actually is.** `Rat.mk_idem.raw`'s left side is
+`mk(Rat.numof(M), denof(M))` with `M = mk(Rat.num(a,b), d)`, and `mk` reduced its
+argument, so it is
+
+    mk(I.Int{Nat.div(Nat.sub(P, Q), G2), Nat.div(Nat.sub(Q, P), G2)}, W)
+    P = sub(a,b)   Q = sub(b,a)   G2 = gcd(sub(P,Q) + sub(Q,P), d)   W = denof(M)
+
+-- note the *outer* gcd: its magnitude is `mag(P,Q)`, a sum of two truncations,
+not `mag(a,b)`. Naming `Rat.num(a,b)` means two **`sub_diag` collapses that reach
+under a `Nat.div` dividend**, one per coordinate, and the two sit in *different
+positions of the same `Int`*.
+
+**Why one congruence cannot do both.** `Equal.cong(Nat, Int, u => Int{div(u,G2),
+r}, sub(P,Q), P, sub_diag(...))` puts `P` in the first coordinate and leaves the
+second untouched, so the second coordinate's own collapse is unreachable by the
+same motive; a 2-step `Equal.trans` using two such congs then leaves
+
+    Nat.div(Nat.sub(Nat.sub(a,b), Nat.sub(b,a)), G) == Nat.div(Nat.sub(a,b), G)
+
+which **`{==}` cannot close** although `sub_diag` proves the two dividends equal:
+once one coordinate of an `Int` has been rewritten, the two `Int`-level endpoints
+stop being convertible, so the checker no longer sees the pair it would have to
+compare. (A let-bound `u => Nat.div(u, G2)` cong is rejected outright --
+`cannot infer` -- the rule this file already records.)
+
+**The measurement that retires the "bridge" framing.** `R.Rat.num(p,q)` and
+`I.Int{p,q}` **are definitionally equal** -- `Rat.num` unfolds to
+`Int{sub(p,q), sub(q,p)}` -- so there is no gap of *that* kind to bridge anywhere.
+The difficulty is only the truncations inside the projection's two `div`s, and
+that is why the honest statement of the missing fact is
+`mk(Int{div(P',G2), div(Q',G2)}, W) == mk(Rat.num(a,b), W)` with `P'`, `Q'` the
+projection's own arguments, not a respelling of `Rat.num`.
+
+**Consequence for the statement.** `mk(I.Int{p,q}, W) == mk(Rat.num(p,q), d)` is
+**false as a universal statement**: it would demand
+`Int{p,q} == Rat.numof(mk(Rat.num(p,q),d))`, i.e. that the projection's two
+quotients reproduce the raw pair. So the helper has to be **parameterized by the
+truncation equalities** and both collapses have to be performed in **one pass**
+(a single `Equal.cong` whose evidence is the pair equation, not two steps).
+
+**Last measured error, for the record:**
+
+    - expected : Nat.sub(a, b)
+    - observed : Nat.sub(Nat.sub(a, b), Nat.sub(b, a))
+    Location: Rat.mk_idem.form
+
+**The one spelling this round did not try**, and the reason it is the right next
+move: state the helper over
+`mk(I.Int{sub(sub(a,b),sub(b,a)), sub(sub(b,a),sub(a,b))}, W)` on the left --
+exactly the pair `mk_idem.raw` produces, written as one term -- and reach the
+goal's `mk(Rat.num(a,b), W)` by **one `Equal.cong` on `Rat.mk`'s second argument
+plus the two coordinate collapses in one pass**, so that no `Int`-level endpoint
+is ever left half-rewritten. The alternative, if that fails too, is to have the
+worker supply positivity at the projections' own `Rat.denof` spelling (`pq`),
+which `mk_idem.raw` requires but which no caller can currently write
+definitionally.
