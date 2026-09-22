@@ -1209,6 +1209,14 @@ law div_scale:
   for +p: {Nat.cmp(0n, g) == LT{} : Cmp}
   {Nat.div(Nat.mul(mag, 1n+kp), Nat.mul(g, 1n+kp)) == Nat.div(mag, g) : Nat}
 
+# div_self_scale: div(q*(1+b), 1+b) = q -- the cancellation at the centre of
+# the Rat value lemma, and div_exact with the dividend left in the product shape
+# the goal already has, so nothing has to be rearranged to apply it.
+law div_self_scale:
+  for +q: Nat
+  for +b: Nat
+  {Nat.div(Nat.mul(q, 1n+b), 1n+b) == q : Nat}
+
 # divides_pos_wit: a positive multiple of g forces g to be a successor, stated
 # over the divisibility witness -- the positivity half of what div_scale needs
 # of its divisor.

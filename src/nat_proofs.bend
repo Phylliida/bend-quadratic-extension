@@ -1471,3 +1471,15 @@ def NL.div_pos_wit(g, ap, w):
           NL.pos_witness(g, NL.divides_pos_wit(g, 1n+ap, w, {==}))))))
     : {Nat.cmp(0n, _) == LT{} : Cmp}
   NL.mul_pos_right(g, q, ap, e)
+
+# div_self_scale: div_exact wants the dividend as mul(1n+b, q), and the product
+# the goal holds is mul(q, 1n+b) -- so the two sides are related by mul_comm
+# alone, with the middle term left in the dividend spelling div_exact asks for.
+def NL.div_self_scale(q, b):
+  NL.div_exact(Nat.mul(q, 1n+b), b, q,
+    Equal.trans(Nat,
+      Nat.mul(q, 1n+b),
+      Nat.mul(1n+b, q),
+      Nat.mul(1n+b, q),
+      NL.mul_comm(q, 1n+b),
+      Equal.cong(Nat, Nat, u => Nat.mul(u, q), 1n+b, 1n+b, {==})))
