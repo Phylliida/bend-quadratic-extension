@@ -128,6 +128,52 @@ def R.Rat.mk.canon(np, nn, dp, g1):
           u => R.Rat{I.Int{Nat.sub(np, nn), Nat.sub(nn, np)}, u},
           Nat.div(1n+dp, 1n), 1n+dp, N.div_one(1n+dp)))))
 
+# --- the two further Rat laws this layer consumes ---
+
+# Rat.mk.fixed: the fill is rat_proofs.bend's, transcription for transcription
+# except that the names resolve through this file's aliases: `Rat.mag` is
+# qrat_rat.bend's own def, and the two sub_diag instances that collapse the
+# two-fold truncation are Nat laws of nat.bend called at explicit comparisons
+# (the second at the flipped one, whose evidence is the flip of e -- the only
+# place Cmp.flip appears, and it appears as a *lambda body*, the one spelling
+# the checker accepts).
+def R.Rat.mk.fixed(c, np, nn, dp, e, g1):
+  %Equal.sym(Nat,
+    Nat.sub(Nat.sub(np, nn), Nat.sub(nn, np)),
+    Nat.sub(np, nn),
+    N.sub_diag(c, np, nn, e))
+    : {R.Rat{I.Int{Nat.div(_, N.Nat.gcd(Nat.add(_, Nat.sub(Nat.sub(nn, np), Nat.sub(np, nn))), 1n+dp)),
+                   Nat.div(Nat.sub(Nat.sub(nn, np), Nat.sub(np, nn)),
+                     N.Nat.gcd(Nat.add(_, Nat.sub(Nat.sub(nn, np), Nat.sub(np, nn))), 1n+dp))},
+              Nat.div(1n+dp, N.Nat.gcd(Nat.add(_, Nat.sub(Nat.sub(nn, np), Nat.sub(np, nn))), 1n+dp))}
+        == R.Rat{I.Int{Nat.sub(np, nn), Nat.sub(nn, np)}, 1n+dp} : R.Rat}
+  %Equal.sym(Nat,
+    Nat.sub(Nat.sub(nn, np), Nat.sub(np, nn)),
+    Nat.sub(nn, np),
+    N.sub_diag(N.Cmp.flip(c), nn, np,
+      Equal.trans(Cmp, N.Cmp.flip(c), N.Cmp.flip(Nat.cmp(np, nn)), Nat.cmp(nn, np),
+        Equal.cong(Cmp, Cmp, N.Cmp.flip, c, Nat.cmp(np, nn), e),
+        Equal.trans(Cmp, N.Cmp.flip(Nat.cmp(np, nn)), N.Cmp.flip(N.Cmp.flip(Nat.cmp(nn, np))), Nat.cmp(nn, np),
+          Equal.cong(Cmp, Cmp, N.Cmp.flip, Nat.cmp(np, nn), N.Cmp.flip(Nat.cmp(nn, np)), N.cmp_antisym(np, nn)),
+          N.flip_flip(Nat.cmp(nn, np))))))
+    : {R.Rat{I.Int{Nat.div(Nat.sub(np, nn), N.Nat.gcd(Nat.add(Nat.sub(np, nn), _), 1n+dp)),
+                   Nat.div(_, N.Nat.gcd(Nat.add(Nat.sub(np, nn), _), 1n+dp))},
+              Nat.div(1n+dp, N.Nat.gcd(Nat.add(Nat.sub(np, nn), _), 1n+dp))}
+        == R.Rat{I.Int{Nat.sub(np, nn), Nat.sub(nn, np)}, 1n+dp} : R.Rat}
+  %Equal.sym(Nat, N.Nat.gcd(R.Rat.mag(np, nn), 1n+dp), 1n, g1)
+    : {R.Rat{I.Int{Nat.div(Nat.sub(np, nn), _), Nat.div(Nat.sub(nn, np), _)}, Nat.div(1n+dp, _)}
+        == R.Rat{I.Int{Nat.sub(np, nn), Nat.sub(nn, np)}, 1n+dp} : R.Rat}
+  %Equal.sym(Nat, Nat.div(Nat.sub(np, nn), 1n), Nat.sub(np, nn), N.div_one(Nat.sub(np, nn)))
+    : {R.Rat{I.Int{_, Nat.div(Nat.sub(nn, np), 1n)}, Nat.div(1n+dp, 1n)}
+        == R.Rat{I.Int{Nat.sub(np, nn), Nat.sub(nn, np)}, 1n+dp} : R.Rat}
+  %Equal.sym(Nat, Nat.div(Nat.sub(nn, np), 1n), Nat.sub(nn, np), N.div_one(Nat.sub(nn, np)))
+    : {R.Rat{I.Int{Nat.sub(np, nn), _}, Nat.div(1n+dp, 1n)}
+        == R.Rat{I.Int{Nat.sub(np, nn), Nat.sub(nn, np)}, 1n+dp} : R.Rat}
+  %Equal.sym(Nat, Nat.div(1n+dp, 1n), 1n+dp, N.div_one(1n+dp))
+    : {R.Rat{I.Int{Nat.sub(np, nn), Nat.sub(nn, np)}, _}
+        == R.Rat{I.Int{Nat.sub(np, nn), Nat.sub(nn, np)}, 1n+dp} : R.Rat}
+  {==}
+
 # --- QExt ---
 
 # QExt.add_comm: addition is componentwise, so this is Rat.add_comm once per
@@ -208,3 +254,209 @@ def Q.QExt.mul_comm(d, x, y):
 # QExt.sub_eq_add_neg: definitional -- QExt.sub is QExt.add(x, QExt.neg(y)).
 def Q.QExt.sub_eq_add_neg(x, y):
   {==}
+
+# nat.mag.sub: Rat.mag(sub(b,a), sub(a,b)) == Rat.mag(a, b) -- the divisor
+# spelling mk computes for the pair Rat.num(b,a) against the spelling Rat.mag is
+# stated over. The pair (sub(b,a), sub(a,b)) *is* the truncation pair of
+# (a, b) with its two sides swapped, so both of Rat.num's coordinates are
+# already the two truncations: the re-spelling is the Nat identity
+#
+#     sub(b,a) + sub(a,b) == sub(a,b) + sub(b,a),
+#
+# i.e. the commutativity of the sum the magnitude is -- reached here with no
+# comparison, no sub_self and no cancellation.
+#
+# The route the earlier round recorded as failing is the one that tries to
+# *collapse* sub(sub(b,a), sub(a,b)) with `N.sub_self(Nat.sub(nn,np))`: that
+# law concludes at the pair's own two sides, sub(sub(b,a), sub(b,a)), and the
+# term this divisor carries has sub(a,b) in the second slot. sub_cross is the
+# law that closes exactly that gap -- its conclusion is
+# add(sub(X,Y), Y) == add(sub(Y,X), X), so at (X,Y) := (b-a, a-b) the left side
+# is add(sub(sub(b,a),sub(a,b)), sub(a,b)), which is one add_comm away from
+# add(sub(a,b), sub(sub(b,a),sub(a,b))) and hence one `cong` plus one `trans`
+# away from the goal. The measurements that pin this: sub_self's conclusion is
+# too narrow for the second slot (checked, the message is `expected :
+# {Nat.sub(nn, np) == 0n} / observed : {Nat.sub(Nat.sub(nn, np),
+# Nat.sub(nn, np)) == 0n}`), and add_cancel does not reach either, because
+# `Nat.add` matches on its first argument and the padding sub(a,b) sits on the
+# right of both products rather than as a shared leading summand.
+#
+# The `Nat.cmp(sub(b,a), sub(a,b))` with `{==}` is the comparison sub_cross
+# demands (it matches on it, and a computed Nat.cmp is not a legal scrutinee);
+# nothing is cased on anywhere in the fill.
+# nat.mag.sym: the sum the magnitude is does not depend on the order of the two
+# truncations -- Nat.add commutes, and the two truncations are the same pair
+# with its sides swapped. Rat.neg_neg's own fill makes this re-spelling
+# (rat_proofs.bend, `g1s`); it is restated here because a fill attached in a
+# *_proofs.bend file is callable where it is declared and not from another file.
+def N.nat.mag.sym(+p: Nat, +q: Nat)
+  -> {R.Rat.mag(q, p) == R.Rat.mag(p, q) : Nat}:
+  N.add_comm(Nat.sub(q, p), Nat.sub(p, q))
+
+# nat.sub.min: (a-b) - min(a,b) = (a-b) -- the truncation of a truncation by
+# the *other* truncation is the truncation. This is the identity the divisor of
+# the negated coordinate needs one level up, and it is where the sign
+# information finally has to be read: which of the two truncations is the
+# surviving difference is exactly what Nat.cmp(a,b) decides, so this helper
+# cases on it (three branches, all of them live -- nothing here is impossible).
+#
+#   GT: a - b is the difference, and b - a is 0, so the outer truncation is
+#       sub(a-b, 0) = a-b. (sub_of_lt gives b-a = 0 at the flipped comparison,
+#       sub_zero collapses the outer one, and the two are related by cmp_gt_sub_add
+#       -- the lemma that says exactly "a-b is the difference of a and b".)
+#   EQ: a = b and everything is 0.
+#   LT: a - b = 0, so the identity is 0 - x = 0 (sub_zero_left).
+#
+# The comparison's evidence is the branch's own constant: a match on a *variable*
+# (the parameter c) does not reduce, so the branch's {==} evidence stands for
+# `c == LT{}` and the discriminations above are not needed.
+def N.nat.sub.min(+a: Nat, +b: Nat, +c: Cmp, +e: {c == Nat.cmp(a, b) : Cmp})
+  -> {Nat.sub(Nat.sub(a, b), Nat.sub(b, a)) == Nat.sub(a, b) : Nat}:
+  match c:
+    case GT{}:
+      Equal.trans(Nat, Nat.sub(Nat.sub(a, b), Nat.sub(b, a)), Nat.sub(Nat.sub(a, b), 0n),
+        Nat.sub(a, b),
+        Equal.cong(Nat, Nat, u => Nat.sub(Nat.sub(a, b), u), Nat.sub(b, a), 0n,
+          N.sub_of_lt(b, a, N.cmp_lt_of_gt(a, b, Equal.sym(Cmp, GT{}, Nat.cmp(a, b), e)))),
+        N.sub_zero(Nat.sub(a, b)))
+    case EQ{}:
+      +z = N.cmp_eq(a, b, Equal.sym(Cmp, EQ{}, Nat.cmp(a, b), e))
+      Equal.trans(Nat, Nat.sub(Nat.sub(a, b), Nat.sub(b, a)), Nat.sub(Nat.sub(b, b), Nat.sub(b, b)),
+        Nat.sub(a, b),
+        Equal.trans(Nat, Nat.sub(Nat.sub(a, b), Nat.sub(b, a)),
+          Nat.sub(Nat.sub(b, b), Nat.sub(b, a)), Nat.sub(Nat.sub(b, b), Nat.sub(b, b)),
+          Equal.cong(Nat, Nat, u => Nat.sub(u, Nat.sub(b, a)), Nat.sub(a, b), Nat.sub(b, b),
+            Equal.cong(Nat, Nat, u => Nat.sub(u, b), a, b, z)),
+          Equal.cong(Nat, Nat, u => Nat.sub(Nat.sub(b, b), u), Nat.sub(b, a), Nat.sub(b, b),
+            Equal.cong(Nat, Nat, u => Nat.sub(b, u), a, b, z))),
+        Equal.trans(Nat, Nat.sub(Nat.sub(b, b), Nat.sub(b, b)), 0n, Nat.sub(a, b),
+          N.sub_self(Nat.sub(b, b)),
+          Equal.sym(Nat, Nat.sub(a, b), 0n,
+            Equal.trans(Nat, Nat.sub(a, b), Nat.sub(b, b), 0n,
+              Equal.cong(Nat, Nat, u => Nat.sub(u, b), a, b, z),
+              N.sub_self(b)))))
+    case LT{}:
+      Equal.trans(Nat, Nat.sub(Nat.sub(a, b), Nat.sub(b, a)), Nat.sub(0n, Nat.sub(b, a)),
+        Nat.sub(a, b),
+        Equal.cong(Nat, Nat, u => Nat.sub(u, Nat.sub(b, a)), Nat.sub(a, b), 0n,
+          N.sub_of_lt(a, b, Equal.sym(Cmp, LT{}, Nat.cmp(a, b), e))),
+        Equal.trans(Nat, Nat.sub(0n, Nat.sub(b, a)), 0n, Nat.sub(a, b),
+          N.sub_zero_left(Nat.sub(b, a)),
+          Equal.sym(Nat, Nat.sub(a, b), 0n,
+            N.sub_of_lt(a, b, Equal.sym(Cmp, LT{}, Nat.cmp(a, b), e)))))
+
+# nat.mag.sub: Rat.mag(sub(b,a), sub(a,b)) == Rat.mag(a, b) -- the divisor
+# spelling mk computes for the pair Rat.num(b,a) against the spelling Rat.mag is
+# stated over.
+#
+# The pair (sub(b,a), sub(a,b)) is the truncation pair of (a,b), so mk reads its
+# magnitude as sub(sub(b,a),sub(a,b)) + sub(a,b): the *first* truncation is
+# nested one level deeper than Rat.mag's own, and the bridge between them is
+# nat.sub.min -- the fact that a truncation of a truncation by the other
+# truncation changes nothing. With it the two summands are sub(b,a) and
+# sub(a,b), i.e. Rat.mag(a,b) by definition, and the one remaining step is
+# add_comm.
+#
+# Both named failures of the earlier round are avoided here. `sub_self` is not
+# the tool (its conclusion sub(X,X) = 0 needs the two arguments to be the same
+# *term*, while this collapse is a sign-dependent fact -- measured, the message
+# is `expected : {Nat.sub(nn, np) == 0n} / observed : {Nat.sub(Nat.sub(nn, np),
+# Nat.sub(nn, np)) == 0n}`); and neither is sub_cross plus add_cancel: at
+# (X,Y) := (b-a, a-b) sub_cross relates add(sub(b-a,a-b), a-b) to
+# add(sub(a-b,b-a), b-a), which is an equation about the two *padded*
+# quantities rather than about the nested truncation, and add_cancel needs the
+# padding as a shared leading summand, which `Nat.add` (it matches on its first
+# argument) does not give it. The sign has to be read, and nat.sub.min reads it.
+def N.nat.mag.sub(+a: Nat, +b: Nat)
+  -> {Nat.add(Nat.sub(Nat.sub(b, a), Nat.sub(a, b)), Nat.sub(a, b))
+      == R.Rat.mag(a, b) : Nat}:
+  Equal.trans(Nat,
+    Nat.add(Nat.sub(Nat.sub(b, a), Nat.sub(a, b)), Nat.sub(a, b)),
+    Nat.add(Nat.sub(b, a), Nat.sub(a, b)),
+    R.Rat.mag(a, b),
+    Equal.cong(Nat, Nat, u => Nat.add(u, Nat.sub(a, b)),
+      Nat.sub(Nat.sub(b, a), Nat.sub(a, b)), Nat.sub(b, a),
+      N.nat.sub.min(b, a, Nat.cmp(b, a), {==})),
+    Equal.trans(Nat,
+      Nat.add(Nat.sub(b, a), Nat.sub(a, b)),
+      Nat.add(Nat.sub(a, b), Nat.sub(b, a)),
+      R.Rat.mag(a, b),
+      N.add_comm(Nat.sub(b, a), Nat.sub(a, b)),
+      {==}))
+
+# --- the coprime hypothesis mk.fixed wants on the negated coordinate ---
+
+# Rat.mk.fixed at the *negated* coordinate: mk(Rat.num(b,a), d) is the
+# constructor Rat{Rat.num(b,a), d} -- the coprime hypothesis stated at
+# Rat.mag(a,b) re-spelled to the divisor mk computes. The comparison
+# Nat.cmp(b, a) is the one mk.fixed threads into its own e; nothing is cased on
+# here, and the only step is the `cong` that carries the re-spelling through the
+# gcd.
+def rat.mk.fixed.neg(+a: Nat, +b: Nat, +dp: Nat,
+                     +g: {N.Nat.gcd(R.Rat.mag(a, b), 1n+dp) == 1n : Nat})
+  -> {R.Rat.mk(R.Rat.num(b, a), 1n+dp) == R.Rat{R.Rat.num(b, a), 1n+dp} : R.Rat}:
+  +gn = Equal.trans(Nat,
+    N.Nat.gcd(R.Rat.mag(b, a), 1n+dp),
+    N.Nat.gcd(R.Rat.mag(a, b), 1n+dp),
+    1n,
+    Equal.cong(Nat, Nat, u => N.Nat.gcd(u, 1n+dp), R.Rat.mag(b, a), R.Rat.mag(a, b),
+      N.nat.mag.sym(a, b)),
+    g)
+  R.Rat.mk.fixed(Nat.cmp(b, a), b, a, dp, {==}, gn)
+
+# Rat.neg_neg at the pair (np, nn): the coordinate-wise law QExt.neg_neg is made
+# of, at the same spelling Rat.neg_neg is stated in -- Rat{Rat.num(np,nn), 1+dp}
+# with the negation's own coprime hypothesis derived from the one in hand. Every
+# write here is a qrat_rat.bend name, which is the copy a fill in this file can
+# call (a fill attached in rat_proofs.bend is callable where it is declared and
+# not from here).
+#
+# Two mk.fixed applications around one congruence: the first turns the inner
+# mk into the constructor (its coprime hypothesis is rat.mk.fixed.neg's bridge),
+# and the second turns the outer one into the goal's own value. `{==}` carries
+# the step that is not a rewrite but a reduction: Rat.neg of a constructor is
+# mk(Int.neg(Rat.num(np,nn)), 1+dp) and Int.neg of the difference pair
+# I.Int{sub(np,nn), sub(nn,np)} reduces to I.Int{sub(nn,np), sub(np,nn)}, which
+# *is* Rat.num(nn,np) -- no motive over that pair is needed, the two terms are
+# the same term.
+def rat.neg.neg(+np: Nat, +nn: Nat, +dp: Nat,
+                +g: {N.Nat.gcd(R.Rat.mag(np, nn), 1n+dp) == 1n : Nat})
+  -> {R.Rat.neg(R.Rat.neg(R.Rat{R.Rat.num(np, nn), 1n+dp})) == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat}:
+  Equal.trans(R.Rat,
+    R.Rat.neg(R.Rat.neg(R.Rat{R.Rat.num(np, nn), 1n+dp})),
+    R.Rat.neg(R.Rat{R.Rat.num(nn, np), 1n+dp}),
+    R.Rat{R.Rat.num(np, nn), 1n+dp},
+    Equal.cong(R.Rat, R.Rat, u => R.Rat.neg(u),
+      R.Rat.mk(I.Int.neg(R.Rat.num(np, nn)), 1n+dp),
+      R.Rat{R.Rat.num(nn, np), 1n+dp},
+      rat.mk.fixed.neg(np, nn, dp, g)),
+    Equal.trans(R.Rat,
+      R.Rat.neg(R.Rat{R.Rat.num(nn, np), 1n+dp}),
+      R.Rat.mk(R.Rat.num(np, nn), 1n+dp),
+      R.Rat{R.Rat.num(np, nn), 1n+dp},
+      {==},
+      R.Rat.mk.fixed(Nat.cmp(np, nn), np, nn, dp, {==}, g)))
+
+def R.Rat.neg_neg(c, np, nn, dp, e, g1):
+  rat.neg.neg(np, nn, dp, g1)
+
+# QExt.neg_neg: negation is componentwise and does not touch a denominator, so
+# this is Rat.neg_neg once per coordinate -- one qext.re step and one qext.im
+# step, plus the two coordinate witnesses' own Rat-level machinery above (the
+# helper rat.neg.neg, which is where the coprime hypothesis of the *negated*
+# coordinate is manufactured). Nothing here cases on anything.
+def Q.QExt.neg_neg(np, nn, dp, g, mq, mn, dq, h):
+  Equal.trans(Q.QExt,
+    Q.QExt{R.Rat.neg(R.Rat.neg(R.Rat{R.Rat.num(np, nn), 1n+dp})),
+           R.Rat.neg(R.Rat.neg(R.Rat{R.Rat.num(mq, mn), 1n+dq}))},
+    Q.QExt{R.Rat{R.Rat.num(np, nn), 1n+dp},
+           R.Rat.neg(R.Rat.neg(R.Rat{R.Rat.num(mq, mn), 1n+dq}))},
+    Q.QExt{R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat{R.Rat.num(mq, mn), 1n+dq}},
+    qext.re(R.Rat.neg(R.Rat.neg(R.Rat{R.Rat.num(mq, mn), 1n+dq})),
+      R.Rat.neg(R.Rat.neg(R.Rat{R.Rat.num(np, nn), 1n+dp})),
+      R.Rat{R.Rat.num(np, nn), 1n+dp},
+      rat.neg.neg(np, nn, dp, g)),
+    qext.im(R.Rat{R.Rat.num(np, nn), 1n+dp},
+      R.Rat.neg(R.Rat.neg(R.Rat{R.Rat.num(mq, mn), 1n+dq})),
+      R.Rat{R.Rat.num(mq, mn), 1n+dq},
+      rat.neg.neg(mq, mn, dq, h)))

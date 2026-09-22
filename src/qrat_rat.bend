@@ -98,3 +98,30 @@ law Rat.mul_comm:
   for +x: Rat
   for +y: Rat
   {Rat.mul(x, y) == Rat.mul(y, x) : Rat}
+
+# Rat.mk.fixed: a reduced fraction in the difference-pair presentation is a
+# fixed point of mk -- the canonicality hypothesis the conditional laws take,
+# discharged. Transcription-identical to rat.bend's law of the same name (the
+# same statement, the same comment); it is restated here because its fill lives
+# in this closure, exactly as Rat.add_comm's and Rat.mul_comm's do.
+law Rat.mk.fixed:
+  for +c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  for +g1: {N.Nat.gcd(Rat.mag(np, nn), 1n+dp) == 1n : Nat}
+  {Rat.mk(Rat.num(np, nn), 1n+dp) == Rat{Rat.num(np, nn), 1n+dp} : Rat}
+
+# Rat.neg_neg: -(-x) = x for a canonical x. Transcription-identical to
+# rat.bend's law of the same name: the coprime hypothesis is required for truth
+# (== on Rat is structural, so negation of a non-canonical term comes back
+# mk-headed), and it is Rat.mk.fixed's own hypothesis.
+law Rat.neg_neg:
+  for +c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  for +g1: {N.Nat.gcd(Rat.mag(np, nn), 1n+dp) == 1n : Nat}
+  {Rat.neg(Rat.neg(Rat{Rat.num(np, nn), 1n+dp})) == Rat{Rat.num(np, nn), 1n+dp} : Rat}
