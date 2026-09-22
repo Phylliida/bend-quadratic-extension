@@ -241,3 +241,63 @@ def I.Int.canon.idem(c, xp, xn, e):
           Equal.cong(Nat, Cmp, t => Nat.cmp(0n, t), Nat.sub(xn, xp), 1n+Nat.sub(xn, 1n+xp),
             N.sub_pos(xn, xp, N.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e)))),
           {==}))
+
+# Int.canon.scale.go: case on the comparison. The positive branch is the whole
+# content -- scaling commutes with canon's own case split -- and the work per
+# branch is bookkeeping:
+#
+#   1. Int.mul(x, Int{1+kp, 0}) reduces to Int{add(xp*(1+kp), xn*0),
+#      add(xp*0, xn*(1+kp))}: the zeros are stuck (Nat.mul of two variables
+#      does not reduce), so mul_zero and add_zero turn the state's two slots
+#      into xp*(1+kp) and xn*(1+kp). Each of those rewrites fires in two
+#      places at once (the cmp's argument and canon.go's own argument), which
+#      is what the repeated `_` in the motives is for.
+#   2. cmp_mul_right collapses cmp(xp*(1+kp), xn*(1+kp)) to cmp(xp, xn), and
+#      the branch's own evidence e collapses that to the constructor just
+#      matched -- so canon.go reduces to its branch value.
+#   3. The right-hand side Int.mul(canon.go(c, ..), Int{1+kp, 0}) reduces to
+#      the same branch value scaled, and mul_sub_right is what says the scaled
+#      difference is the difference of the scaled slots (the Nats' own
+#      right-scaled mul_sub; the left-scaled mul_sub is stated the other way
+#      round, which is why the Nat inventory carries both).
+#
+# e is a + binder in the law because the GT and LT branches read it twice: once
+# to collapse the comparison and once as mul_sub_right's hypothesis. An
+# equation is Data, so a + equation binder costs nothing -- and unlike a +field
+# of a Sigma it is not a dependent type, so the copy is unremarkable.
+def I.Int.canon.scale.go(c, xp, xn, kp, e):
+  match c:
+    case EQ{}:
+      %Equal.sym(Nat, Nat.mul(xn, 0n), 0n, N.mul_zero(xn)) : {I.Int.canon.go(Nat.cmp(Nat.add(Nat.mul(xp, 1n+kp), _), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, 1n+kp))), Nat.add(Nat.mul(xp, 1n+kp), _), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, 1n+kp))) == I.Int.mul(I.Int.canon.go(EQ{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %Equal.sym(Nat, Nat.mul(xp, 0n), 0n, N.mul_zero(xp)) : {I.Int.canon.go(Nat.cmp(Nat.add(Nat.mul(xp, 1n+kp), 0n), Nat.add(_, Nat.mul(xn, 1n+kp))), Nat.add(Nat.mul(xp, 1n+kp), 0n), Nat.add(_, Nat.mul(xn, 1n+kp))) == I.Int.mul(I.Int.canon.go(EQ{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %Equal.sym(Nat, Nat.add(Nat.mul(xp, 1n+kp), 0n), Nat.mul(xp, 1n+kp), N.add_zero(Nat.mul(xp, 1n+kp))) : {I.Int.canon.go(Nat.cmp(_, Nat.mul(xn, 1n+kp)), _, Nat.mul(xn, 1n+kp)) == I.Int.mul(I.Int.canon.go(EQ{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %Equal.sym(Cmp, Nat.cmp(Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)), Nat.cmp(xp, xn), N.cmp_mul_right(xp, xn, kp)) : {I.Int.canon.go(_, Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)) == I.Int.mul(I.Int.canon.go(EQ{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %e : {I.Int.canon.go(_, Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)) == I.Int.mul(I.Int.canon.go(EQ{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      {==}
+    case GT{}:
+      %Equal.sym(Nat, Nat.mul(xn, 0n), 0n, N.mul_zero(xn)) : {I.Int.canon.go(Nat.cmp(Nat.add(Nat.mul(xp, 1n+kp), _), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, 1n+kp))), Nat.add(Nat.mul(xp, 1n+kp), _), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, 1n+kp))) == I.Int.mul(I.Int.canon.go(GT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %Equal.sym(Nat, Nat.mul(xp, 0n), 0n, N.mul_zero(xp)) : {I.Int.canon.go(Nat.cmp(Nat.add(Nat.mul(xp, 1n+kp), 0n), Nat.add(_, Nat.mul(xn, 1n+kp))), Nat.add(Nat.mul(xp, 1n+kp), 0n), Nat.add(_, Nat.mul(xn, 1n+kp))) == I.Int.mul(I.Int.canon.go(GT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %Equal.sym(Nat, Nat.add(Nat.mul(xp, 1n+kp), 0n), Nat.mul(xp, 1n+kp), N.add_zero(Nat.mul(xp, 1n+kp))) : {I.Int.canon.go(Nat.cmp(_, Nat.mul(xn, 1n+kp)), _, Nat.mul(xn, 1n+kp)) == I.Int.mul(I.Int.canon.go(GT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %Equal.sym(Cmp, Nat.cmp(Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)), Nat.cmp(xp, xn), N.cmp_mul_right(xp, xn, kp)) : {I.Int.canon.go(_, Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)) == I.Int.mul(I.Int.canon.go(GT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %e : {I.Int.canon.go(_, Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)) == I.Int.mul(I.Int.canon.go(GT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %Equal.sym(Nat, Nat.mul(Nat.sub(xp, xn), 0n), 0n, N.mul_zero(Nat.sub(xp, xn))) : {I.Int{Nat.sub(Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)), 0n} == I.Int{Nat.add(Nat.mul(Nat.sub(xp, xn), 1n+kp), Nat.mul(0n, 0n)), Nat.add(_, Nat.mul(0n, 1n+kp))} : I.Int}
+      %Equal.sym(Nat, Nat.add(Nat.mul(Nat.sub(xp, xn), 1n+kp), 0n), Nat.mul(Nat.sub(xp, xn), 1n+kp), N.add_zero(Nat.mul(Nat.sub(xp, xn), 1n+kp))) : {I.Int{Nat.sub(Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)), 0n} == I.Int{_, Nat.add(0n, Nat.mul(0n, 1n+kp))} : I.Int}
+      %N.mul_sub_right(xp, xn, 1n+kp, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e)) : {I.Int{_, 0n} == I.Int{Nat.mul(Nat.sub(xp, xn), 1n+kp), 0n} : I.Int}
+      {==}
+    case LT{}:
+      %Equal.sym(Nat, Nat.mul(xn, 0n), 0n, N.mul_zero(xn)) : {I.Int.canon.go(Nat.cmp(Nat.add(Nat.mul(xp, 1n+kp), _), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, 1n+kp))), Nat.add(Nat.mul(xp, 1n+kp), _), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, 1n+kp))) == I.Int.mul(I.Int.canon.go(LT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %Equal.sym(Nat, Nat.mul(xp, 0n), 0n, N.mul_zero(xp)) : {I.Int.canon.go(Nat.cmp(Nat.add(Nat.mul(xp, 1n+kp), 0n), Nat.add(_, Nat.mul(xn, 1n+kp))), Nat.add(Nat.mul(xp, 1n+kp), 0n), Nat.add(_, Nat.mul(xn, 1n+kp))) == I.Int.mul(I.Int.canon.go(LT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %Equal.sym(Nat, Nat.add(Nat.mul(xp, 1n+kp), 0n), Nat.mul(xp, 1n+kp), N.add_zero(Nat.mul(xp, 1n+kp))) : {I.Int.canon.go(Nat.cmp(_, Nat.mul(xn, 1n+kp)), _, Nat.mul(xn, 1n+kp)) == I.Int.mul(I.Int.canon.go(LT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %Equal.sym(Cmp, Nat.cmp(Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)), Nat.cmp(xp, xn), N.cmp_mul_right(xp, xn, kp)) : {I.Int.canon.go(_, Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)) == I.Int.mul(I.Int.canon.go(LT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %e : {I.Int.canon.go(_, Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)) == I.Int.mul(I.Int.canon.go(LT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
+      %Equal.sym(Nat, Nat.mul(Nat.sub(xn, xp), 0n), 0n, N.mul_zero(Nat.sub(xn, xp))) : {I.Int{0n, Nat.sub(Nat.mul(xn, 1n+kp), Nat.mul(xp, 1n+kp))} == I.Int{Nat.add(Nat.mul(0n, 1n+kp), _), Nat.add(Nat.mul(0n, 0n), Nat.mul(Nat.sub(xn, xp), 1n+kp))} : I.Int}
+      %N.mul_sub_right(xn, xp, 1n+kp, N.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e))) : {I.Int{0n, _} == I.Int{0n, Nat.mul(Nat.sub(xn, xp), 1n+kp)} : I.Int}
+      {==}
+
+# Int.canon.scale: destructure x and hand the comparison in. The call's
+# conclusion is the goal up to conversion: Int.canon(Int{xp, xn}) reduces to
+# canon.go(Nat.cmp(xp, xn), xp, xn), which is exactly what scale.go states.
+def I.Int.canon.scale(x, kp):
+  match x:
+    case I.Int{+xp, +xn}:
+      I.Int.canon.scale.go(Nat.cmp(xp, xn), xp, xn, kp, {==})

@@ -232,3 +232,30 @@ law Int.canon.idem:
   for +xn: Nat
   for e: {c == Nat.cmp(xp, xn) : Cmp}
   {Int.canon(Int.canon.go(c, xp, xn)) == Int.canon.go(c, xp, xn) : Int}
+
+# Int.canon.scale: canon is natural under scaling by a positive integer,
+# canon(x*(1+kp)) = canon(x)*(1+kp). This is what Rat normalization uses: the
+# normal form of a fraction scaled by k is the scaled normal form, so a
+# canonical representative can be reached by scaling both sides.
+#
+# The statement is the same as Int.canon.scale.go's -- the go form only spells
+# the right-hand canon through canon.go so that the fill can case on the
+# comparison, which it must: Nat.cmp of two variables is not a legal match
+# scrutinee ("a match cannot scrutinize a computed value"), so the comparison
+# has to arrive as a parameter, exactly as in Int.canon.idem.
+#
+# Both are stated with k = 1 + kp rather than k >= 1, for the usual reason:
+# the hypothesis is then a constructor, and cmp_mul_right is stated over
+# 1 + kp.
+law Int.canon.scale.go:
+  for c: Cmp
+  for +xp: Nat
+  for +xn: Nat
+  for +kp: Nat
+  for +e: {c == Nat.cmp(xp, xn) : Cmp}
+  {Int.canon(Int.mul(Int{xp, xn}, Int{1n+kp, 0n})) == Int.mul(Int.canon.go(c, xp, xn), Int{1n+kp, 0n}) : Int}
+
+law Int.canon.scale:
+  for +x: Int
+  for +kp: Nat
+  {Int.canon(Int.mul(x, Int{1n+kp, 0n})) == Int.mul(Int.canon(x), Int{1n+kp, 0n}) : Int}
