@@ -880,6 +880,16 @@ law Rat.add.value.mixed:
 # Rat{Rat.num(np,nn), 1n+dp}, no coprimality hypothesis, and no comparison
 # parameter -- nothing is cased on, since every sub_diag and sub_cross
 # instance is called at an explicit Nat.cmp with {==} evidence.
+#
+# The fill is Rat.add_assoc.arb read at this law's own coordinates: at
+# Rat{Rat.num(np,nn), 1n+dp} each of the general law's three positivity
+# hypotheses is Nat.cmp(0n, 1n+dp) up to the definition of Rat.denof, which is
+# LT{} by computation, so `{==}` supplies all three. The chain itself -- the two
+# Int.mul_scale re-spellings of the inner sums, Rat.mk.trunc, the mixed value law
+# per outer add, and the closing Rat.mk.eqv.val at the Nat cross sum -- is
+# rat_proofs.bend's Rat.add.arb.coords, at the raw coordinates instead of the
+# difference pairs. Nothing is weaker here for that: the general law is stated
+# over arbitrary Rats, and this is one instantiation of it.
 law Rat.add_assoc:
   for +np1: Nat
   for +nn1: Nat
