@@ -36,8 +36,9 @@ case analysis, and that case analysis is what the switch removed. See
 Laws and proofs live in separate files; each `*_proofs.bend` fills every
 law of its sibling via `def <alias>.<name>(...)`:
 
-- `src/nat.bend` — the 103 Nat/Cmp laws (including the `Nat.divmod` and
-  `Nat.gcd` blocks, and the cross-sum lemmas the Int quotient lemma rests on),
+- `src/nat.bend` — the 109 Nat/Cmp laws (including the `Nat.divmod` and
+  `Nat.gcd` blocks, the exact-division block, and the cross-sum lemmas the Int
+  quotient lemma rests on),
   plus `Cmp.flip`, the gcd defs and the `Nat.Div` witness type. No proofs.
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
@@ -55,7 +56,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The three
 `*_proofs.bend` files and `scratch.bend` are the gates and print
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
-transitive over imports: nat.bend 103, int.bend 28, qext.bend 30 = 28 Int +
+transitive over imports: nat.bend 109, int.bend 28, qext.bend 30 = 28 Int +
 2 QExt.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the

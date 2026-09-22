@@ -728,6 +728,106 @@ law mod_lt:
   for +b: Nat
   {Nat.cmp(Nat.mod(a, 1n+b), 1n+b) == LT{} : Cmp}
 
+# Exact division
+# ==============
+#
+# div_add_mod and mod_lt turn (div, mod) into a quotient-and-remainder *pair*
+# for any dividend. What the Rat normalization needs on top of that is the
+# other direction -- an exact division, i.e. the quotient of a dividend known
+# to be a multiple:
+#
+#     div(a, g) == q   when   a == g * q,   g = 1 + b
+#
+# and its scaled form, div(a*s, g*s) == q for s = 1 + k, which is what makes
+# normalization natural under scaling (gcd(m*k, d*k) = k*gcd(m,d) leaves the
+# two quotients alone).
+#
+# The whole content is *uniqueness* of the quotient-and-remainder pair, which
+# is div_unique below: two representations of the same a with remainders below
+# g force equal quotients. It needs no division correctness at all -- only
+# cancellation and the ordering facts, because a strictly smaller quotient
+# would leave a difference of at least g to be made up by a remainder that is
+# smaller than g.
+
+# lt_ne_add: a < b and a == b + s is impossible.
+#
+# cmp_add_right moves the comparison to cmp(s, 0) (add_comm puts b on the left
+# where add(0, b) reduces away), and cmp_lt_zero refutes that -- no sub, no
+# cancellation, no induction.
+law lt_ne_add:
+  for +a: Nat
+  for +b: Nat
+  for +s: Nat
+  for +e1: {Nat.cmp(a, b) == LT{} : Cmp}
+  for +e2: {Nat.add(b, s) == a : Nat}
+  Empty
+
+# add_assoc_cancel: one common summand comes off both sides of an equation
+# whose sides both start with it one level deep. This is the step div_unique's
+# induction takes at every successor (Nat.mul on a successor is add(b0, ..), so
+# the common b0 sits *inside* the left summand), and it is a law rather than an
+# inline chain so that the induction stays readable.
+law add_assoc_cancel:
+  for +b0: Nat
+  for +x: Nat
+  for +r: Nat
+  for +y: Nat
+  for +s: Nat
+  for +e: {Nat.add(Nat.add(b0, x), r) == Nat.add(Nat.add(b0, y), s) : Nat}
+  {Nat.add(x, r) == Nat.add(y, s) : Nat}
+
+# div_unique: d1*b + r1 == d2*b + r2 with both remainders below b = 1 + b0
+# forces d1 == d2. This is the induction the whole exact-division block rests
+# on, and it is structural on d1:
+#
+#   - d1 = 0: the equation reads r1 == d2*b + r2, so if d2 = 1 + d2' then
+#     r1 == b + (d2'*b + r2), which lt_ne_add refutes with r1 < b; hence d2 = 0.
+#   - d1 = 1 + d1': the same argument rules d2 = 0 out; for d2 = 1 + d2' both
+#     sides have one factor b peeled off (Nat.mul on a successor is
+#     add(b, ..)), add_cancel removes it and the induction hypothesis applies
+#     to (d1', d2') at the same b and the same remainders.
+#
+# b is written 1 + b0 because both bounds are hypotheses of that shape (mod_lt
+# states its bound about 1 + b), and because a successor is what keeps
+# Nat.mul(d, 1 + b0) reducing.
+law div_unique:
+  for +d1: Nat
+  for +r1: Nat
+  for +d2: Nat
+  for +r2: Nat
+  for +b0: Nat
+  for +e: {Nat.add(Nat.mul(d1, 1n+b0), r1) == Nat.add(Nat.mul(d2, 1n+b0), r2) : Nat}
+  for +l1: {Nat.cmp(r1, 1n+b0) == LT{} : Cmp}
+  for +l2: {Nat.cmp(r2, 1n+b0) == LT{} : Cmp}
+  {d1 == d2 : Nat}
+
+# div_exact: a == (1+b)*q gives div(a, 1+b) == q. One call of div_unique with
+# the two representations (div(a,1+b), mod(a,1+b)) from div_add_mod and
+# (q, 0) from the hypothesis.
+law div_exact:
+  for +a: Nat
+  for +b: Nat
+  for +q: Nat
+  for +e: {a == Nat.mul(1n+b, q) : Nat}
+  {Nat.div(a, 1n+b) == q : Nat}
+
+# div_exact_mul: the scaled form. div(a*s, g*s) == q for s = 1 + k, from the
+# same q: the scaled dividend is g*s*q up to mul_assoc/mul_comm, so div_exact
+# applies to it verbatim.
+law div_exact_mul:
+  for +a: Nat
+  for +b: Nat
+  for +q: Nat
+  for +k: Nat
+  for +e: {a == Nat.mul(1n+b, q) : Nat}
+  {Nat.div(Nat.mul(a, 1n+k), Nat.mul(1n+b, 1n+k)) == q : Nat}
+
+# div_one: div(a, 1) == a, the case gcd = 1 of the Rat normalization. g = 1 is
+# 1 + 0, so it is one call of div_exact with the hypothesis a == 1*a.
+law div_one:
+  for +a: Nat
+  {Nat.div(a, 1n) == a : Nat}
+
 # Nat.gcd
 # =======
 #
