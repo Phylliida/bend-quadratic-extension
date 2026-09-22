@@ -214,3 +214,30 @@ def I.Int.one_mul(x):
           N.add_zero(Nat.add(xn, 0n)), N.add_zero(xn)))
         : {I.Int{xp, _} == I.Int{xp, xn} : I.Int}
       {==}
+
+def I.Int.canon.pos(a, e):
+  %Equal.sym(Cmp, Nat.cmp(a, 0n), GT{}, e) : {I.Int.canon.go(_, a, 0n) == I.Int{a, 0n} : I.Int}
+  %Equal.sym(Nat, Nat.sub(a, 0n), a, N.sub_zero(a)) : {I.Int{_, 0n} == I.Int{a, 0n} : I.Int}
+  {==}
+
+def I.Int.canon.neg(a, e):
+  %Equal.sym(Cmp, Nat.cmp(0n, a), LT{}, e) : {I.Int.canon.go(_, 0n, a) == I.Int{0n, a} : I.Int}
+  %Equal.sym(Nat, Nat.sub(a, 0n), a, N.sub_zero(a)) : {I.Int{0n, _} == I.Int{0n, a} : I.Int}
+  {==}
+
+def I.Int.canon.idem(c, xp, xn, e):
+  match c:
+    case EQ{}:
+      {==}
+    case GT{}:
+      I.Int.canon.pos(Nat.sub(xp, xn),
+        Equal.trans(Cmp, Nat.cmp(Nat.sub(xp, xn), 0n), Nat.cmp(1n+Nat.sub(xp, 1n+xn), 0n), GT{},
+          Equal.cong(Nat, Cmp, t => Nat.cmp(t, 0n), Nat.sub(xp, xn), 1n+Nat.sub(xp, 1n+xn),
+            N.sub_pos(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e))),
+          {==}))
+    case LT{}:
+      I.Int.canon.neg(Nat.sub(xn, xp),
+        Equal.trans(Cmp, Nat.cmp(0n, Nat.sub(xn, xp)), Nat.cmp(0n, 1n+Nat.sub(xn, 1n+xp)), LT{},
+          Equal.cong(Nat, Cmp, t => Nat.cmp(0n, t), Nat.sub(xn, xp), 1n+Nat.sub(xn, 1n+xp),
+            N.sub_pos(xn, xp, N.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e)))),
+          {==}))

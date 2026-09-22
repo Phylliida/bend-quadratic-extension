@@ -131,9 +131,9 @@ verified empirically on this checkout:
   cannot use it)`.
 - **A laws-only file does not check.** Open laws count as TODOs, so
   `node bend2/main.ts src/nat.bend` exits 1 with
-  `Error: 79 TODOs found. The code is incomplete, and not a valid proof
-  yet.` — and the count is transitive over imports (int.bend reports 19 on
-  its own, since it imports only `Base`; qext.bend 21 = 19 Int + 2 QExt).
+  `Error: 84 TODOs found. The code is incomplete, and not a valid proof
+  yet.` — and the count is transitive over imports (int.bend reports 22 on
+  its own, since it imports only `Base`; qext.bend 24 = 22 Int + 2 QExt).
   This is expected; the `*_proofs.bend` files are the gates that print
   `All terms check.`
 - **Defs are not laws**: a def a law *statement* needs (`Cmp.flip` in
