@@ -136,3 +136,99 @@ law Rat.sub_eq_add_neg:
   for +x: Rat
   for +y: Rat
   {Rat.sub(x, y) == Rat.add(x, Rat.neg(y)) : Rat}
+
+# Canonicality
+# ============
+#
+# The laws above hold for every Rat. The laws below are the ones that make
+# normalization *disappear*, and they need to know that the value they are
+# applied to is already normalized -- which is exactly the statement
+# "Rat.mk is the identity here", taken as a hypothesis:
+#
+#     for +fx: {Rat.mk(n, d) == Rat{n, d} : Rat}
+#
+# That hypothesis is what `canonical` means for this representation, and
+# Rat.mk.fixed below is where it comes from for values built the way the rest
+# of the development builds them (numerator a difference pair, gcd cancelled).
+# Nothing else about canonicality is needed: not coprimality of the output, not
+# gcd being the greatest.
+
+# Rat.mk.canon: mk is the identity on a reduced fraction. The gcd it cancels is
+# 1, so every division is by 1 and the difference pair comes back unchanged.
+#
+# This is the whole reason mk.go is stated over raw coordinates (np, nn): the
+# divisor mk.go computes is literally Rat.g(np, nn, 1+dp), so the coprime
+# hypothesis is about the *same* expression, and the proof needs no case split,
+# no comparison and no sub rewrite.
+law Rat.mk.canon:
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +g1: {N.Nat.gcd(Rat.mag(np, nn), 1n+dp) == 1n : Nat}
+  {Rat.mk.go(np, nn, 1n+dp) == Rat{Rat.num(np, nn), 1n+dp} : Rat}
+
+# Rat.mk.zero: 0/d normalizes to 0/1 for every positive d. The gcd of 0 and d
+# is d (Nat.gcd answers its second argument at 0), so both numerator divisions
+# are 0/d = 0 and the denominator division is d/d = 1.
+law Rat.mk.zero:
+  for +dp: Nat
+  {Rat.mk(I.Int.zero(), 1n+dp) == Rat.zero() : Rat}
+
+# Rat.mk.fixed: a reduced fraction in the difference-pair presentation is a
+# fixed point of mk -- the hypothesis the identity laws take, discharged.
+#
+# mk destructures the numerator *it* produced, so it sees the pair's own sides
+# (sub(np,nn), sub(nn,np)) as raw coordinates: that is where sub_diag comes in
+# (the double truncation of a one-sided pair is a no-op) together with its
+# mirror at the swapped comparison, after which mk.canon applies.
+law Rat.mk.fixed:
+  for +c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  for +g1: {N.Nat.gcd(Rat.mag(np, nn), 1n+dp) == 1n : Nat}
+  {Rat.mk(Rat.num(np, nn), 1n+dp) == Rat{Rat.num(np, nn), 1n+dp} : Rat}
+
+# The identity laws
+# =================
+#
+# x + 0 = x, x * 1 = x and x * 0 = 0, for a canonical x (fx) and a positive
+# denominator where that matters. Each fill is the same three steps: unfold the
+# operation, carry the Int/Nat identity through Rat.mk with two Equal.cong, and
+# close with fx (or, for mul_zero, with Rat.mk.zero).
+
+# Rat.add_zero: x + 0 = x
+law Rat.add_zero:
+  for +n: I.Int
+  for +d: Nat
+  for +fx: {Rat.mk(n, d) == Rat{n, d} : Rat}
+  {Rat.add(Rat{n, d}, Rat.zero()) == Rat{n, d} : Rat}
+
+# Rat.zero_add: 0 + x = x
+law Rat.zero_add:
+  for +n: I.Int
+  for +d: Nat
+  for +fx: {Rat.mk(n, d) == Rat{n, d} : Rat}
+  {Rat.add(Rat.zero(), Rat{n, d}) == Rat{n, d} : Rat}
+
+# Rat.mul_one: x * 1 = x
+law Rat.mul_one:
+  for +n: I.Int
+  for +d: Nat
+  for +fx: {Rat.mk(n, d) == Rat{n, d} : Rat}
+  {Rat.mul(Rat{n, d}, Rat.one()) == Rat{n, d} : Rat}
+
+# Rat.one_mul: 1 * x = x
+law Rat.one_mul:
+  for +n: I.Int
+  for +d: Nat
+  for +fx: {Rat.mk(n, d) == Rat{n, d} : Rat}
+  {Rat.mul(Rat.one(), Rat{n, d}) == Rat{n, d} : Rat}
+
+# Rat.mul_zero: x * 0 = 0. No canonicality hypothesis is needed, only that the
+# denominator is positive: mk(0, d) is 0/1 because gcd(0, d) = d.
+law Rat.mul_zero:
+  for +n: I.Int
+  for +dp: Nat
+  {Rat.mul(Rat{n, 1n+dp}, Rat.zero()) == Rat.zero() : Rat}

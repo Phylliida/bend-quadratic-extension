@@ -828,6 +828,54 @@ law div_one:
   for +a: Nat
   {Nat.div(a, 1n) == a : Nat}
 
+# div_zero: 0 / d = 0, for *every* d -- and it is a law rather than a reduction
+# because Nat.divmod matches on the divisor, so div(0, d) is stuck while d is a
+# variable. Both of divmod's branches answer 0 for dividend 0 (the b = 0 branch
+# returns the pair (0, 0), and the b = 1 + bp branch runs the loop from n = 0).
+law div_zero:
+  for +d: Nat
+  {Nat.div(0n, d) == 0n : Nat}
+
+# div_self: a/a = 1 for a = 1 + ap. One call of div_exact with q = 1, since
+# mul_one already says a == a*1.
+law div_self:
+  for +ap: Nat
+  {Nat.div(1n+ap, 1n+ap) == 1n : Nat}
+
+# Difference-pair helpers
+# =======================
+#
+# The Rat canonical form is the difference pair (sub(np,nn), sub(nn,np)), which
+# always has one side zero. Moving between "the difference pair of np, nn" and
+# "the raw coordinates np, nn" -- which is what Rat.mk does when it destructures
+# a numerator it produced itself -- needs the three facts below.
+
+# sub_zero_left: 0 - a = 0 (the left-hand twin of sub_zero)
+law sub_zero_left:
+  for +a: Nat
+  {Nat.sub(0n, a) == 0n : Nat}
+
+# sub_of_lt: a < b gives a - b = 0 -- the truncated difference is the whole
+# thing. Case split on both arguments; the two impossible branches are the
+# discriminations eq_ne_lt (0 vs 0) and gt_ne_lt (successor vs 0).
+law sub_of_lt:
+  for +a: Nat
+  for +b: Nat
+  for +e: {Nat.cmp(a, b) == LT{} : Cmp}
+  {Nat.sub(a, b) == 0n : Nat}
+
+# sub_diag: sub(sub(np,nn), sub(nn,np)) == sub(np,nn) -- truncating a difference
+# pair's own side by its other side is a no-op, because one of the two is zero.
+# The comparison is a parameter because it is what decides which side is zero:
+# GT and LT reduce to sub_zero / sub_zero_left, and EQ turns the comparison into
+# np == nn and collapses both sides with sub_self.
+law sub_diag:
+  for c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  {Nat.sub(Nat.sub(np, nn), Nat.sub(nn, np)) == Nat.sub(np, nn) : Nat}
+
 # Nat.gcd
 # =======
 #
