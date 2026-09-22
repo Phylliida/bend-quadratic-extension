@@ -65,7 +65,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 124, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 183 = 124 Nat + 32 Int + 27 Rat.
+QExt, rat.bend 184 = 124 Nat + 32 Int + 28 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -101,19 +101,21 @@ Known gaps, in dependency order:
    cross product `Nat.div_cross` and the shape law `Int.mul_scale`. It is the
    hypothesis `Rat.mk.eqv` consumes, so it is what the composing laws below
    were waiting for. The bridge for a law whose *argument* is another
-   operation's output is in as well: `Rat.mk_idem` --
-   `mk(numof(M), denof(M)) == M` for `M = mk(Rat.num(np, nn), d)` -- which
+   operation's output is in as well, and it is **unconditional**: `Rat.mk_idem`
+   --
+   `mk(numof(M), denof(M)) == M` for `M = mk(Rat.num(np, nn), 1n+dp)` -- which
    turns a value whose numerator is div/gcd terms back into the difference-pair
    spelling the value laws are stated over. Its fill is `Rat.mk.eqv.raw` at
    `Rat.mk.value`'s own cross product plus the two `sub_diag` rewrites that
-   relate the two numerator spellings. It takes the positivity of the output's
-   denominator as a hypothesis (`pq`), which is call-site-free: a caller holding
-   an operation's output produces it with `Rat.mk.den.pos` and `gcd_divides` at
-   its own gcd spelling. Deriving it inside the fill is what blocks it --
-   the gcd `Rat.mk` computes and `Rat.mag`'s are equal by one `sub_diag` per
-   coordinate, and no congruence reaches a rewrite under `Nat.div` (see
-   `PROVING.md`) -- so unconditional `mk_idem` is future work, and the law is
-   documented as a private bridge, not a target. Proved field
+   relate the two numerator spellings; the positivity of the output's
+   denominator, which three earlier rounds could not produce, is one
+   `div_pos_wit` at the gcd spelling *the goal carries* (with the witness
+   `gcd_divides` gives for that same magnitude) -- `Rat.mk.den.pos` is at the
+   other spelling of that gcd, which is why it looked like it should apply
+   verbatim. `Rat.mk_idem.raw` is the same law with a general denominator and
+   its two positivity hypotheses, for callers whose denominator is a product
+   (`pq` is call-site-free: the caller's own `gcd_divides` pair plus
+   `div_pos_wit` produces it, as `Rat.mul_assoc` does for its two). Proved field
    laws:
    `add_comm`, `mul_comm`, `sub_eq_add_neg`, and the identity laws
    (`add_zero`, `zero_add`, `mul_one`, `one_mul`, `mul_zero`) for canonical
