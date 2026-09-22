@@ -2463,3 +2463,33 @@ def R.Rat.add_assoc(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
       val,
       Equal.sym(R.Rat, R.Rat.add(R.Rat{xn, Xd}, R.Rat.add(R.Rat{yn, Yd}, R.Rat{zn, Zd})),
         R.Rat.mk(I.Int{TRp, TRn}, D), eR)))
+
+# Rat.add_exchange: three steps, no Nat arithmetic. add_comm moves the
+# mk-headed inner sum to the front, add_assoc (read backwards, i.e. as this
+# law's own statement with the summands in the order y, z, x) reassociates,
+# and one congruence carries add_comm under the outer sum.
+def R.Rat.add_exchange(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
+  +Xd = Nat.add(1n, dp1)
+  +Yd = Nat.add(1n, dp2)
+  +Zd = Nat.add(1n, dp3)
+  Equal.trans(R.Rat,
+    R.Rat.add(R.Rat{R.Rat.num(np1, nn1), Xd},
+              R.Rat.add(R.Rat{R.Rat.num(np2, nn2), Yd}, R.Rat{R.Rat.num(np3, nn3), Zd})),
+    R.Rat.add(R.Rat.add(R.Rat{R.Rat.num(np2, nn2), Yd}, R.Rat{R.Rat.num(np3, nn3), Zd}),
+              R.Rat{R.Rat.num(np1, nn1), Xd}),
+    R.Rat.add(R.Rat{R.Rat.num(np2, nn2), Yd},
+              R.Rat.add(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np3, nn3), Zd})),
+    R.Rat.add_comm(R.Rat{R.Rat.num(np1, nn1), Xd},
+      R.Rat.add(R.Rat{R.Rat.num(np2, nn2), Yd}, R.Rat{R.Rat.num(np3, nn3), Zd})),
+    Equal.trans(R.Rat,
+      R.Rat.add(R.Rat.add(R.Rat{R.Rat.num(np2, nn2), Yd}, R.Rat{R.Rat.num(np3, nn3), Zd}),
+                R.Rat{R.Rat.num(np1, nn1), Xd}),
+      R.Rat.add(R.Rat{R.Rat.num(np2, nn2), Yd},
+                R.Rat.add(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np1, nn1), Xd})),
+      R.Rat.add(R.Rat{R.Rat.num(np2, nn2), Yd},
+                R.Rat.add(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np3, nn3), Zd})),
+      R.Rat.add_assoc(np2, nn2, dp2, np3, nn3, dp3, np1, nn1, dp1),
+      Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat{R.Rat.num(np2, nn2), Yd}, u),
+        R.Rat.add(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np1, nn1), Xd}),
+        R.Rat.add(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np3, nn3), Zd}),
+        R.Rat.add_comm(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np1, nn1), Xd}))))

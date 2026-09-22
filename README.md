@@ -67,7 +67,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 126, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 194 = 126 Nat + 32 Int + 36 Rat.
+QExt, rat.bend 195 = 126 Nat + 32 Int + 37 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -206,12 +206,16 @@ Known gaps, in dependency order:
    law, no case analysis, no coprimality, and no comparison parameter: the law
    is stated over the canonical presentation exactly as `Rat.mul_assoc` is. The
    Nat half is nine proof-only helpers (`R.Rat.nat.cross4` and the shuffles it
-   is built from) in `rat_proofs.bend`.
+   is built from) in `rat_proofs.bend`. `Rat.add_exchange` follows, and it is
+   the one law of the block whose fill needs no value equation and no cross sum
+   at all: it is the three-step derivation from the two laws above it
+   (`add_comm`, `add_assoc` read backwards, one congruence), so no new
+   machinery.
    Still open:
-   - `add_exchange`, `mul_distrib`, `mul_add_left` -- the rest of the additive
-     block, on the `Rat.add_assoc` recipe: `Rat.mk.trunc` for every mk-headed
-     summand, `Rat.add.value.mixed` for every mixed sum, two `Nat.sub_cross`
-     instances and `Nat.cross_add` for the cross sum `Rat.mk.eqv.val` consumes.
+   - `mul_distrib` and its mirror `mul_add_left` -- the two distributive laws,
+     where the mk-headed summand meets a *product* rather than a sum, so the
+     cross sum is assembled from `Rat.mk.value` on the summands and the ring
+     laws rather than from `Nat.sub_cross` on two truncation pairs.
 2. `QExt` over `Rat`: field axioms plus the multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`).
 3. Binary nats for performance (unary `Nat` is O(value)).
