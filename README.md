@@ -36,9 +36,9 @@ case analysis, and that case analysis is what the switch removed. See
 Laws and proofs live in separate files; each `*_proofs.bend` fills every
 law of its sibling via `def <alias>.<name>(...)`:
 
-- `src/nat.bend` — the 109 Nat/Cmp laws (including the `Nat.divmod` and
-  `Nat.gcd` blocks, the exact-division block, and the cross-sum lemmas the Int
-  quotient lemma rests on),
+- `src/nat.bend` — the 114 Nat/Cmp laws (including the `Nat.divmod` and
+  `Nat.gcd` blocks, the exact-division block, the difference-pair helpers, and
+  the cross-sum lemmas the Int quotient lemma rests on),
   plus `Cmp.flip`, the gcd defs and the `Nat.Div` witness type. No proofs.
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
@@ -59,8 +59,8 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `*_proofs.bend` files and `scratch.bend` are the gates and print
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
-transitive over imports: nat.bend 109, int.bend 28, qext.bend 30 = 28 Int + 2
-QExt, rat.bend 140 = 109 Nat + 28 Int + 3 Rat.
+transitive over imports: nat.bend 114, int.bend 28, qext.bend 30 = 28 Int + 2
+QExt, rat.bend 153 = 114 Nat + 28 Int + 11 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -83,9 +83,13 @@ decides equality" means.
 Known gaps, in dependency order:
 
 1. `Rat`: the type, `Rat.mk` and the operations are in (`src/rat.bend`), with
-   `Rat.add_comm`, `Rat.mul_comm` and `Rat.sub_eq_add_neg` proved — the laws
-   whose two sides are `Rat.mk` of the same raw arguments. Still open, in
-   dependency order:
+   the commutation laws (`add_comm`, `mul_comm`), the definitional
+   `sub_eq_add_neg`, and the identity laws (`add_zero`, `zero_add`, `mul_one`,
+   `one_mul`, `mul_zero`) proved on canonical values — the last of those on top
+   of `Rat.mk.canon` ("mk is the identity on a reduced fraction"),
+   `Rat.mk.zero` and `Rat.mk.fixed` (a reduced difference pair is a fixed point
+   of mk), which is what `canonical` means here. Still open, in dependency
+   order:
    - `Rat.mk.canon` (mk is the identity on a reduced fraction) and
      `Rat.mk.scale` (`mk(n*k, d*k) == mk(n,d)`), which need the Nat exact
      division block already in place, then

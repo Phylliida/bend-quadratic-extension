@@ -1011,6 +1011,71 @@ def NL.div_one(a):
       NL.mul_one(a),
       Equal.sym(Nat, Nat.mul(1n, a), Nat.mul(a, 1n), NL.mul_comm(1n, a))))
 
+# div_zero: both branches of Nat.divmod answer 0 for a zero dividend, so the
+# whole proof is the case split that lets divmod's own match on the divisor
+# fire.
+def NL.div_zero(d):
+  match d:
+    case 0n:
+      {==}
+    case 1n+dp:
+      {==}
+
+def NL.div_self(ap):
+  NL.div_exact(1n+ap, ap, 1n, NL.mul_one(1n+ap))
+
+def NL.sub_zero_left(a):
+  match a:
+    case 0n:
+      {==}
+    case 1n+ap:
+      {==}
+
+def NL.sub_of_lt(a, b, e):
+  match a b:
+    case 0n 0n:
+      Empty.absurd({Nat.sub(0n, 0n) == 0n : Nat}, NL.eq_ne_lt(e))
+    case 0n 1n+bp:
+      {==}
+    case 1n+ap 0n:
+      Empty.absurd({Nat.sub(1n+ap, 0n) == 0n : Nat}, NL.gt_ne_lt(e))
+    case 1n+ap 1n+bp:
+      NL.sub_of_lt(ap, bp, e)
+
+# sub_diag: GT and LT rewrite the side that is zero and then collapse the outer
+# truncation (sub_zero, sub_zero_left); EQ turns the comparison into np == nn
+# and derives both sides are 0 from sub_self.
+def NL.sub_diag(c, np, nn, e):
+  match c:
+    case GT{}:
+      %Equal.sym(Nat, Nat.sub(nn, np), 0n,
+        NL.sub_of_lt(nn, np, NL.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))))
+        : {Nat.sub(Nat.sub(np, nn), _) == Nat.sub(np, nn) : Nat}
+      %Equal.sym(Nat, Nat.sub(Nat.sub(np, nn), 0n), Nat.sub(np, nn), NL.sub_zero(Nat.sub(np, nn)))
+        : {_ == Nat.sub(np, nn) : Nat}
+      {==}
+    case EQ{}:
+      %Equal.sym(Nat, Nat.sub(np, nn), 0n,
+        Equal.trans(Nat, Nat.sub(np, nn), Nat.sub(np, np), 0n,
+          Equal.cong(Nat, Nat, u => Nat.sub(np, u), nn, np,
+            Equal.sym(Nat, np, nn, NL.cmp_eq(np, nn, Equal.sym(Cmp, EQ{}, Nat.cmp(np, nn), e)))),
+          NL.sub_self(np)))
+        : {Nat.sub(_, Nat.sub(nn, np)) == _ : Nat}
+      %Equal.sym(Nat, Nat.sub(nn, np), 0n,
+        Equal.trans(Nat, Nat.sub(nn, np), Nat.sub(nn, nn), 0n,
+          Equal.cong(Nat, Nat, u => Nat.sub(nn, u), np, nn,
+            NL.cmp_eq(np, nn, Equal.sym(Cmp, EQ{}, Nat.cmp(np, nn), e))),
+          NL.sub_self(nn)))
+        : {Nat.sub(0n, _) == 0n : Nat}
+      {==}
+    case LT{}:
+      %Equal.sym(Nat, Nat.sub(np, nn), 0n,
+        NL.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))
+        : {Nat.sub(_, Nat.sub(nn, np)) == _ : Nat}
+      %Equal.sym(Nat, Nat.sub(0n, Nat.sub(nn, np)), 0n, NL.sub_zero_left(Nat.sub(nn, np)))
+        : {_ == 0n : Nat}
+      {==}
+
 # Nat.gcd
 # =======
 #
