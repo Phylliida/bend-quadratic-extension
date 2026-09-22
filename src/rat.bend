@@ -710,3 +710,34 @@ law Rat.add.value:
         I.Int.mul(I.Int{Nat.sub(np1, nn1), Nat.sub(nn1, np1)}, I.Int.unit(1n+dp2)),
         I.Int.mul(I.Int{Nat.sub(np2, nn2), Nat.sub(nn2, np2)}, I.Int.unit(1n+dp1))),
       Nat.mul(1n+dp1, 1n+dp2)) : Rat}
+
+# Rat.neg_add
+# ===========
+#
+# -(x + y) = -x + -y, for the canonical presentation of the two summands and
+# with no coprimality hypothesis. The statement is true as it stands (evaluated
+# at x = 2/3, y = -3/5 both sides are the same Rat), and what makes it provable
+# is the pair of bridges above:
+#
+#   - Rat.add.value turns the right-hand side -- add of two *normalized*
+#     summands, both of them the mk Rat.neg produces -- into mk of the
+#     unreduced sum, whose numerator is a raw pair of products;
+#   - Rat.mk.rep turns the left-hand side's inner value into that same raw
+#     spelling, after the negated value equation (Rat.mk.value carried through
+#     Int.neg_mul) has moved it to mk(Rat.num(Sn,Sp), d) -- the representative
+#     of the negated sum that the raw pair is exactly one mk.rep away from.
+#
+# Negation never touches a denominator, so no scaling appears anywhere: the
+# only arithmetic left is the four Nat.add commutations relating the two raw
+# spellings (the coordinates of Int.neg of the sum against the coordinates of
+# the negated *pieces*), and the positivity of the one denominator the two
+# fractions share.
+law Rat.neg_add:
+  for +np1: Nat
+  for +nn1: Nat
+  for +dp1: Nat
+  for +np2: Nat
+  for +nn2: Nat
+  for +dp2: Nat
+  {Rat.neg(Rat.add(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np2, nn2), 1n+dp2}))
+   == Rat.add(Rat.neg(Rat{Rat.num(np1, nn1), 1n+dp1}), Rat.neg(Rat{Rat.num(np2, nn2), 1n+dp2})) : Rat}
