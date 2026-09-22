@@ -883,6 +883,36 @@ law Rat.add_assoc:
    == Rat.add(Rat{Rat.num(np1, nn1), 1n+dp1},
               Rat.add(Rat{Rat.num(np2, nn2), 1n+dp2}, Rat{Rat.num(np3, nn3), 1n+dp3})) : Rat}
 
+# Rat.add_exchange
+# ================
+#
+# x + (y + z) = y + (x + z) for canonical values -- the additive block's
+# exchange law, and the only law of the block whose proof needs no value
+# equation and no cross sum: it is the standard three-step derivation from the
+# two laws above it,
+#
+#   x + (y + z) = (y + z) + x = y + (z + x) = y + (x + z),
+#
+# i.e. Rat.add_comm, Rat.add_assoc read backwards, and one congruence carrying
+# Rat.add_comm under the outer sum. Both of those are proved over exactly this
+# presentation, so the fill is three steps and no Nat arithmetic at all -- the
+# cross-sum machinery Rat.add_assoc needs plays no part here. (The mirror,
+# (x + y) + z = (x + z) + y, is this law through Rat.add_comm, as in Int.)
+law Rat.add_exchange:
+  for +np1: Nat
+  for +nn1: Nat
+  for +dp1: Nat
+  for +np2: Nat
+  for +nn2: Nat
+  for +dp2: Nat
+  for +np3: Nat
+  for +nn3: Nat
+  for +dp3: Nat
+  {Rat.add(Rat{Rat.num(np1, nn1), 1n+dp1},
+            Rat.add(Rat{Rat.num(np2, nn2), 1n+dp2}, Rat{Rat.num(np3, nn3), 1n+dp3}))
+   == Rat.add(Rat{Rat.num(np2, nn2), 1n+dp2},
+              Rat.add(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np3, nn3), 1n+dp3})) : Rat}
+
 # Rat.neg_add
 # ===========
 #
