@@ -432,3 +432,57 @@ law Rat.mk.value:
   for +pd: {Nat.cmp(0n, d) == LT{} : Cmp}
   {I.Int.mul(Rat.numof(Rat.mk(I.Int{np, nn}, d)), I.Int{d, 0n})
    == I.Int.mul(Rat.num(np, nn), I.Int{Rat.denof(Rat.mk(I.Int{np, nn}, d)), 0n}) : I.Int}
+
+# The product shape
+# =================
+#
+# The composing laws (mul_assoc and its siblings) relate two *normalized*
+# results, and the only tool for that is Rat.mk.eqv, whose hypothesis is a cross
+# product of raw numerators. Rat.mk.value supplies each factor's cross product,
+# but it names its numerator in Rat.num spelling -- the difference pair -- while
+# the products the operations write are raw coordinates, and those two are not
+# the same Int: Rat.num(np,nn) is the one-sided pair sub(np,nn), sub(nn,np),
+# a different *pair* from Int{np,nn}. The three laws below close that gap.
+
+# Rat.dp.eq.right / Rat.dp.eq.left: a difference pair with one side zero is its
+# own Rat.num. That is the whole content of "the product of two difference pairs
+# is a difference pair" once the sign is known (Rat.num.mul below): one side of
+# the product's coordinate pair vanishes, and the two truncations in Rat.num
+# collapse with sub_zero / sub_zero_left.
+law Rat.dp.eq.right:
+  for +U: Nat
+  for +V: Nat
+  for z: {V == 0n : Nat}
+  {I.Int{U, V} == Rat.num(U, V) : I.Int}
+
+law Rat.dp.eq.left:
+  for +U: Nat
+  for +V: Nat
+  for z: {U == 0n : Nat}
+  {I.Int{U, V} == Rat.num(U, V) : I.Int}
+
+# Rat.num.mul: the product of two difference pairs is Rat.num of the product's
+# own coordinates -- the product is one-sided again, and which side is zero is
+# exactly the sign of the two factors. The two comparisons therefore arrive as
+# parameters (a computed Nat.cmp is not a legal scrutinee), the fill splits on
+# them, and each branch derives the zeros with sub_of_lt at the flipped
+# comparison and finishes with dp.eq.right / dp.eq.left.
+#
+# This is the bridge the composing laws need between Rat.mk.value (whose right
+# side is in Rat.num spelling) and the Int ring laws (which only see raw
+# coordinates): with it, a value equation's difference-pair numerator can be
+# replaced by the raw product xn*yn and Int.mul_assoc applies.
+law Rat.num.mul:
+  for c1: Cmp
+  for +np1: Nat
+  for +nn1: Nat
+  for +e1: {c1 == Nat.cmp(np1, nn1) : Cmp}
+  for c2: Cmp
+  for +np2: Nat
+  for +nn2: Nat
+  for +e2: {c2 == Nat.cmp(np2, nn2) : Cmp}
+  {I.Int.mul(Rat.num(np1, nn1), Rat.num(np2, nn2))
+   == Rat.num(Nat.add(Nat.mul(Nat.sub(np1, nn1), Nat.sub(np2, nn2)),
+                      Nat.mul(Nat.sub(nn1, np1), Nat.sub(nn2, np2))),
+              Nat.add(Nat.mul(Nat.sub(np1, nn1), Nat.sub(nn2, np2)),
+                      Nat.mul(Nat.sub(nn1, np1), Nat.sub(np2, nn2)))) : I.Int}
