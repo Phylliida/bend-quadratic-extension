@@ -1134,3 +1134,130 @@ statement rather than trying to bridge to the first; and (c) only then
 composing laws need it). Note for (b): `mk.value`'s own fill is content to take
 `pd` as `{==}` because its `d` is a successor literal; `mk_idem`'s `d` is
 `denof(M)`, which is why its positivity is the whole difficulty.
+
+### mk_idem landed, and the "no congruence under Nat.div" rule is too strong
+
+`Rat.mk_idem` **is** in, and **unconditional**:
+`mk(numof(M), denof(M)) == M` for `M = mk(Rat.num(np,nn), 1n+dp)`, with the
+comparison as the only parameter. `Rat.mk_idem.raw` is the same identity with a
+general denominator plus the two positivity hypotheses (`pd`, `pq`) that a
+caller with a product denominator needs. `Rat.neg_neg` is in too (below).
+
+The two steps the previous round could not discharge are one call each, and both
+were a *spelling* problem rather than a missing lemma:
+
+- **The positivity of `denof(M)` is one `div_pos_wit`** at the gcd spelling the
+  *goal* carries -- `Rat.g(P, Q, d)` for `P = sub(np,nn)`, `Q = sub(nn,np)`, the
+  raw coordinates `mk` destructured -- with the witness `gcd_divides` returns
+  for that same magnitude:
+
+      N.div_pos_wit(G, dp,
+        Pair.snd(N.Nat.divides(G, R.Rat.mag(P, Q)), N.Nat.divides(G, 1n+dp),
+          N.gcd_divides(R.Rat.mag(P, Q), 1n+dp)))
+
+  Nothing is transported. `Rat.mk.den.pos`'s conclusion is at the *unexpanded*
+  `Rat.g(np, nn, 1n+dp)`, i.e. a different spelling of the same gcd -- that, and
+  not the law's truth, is what the previous round measured when it found that
+  `mk.den.pos` "looked like it should apply verbatim and does not". A caller of
+  `mk_idem.raw` whose value is `mk(Int{U,V}, d)` gets the same fact the same way
+  (`gcd_divides(Rat.mag(U,V), d)`), which is exactly how `Rat.mul_assoc` already
+  derives its two denominators' positivity.
+- **The numerator spelling** (`mk.value` names `Rat.num` of the raw coordinates;
+  the statement is written over the difference pair) is two `sub_diag`s, one at
+  the comparison and one at the flipped one -- reachable by `Equal.cong` because
+  they sit under `Nat.mul`/the `Int` constructor, not under `Nat.div`: the same
+  two rewrites `mk.fixed`'s fill already makes, with the same flip evidence.
+
+**Correction to the previous round's load-bearing claim.** "No congruence seems
+to reach under `Nat.div`" is too strong. `Equal.cong` *with an explicit motive*
+transports all four of these, each measured with `All terms check.` (probe file
+deleted; the text is the whole probe):
+
+    def divarg(a: Nat, g: Nat) -> {Nat.div(Nat.sub(a, 0n), g) == Nat.div(a, g) : Nat}:
+      Equal.cong(Nat, Nat, u => Nat.div(u, g), Nat.sub(a, 0n), a, N.sub_zero(a))
+
+    def divarg2(+U: Nat, +V: Nat, g: Nat)
+      -> {Nat.div(Nat.sub(Nat.sub(U, V), Nat.sub(V, U)), g) == Nat.div(Nat.sub(U, V), g) : Nat}:
+      Equal.cong(Nat, Nat, u => Nat.div(u, g),
+        Nat.sub(Nat.sub(U, V), Nat.sub(V, U)), Nat.sub(U, V),
+        N.sub_diag(Nat.cmp(U, V), U, V, {==}))
+
+    def divdvs(a: Nat, +U: Nat, +V: Nat, +d: Nat)
+      -> {Nat.div(a, N.Nat.gcd(Nat.add(Nat.sub(Nat.sub(U, V), Nat.sub(V, U)), Nat.sub(V, U)), d))
+          == Nat.div(a, N.Nat.gcd(Nat.add(Nat.sub(U, V), Nat.sub(V, U)), d)) : Nat}:
+      Equal.cong(Nat, Nat, u => Nat.div(a, N.Nat.gcd(Nat.add(u, Nat.sub(V, U)), d)),
+        Nat.sub(Nat.sub(U, V), Nat.sub(V, U)), Nat.sub(U, V),
+        N.sub_diag(Nat.cmp(U, V), U, V, {==}))
+
+    def divsucc(+d: Nat, +a: Nat, G: Nat, e: {d == 1n+a : Nat})
+      -> {Nat.div(1n+a, G) == Nat.div(d, G) : Nat}:
+      Equal.cong(Nat, Nat, u => Nat.div(u, G), 1n+a, d, Equal.sym(Nat, d, 1n+a, e))
+
+i.e. (a) a rewrite of `Nat.div`'s dividend, (b) `sub_diag`'s shape inside that
+dividend, (c) a rewrite inside the gcd that *is* the divisor, (d) the dividend's
+successor re-spelling that `div_pos_wit` concludes at. What fails is the `%`
+spelling measured before: a `%` step whose annotation does not match the goal
+after `Nat.div` has been expanded (the two ends then disagree in the *argument*).
+So the usable rule is: reach for `Equal.cong` with a motive, not `%`, when a
+`Nat.div` is in the way. Two consequences worth having: deriving `pq` inside
+`mk_idem.raw`'s fill (a variable denominator, so the *witness type* has to be
+re-spelled from `divides(G, d)` to `divides(G, 1+ap)` -- an evidence-type
+rewrite, which is why the raw form keeps the hypothesis), and a proof of the
+representative lemma below.
+
+### `Rat.neg_neg` (landed) and what it costs
+
+The unconditional difference-pair statement is **false**, evaluated:
+
+    neg(neg(Rat{Rat.num(4,0), 2})) = Rat{Int{2,0}, 1}   vs   Rat{Rat.num(4,0), 2} = Rat{Int{4,0}, 2}
+
+`==` on `Rat` is structural, so negation of a non-canonical term comes back
+mk-headed with div/gcd fields. With coprimality (`Rat.mk.fixed`'s own
+hypothesis, which the identity laws' `fx` also carries) the law is two
+`mk.fixed` calls around one congruence: `neg` of `Rat{Rat.num(np,nn), 1+dp}` is
+`mk` of the swapped pair, whose gcd is the stated one because `Rat.mag` is
+symmetric by `add_comm` -- so the intermediate is a fixed point too. No value
+equation and no case split: negation never touches the denominator.
+
+### The additive composing laws: the statement is true, the obstruction is the numerator representative
+
+Measured, so that the next round starts from the right place:
+
+- `add_assoc` and `neg_add` (over `Rat{Rat.num(np,nn), 1n+dp}`, no coprimality)
+  are **true**: at `x = 2/3, y = -3/5, z = 5/4` both sides of each evaluate to
+  the same `Rat` (`Rat{Int{79,0}, 60}` and `Rat{Int{0,1}, 15}`).
+- The obstruction is not `mk_idem` and not positivity. An `Int.add` numerator is
+  a *sum* of two difference pairs, and `Rat.mk.value`'s right-hand side names it
+  as `Rat.num(U, V)` of the sum's raw coordinates -- which for a mixed-sign sum
+  is a pair with **both** sides non-zero, i.e. a *different representative* of
+  the same integer from the raw pair the `Int` ring laws see. At
+  `add(2/3, -3/5)` the sum's raw coordinates are `(10, 9)`, evaluated:
+
+      Rat.num(10, 9) = Int{1, 0}        Int{10, 9} = Int{10, 9}
+      canon of both  = Int{1, 0}
+
+  `mk.eqv.raw` consumes a cross product of raw numerators, so it can never
+  equate the two: the multiplicative sibling's middle step (`Rat.num.mul`, which
+  says a *product* of difference pairs is one-sided again) has no additive
+  counterpart, because a sum of difference pairs is not one-sided. The bridge
+  the additive family needs is at the level of the value, not of the cross
+  product:
+
+      Rat.mk(Rat.num(U, V), d) == Rat.mk(Int{U, V}, d)
+
+  ("mk is blind to which representative of the numerator's value it is handed").
+  Its *statement* is true at exactly the ambiguous point above -- evaluated:
+  `mk(Rat.num(10,9), 3)` and `mk(Int{10,9}, 3)` both print `Rat{Int{1,0}, 3}` --
+  and its proof should be the shapes measured in this section: one `divarg2` per
+  coordinate, plus the gcd/divisor transports. **The rest of this paragraph is
+  an argument, not a measurement.** With it, each additive law should read as
+  the mul_assoc recipe the other way round (rewrite the side whose numerator is
+  raw into the `Rat.num` spelling, then consume the two value equations with
+  `mk.eqv.raw`), and `pq` for such a side is the four-line `div_pos_wit` call
+  above -- also verified at the raw spelling, for a caller whose value is
+  `mk(Int{U,V}, 1+ap)` rather than `mk(Rat.num(np,nn), ·)`.
+
+Next, in order: (1) the representative lemma above; (2) `neg_add` from it (the
+negated value equation is one `Int.neg_mul` plus `Rat.num` of the swapped pair);
+(3) `add_assoc`/`add_exchange` (needs the two summands' `Rat.num.mul`-style
+shapes as well); (4) `mul_distrib`/`mul_add_left`; (5) `QExt` over `Rat`.
