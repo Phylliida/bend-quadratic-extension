@@ -1261,3 +1261,95 @@ Next, in order: (1) the representative lemma above; (2) `neg_add` from it (the
 negated value equation is one `Int.neg_mul` plus `Rat.num` of the swapped pair);
 (3) `add_assoc`/`add_exchange` (needs the two summands' `Rat.num.mul`-style
 shapes as well); (4) `mul_distrib`/`mul_add_left`; (5) `QExt` over `Rat`.
+
+### The additive block: three units in, and the composite bridge that is still missing
+
+Committed, each with the whole gate set green:
+
+- **`Rat.mk.rep`** -- `mk(Rat.num(U,V), d) == mk(Int{U,V}, d)`, unconditional
+  and with no comparison parameter. The two `sub_diag`s that collapse the `mag`
+  of a one-sided pair are instances at the *explicit* comparisons
+  (`sub_diag(Nat.cmp(U,V), U, V, {==})` and the swapped one), so nothing has to
+  be flipped in, and every rewrite is an `Equal.cong` with a motive (never a
+  `%`), because all of them reach under a `Nat.div`. No witness, no positivity,
+  no `div_pos_wit`: no division is ever *evaluated*, only its arguments are
+  rewritten.
+- **`Rat.add.value`** -- `add(mk(Rat.num(np1,nn1),1+dp1), mk(Rat.num(np2,nn2),1+dp2))
+  == mk(<raw sum>, mul(1+dp1,1+dp2))`, the additive twin of the product shape.
+  A sum of two difference pairs is *not* one-sided, so no `Rat.num.mul`-style
+  shape law can relate it, and its cross product has to be assembled: two
+  `mk.value` calls scaled into the shared denominator and merged by the Int ring
+  laws (`R.Rat.add.piece`, then `R.Rat.add.cross` -- proof-only helpers in
+  `rat_proofs.bend`), then `mk.eqv.raw`. What makes the raw sum reachable at all
+  is that each summand's coordinates `(sub(np,nn), sub(nn,np))` *are*
+  truncations, so `Rat.num(ai,bi) == Int{ai,bi}` is two `sub_diag`s -- the same
+  collapse `mk.fixed`'s fill makes.
+- **`Rat.neg_add`** -- `-(x + y) = -x + -y` for the canonical presentation, no
+  coprimality. One `Rat.add.value` at the two negated summands, one `mk.eqv.raw`
+  at the value equation `mk.value` gives after `Int.neg_mul` has moved the
+  negation inside, one `mk.rep`, and four `Nat.add` commutations under the
+  constructor. Negation never touches a denominator, so no scaling appears.
+
+Two rules the fills paid for, both worth not re-discovering:
+
+- **`Equal.sym(A, a, b, e)` is called with `(a, b)` in the evidence's own
+  order, and its result is `{b == a}`** -- the argument check does not
+  re-orient, so passing the pair the other way round silently produces the
+  reversed equation (and the goal then fails with two enormous types). The
+  discipline that works: the evidence must have type `{new == old}` read against
+  the goal, so pass `(old, new)`.
+- **A proof-only helper `def` is not callable cross-file.** A probe importing
+  `rat_proofs.bend` and calling `R.Rat.add.piece` is rejected with
+  `expected : a defined name` -- the same wall the law keys hit. Fills that call
+  helpers must live in the file that defines them, so `neg_add` was probed by
+  editing `rat_proofs.bend` directly rather than in a scratch file.
+
+**The four remaining additive laws all hit one bridge that is not in yet: a
+*composite* representative problem, one level up from the one `mk.rep`
+closes.** The shape of it, at `add_assoc` (this derivation is an argument, not a
+measurement -- nothing below was run):
+
+    LHS = add(add(x,y), z)    RHS = add(x, add(y,z))
+
+The inner sum is `M1 = mk(S1, d1)` with `S1` a raw pair whose coordinates
+`(P1, Q1)` are *sums* of scaled truncations, and the outer add reads
+`numof(M1)`; the left side is therefore `mk(nL, k1*zd)` with
+`nL = numof(M1)*zd + r3*k1`. The value equations (`mk.value` on each composite)
+name those projections in `Rat.num` spelling, and the cross product `mk.eqv.raw`
+would want is
+
+    [Rat.num(P1,Q1)*zd + r3*d1] * xd*d2  ==  [r1*d2 + Rat.num(P2,Q2)*xd] * d1*zd
+
+-- an equation between two *pairs* of equal value and different representative:
+`Rat.num(P1,Q1)` is `Int{sub(P1,Q1), sub(Q1,P1)}`, while the right-hand side is
+built from the raw `r1 = Int{a1,b1}`. And unlike the summands of
+`Rat.add.value`, `P1` and `Q1` are **not** truncations, so `sub_diag` cannot
+collapse them; `mk.rep` does bridge exactly this gap, but only where the pair is
+the *argument of an mk*, not where it sits inside a sum. (The gap itself is the
+one already measured above: `Rat.num(10,9) = Int{1,0}` against
+`Int{10,9} = Int{10,9}`.) Note also that `Rat.add.value`, as it stands, needs
+*both* summands spelled `mk(Rat.num(np,nn), 1+dp)`; `add_assoc`'s outer add has
+one mk summand and one constructor summand, so that law does not apply to it
+verbatim.
+
+**What the next round should try, in order.** This is a plan, not a
+measurement; the first item is the one that looks cheap now.
+
+1. **`Rat.mk.canon`: `mk(X, d) == mk(canon(X), d)`**, with the comparison as a
+   parameter. It looks like *two* steps: `canon(X) == Rat.num(Xp,Xn)` up to the
+   comparison (both are `Int{sub(Xp,Xn), sub(Xn,Xp)}`, and `canon`'s one-sided
+   form is exactly that pair), so one `Equal.cong` over the constructor puts the
+   goal at `mk(Rat.num(Xp,Xn), d)`; and then `Rat.mk.rep` is that statement
+   verbatim. With it, "two pairs of equal value have equal mks" follows from the
+   already-proved `Int.canon.eqv.fwd` (cross-sums give `canon X == canon Y`),
+   which is the bridge the four laws need. `mk.eqv.raw` cannot see it on its
+   own: `mul(X, unit d) == mul(Y, unit d)` is simply false for two different
+   representatives, so no cross product will ever close these laws.
+2. The "mixed" value law for `add` -- one summand an mk, the other a
+   constructor, which is the shape the outer add of `add_assoc` really has. It
+   should go through by the `add.value` recipe, with the composite's equation
+   spelled in `Rat.num(P1,Q1)` (that is what `mk.value` hands over) and the
+   constructor's in its raw `Int{ai,bi}`.
+3. Only then `add_assoc`/`add_exchange` themselves, and then
+   `mul_distrib`/`mul_add_left`, which have the same composite shape with a
+   product as the outer operation.
