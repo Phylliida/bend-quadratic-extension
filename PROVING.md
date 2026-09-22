@@ -1727,27 +1727,67 @@ involved pairs, so what is left is the pure Nat identity
 the identity is multiplied by it. (T) is the distributivity fact at the Nat
 level: its two sides differ by `(a1-b1)*(U2-V2) - Zd*(U1'-V1') -
 Yd*(U3'-V3')`, which is zero because `U2-V2 = (a2-b2)*Zd + (a3-b3)*Yd`,
-`U1'-V1' = (a1-b1)(a2-b2)` and `U3'-V3' = (a1-b1)(a3-b3)` -- and, exactly as
-in the additive block, it is a `Nat.cross_add` combination: the two hypotheses
-are the padded equations
+`U1'-V1' = (a1-b1)(a2-b2)` and `U3'-V3' = (a1-b1)(a3-b3)`.
+
+**Correction.** The first version of this paragraph claimed (T) is a
+`Nat.cross_add` combination of two padded equations it wrote out as
 
     (a1*P2 + b1*Q2) + (b1*U2 + a1*V2)  ==  (a1*Q2 + b1*P2) + (b1*V2 + a1*U2)
     (P1*Zd + P3*Yd) + (b1*U2 + a1*V2)  ==  (Q1*Zd + Q3*Yd) + (b1*V2 + a1*U2)
 
-whose paddings agree because both differences are `(a1-b1)*(U2-V2)`. The
-first is the `sub_cross` instance of the inner sum scaled by `a1` and by `b1`
-(a permutation of two four-term sums, one exchange), the second is the two
-product instances `[i]` and `[iii]` scaled by `Zd` and `Yd`, again one
-exchange.
+-- and that is wrong twice over. `cross_add` consumes *one* padding pair
+`(t, t2)`, so two hypotheses only combine if their paddings agree: here the
+first carries `b1*U2 + a1*V2` and the second `b1*V2 + a1*U2`, two different
+terms (they are the cross sum of the truncation pair in the two orders, and
+they agree only when `a1*U2 + b1*V2` does). And the paddings are not the
+`b1*U2 + a1*V2` shapes at all: what the value equations actually produce are
+the *truncation pairs* `(P2, Q2)`, so every term of the padding and of the
+coefficient is a product with `P2` or `Q2`, never with `U2` or `V2`. Written
+in the truncation spelling, with `C = Yd*Zd`, `dd = (Xd*Yd)*(Xd*Zd)`,
+`bd = b1*b3` and
 
-Finally `d2` comes off again to give mk.eqv.raw's unscaled hypothesis: it is
-`Yd*Zd`, a *product of two successors*, so `Int.scale.pair` splits the unit
-and `Int.scale.cancel` removes `Zd` (at `kp = dp3`) and then `Yd` (at
-`kp = dp2`). Nothing in the route needs a new law; what it needs is the
-shuffle inventory already in `rat_proofs.bend` (`exch4`, `foldA`/`foldB`,
-`split`) plus a Nat-level ring block for the projection-to-truncation
-identities. Estimated at the size of `Rat.add_assoc`'s Nat half, i.e. a few
-hundred lines -- it was not attempted in this round.
+    A  = a1*P2 + a2*Q2        G1 = a1*P2 + a2*Q2 + b2*P2
+    q2 = b1*Q2 + b2*P2        G2 = b2*P2 + b1*Q2 + a2*Q2
+
+(the two summand-groups `cross_add` needs), the padded hypotheses that *do*
+combine are
+
+    A*C + q2*X*C           ==  G1*C + G2*X*C          (padding q2*X*C, q2X = q2*X)
+    q2*dd + q2*X*C*bd      ==  (q2*X*C)*bd + D2*E2
+
+with `D2*E2 = b1*Q2 + b2*P2`: the first is the positive coordinate reading of
+the inner sum's value equation scaled by `X*C`, the second the negative one of
+the two products' readings, and `cross_add` at
+
+    (A, A2, B, B2, t, t2) := (A*C, G1*C, q2*dd, D2*E2, q2*X*C*bd, G2*X*C*bd)
+
+gives `A*C + D2*E2 == G1*C + q2*dd`, which is mk.eqv.raw's hypothesis once the
+two sides are respelled by `Int.mul_scale` (and the `b*bd` factor is carried
+along both sides -- it is never cancelled). Neither hypothesis is a `sub_cross`
+instance: `sub_cross` is the *one-coordinate* cross sum of a single inner sum
+(what the additive block uses, since there the inner sums are never scaled),
+while here the inner sum's value equation is scaled by the two product
+denominators and read at both coordinates.
+
+Two statements in this neighbourhood are false as they stand and are recorded
+here so that nobody re-derives them:
+
+  - the four-scale `cross_sum` -- `e1 : s3*f3 + s1*f1 == (f1+f3)+f4`,
+    `e2 : s4*f4 + s2*f2 == (f2+f4)+f3`, conclusion `T1+T2 == T3+T4`. It is
+    false for free scales, and the `s1 = s3`, `s2 = s4` the intended use has
+    do not rescue the *statement*: it is the hypothesis set that is too weak,
+    not the instantiation that is wrong.
+  - `swap` in the shared-*value* form: `u+v == w`, `x+y == w` gives
+    `u+y == x+v`. Witness `u=0, v=1, x=1, y=0, w=1`: both hypotheses hold
+    (`0+1 == 1`, `1+0 == 1`) and the conclusion asks `0+0 == 1+1`, i.e.
+    `0 == 2`. The two hypotheses share a *value*, not a term, and nothing
+    forces the pairs to be the same pair.
+
+Nothing in the route needs a new law; what it needs is the shuffle inventory
+already in `rat_proofs.bend` (`exch4`, `foldA`/`foldB`, `split`) plus a
+Nat-level ring block for the projection-to-truncation identities. Estimated at
+the size of `Rat.add_assoc`'s Nat half, i.e. a few hundred lines -- it was not
+attempted in this round.
 
 `Rat.mul_add_left` is then free: `(x + y)*z = z*(x + y) = z*x + z*y =
 x*z + y*z` is `Rat.mul_comm`, `Rat.mul_distrib`, and two `Rat.mul_comm`s under
