@@ -1517,3 +1517,58 @@ threaded in as a parameter, and these two laws are what that buys for the
 additive block. Both are unconditional, both take their comparisons (or nothing)
 as parameters, and both are green: nat gate green, `nat.bend` alone 126 TODOs
 (was 124), `rat.bend` alone 192, the other two counts unchanged.
+
+### `Rat.mk.trunc`: the bridge for a *composite* numerator
+
+Landed: **`Rat.mk.trunc`** -- `mk(Int{U,V}, d) == mk(Rat.num(sub(U,V), sub(V,U)), d)`.
+
+This is the piece the plan's item 1 was after, and it turns out **not** to need
+the comparison parameter at all. `Rat.mk.canon.go` threads one in because it is
+stated in `canon.go`'s own spelling; but the pair
+`(sub(U,V), sub(V,U))` *is* canon.go's branch value (one side is zero), and
+`sub_diag` reaches the collapse at the two explicit comparisons `Nat.cmp(U,V)`
+and `Nat.cmp(V,U)` -- so the same content is available with no case analysis
+whatsoever, which is what a fill can actually use. (`mk.canon.go` is still the
+right tool inside `Rat.mk.eqv.val`, where the canonical forms have to be compared
+through `Int.canon.eqv`; the two laws are the same fact in the two spellings the
+two consumers need.)
+
+Why a *new* law rather than `mk.rep`: `mk.rep` collapses the mag of a one-sided
+pair, and a **sum of two difference pairs is not one-sided** -- its coordinates
+are not truncations of anything, so `sub_diag` has nothing to bite on. Its
+*canonical* coordinates, on the other hand, are exactly `(sub(U,V), sub(V,U))`,
+and that is what this law names. With it, a value whose numerator is an
+operation's output -- `Int.add` of two scaled difference pairs, which is what
+`add(add(x,y), z)` hands the outer `add` -- is one step from the presentation
+`Rat.add.value.mixed` and the composing laws are stated over.
+
+The fill is `mk.rep`'s fill with the two representations exchanged: four
+`sub_diag` instances collapse `sub(sub(P,Q),sub(Q,P))` to `P` and
+`sub(sub(Q,P),sub(P,Q))` to `Q` (two per coordinate, chained), one cong pair
+carries that into the gcd's sum, and the three divisions and the numerator pair
+follow by congs. Every rewrite is an `Equal.cong` with a motive, because each one
+reaches under a `Nat.div`; measured: rat gate green, `rat.bend` alone 193 TODOs.
+
+**What `add_assoc` still needs.** With `mk.trunc` in, the left-hand side of
+`add_assoc` can be put in the mixed law's shape, and the mixed law's conclusion is
+spelled in the coordinates `(P1, Q1)` of the inner sum -- the truncation pair --
+so the cross sum `Rat.mk.eqv.val` wants is a *pure Nat* equation in
+`P1,Q1,P2,Q2,xp,xn,yp,yn,zp,zn,Xd,Yd,Zd` (no `div` anywhere: the mixed law's fill
+already consumed the value equations). It reduces to
+
+    P1*Zd + zp*Xd*Yd + Q2*Xd + xn*Yd*Zd == P2*Xd + xp*Yd*Zd + Q1*Zd + zn*Xd*Yd   (★)
+
+times the common factor `Xd*Yd*Zd`. (★) follows from exactly two instances of
+`sub_cross` -- `P1 + (xn*Yd + yn*Xd) == Q1 + (xp*Yd + yp*Xd)` and the same for
+`P2, Q2` -- scaled by `Zd` and `Xd` respectively and combined with `cross_add`:
+the padded equations are `A + t == A' + t'` and `B + t == B' + t'` with
+`A = P1*Zd + xn*Yd*Zd`, `t = yn*Xd*Zd`, `A' = Q1*Zd + xp*Yd*Zd`, `t' = yp*Xd*Zd`,
+and `B = P2*Xd + zn*Yd*Xd`, `B' = Q2*Xd + zp*Yd*Xd` with the *same* `t, t'` -- so
+`cross_add` gives `A + B' == A' + B`, which is (★). Scaling the two cross sums by
+`Zd*Xd*Yd*Zd` instead (i.e. by `(Zd*F)` and `(Xd*F)` with `F = Xd*Yd*Zd`) makes
+`cross_add`'s conclusion *be* the cross sum `Rat.mk.eqv.val` consumes, with the
+common factor already distributed -- that is the one remaining Nat law, and the
+fill of `add_assoc` is then: `mk.trunc` + `mk.rep` to re-spell the inner sum, one
+`Rat.add.value.mixed` per side, two `sub_diag` congs to collapse the mixed law's
+`sub(P1,Q1)` spellings, the Nat law above, and `Rat.mk.eqv.val`. Nothing else was
+measured here: the paragraph is a derivation, not a run.

@@ -944,6 +944,71 @@ def R.Rat.mk.rep(U, V, d):
     Equal.cong(I.Int, R.Rat, u => R.Rat{u, Rr}, I.Int{A, B}, I.Int{A2, B2}, En),
     Equal.cong(Nat, R.Rat, u => R.Rat{I.Int{A2, B2}, u}, Rr, Rr2, E3))
 
+# Rat.mk.trunc: the goal's two sides unfold -- both mks destructure -- to
+#
+#   Rat{Int{div(P, G1), div(Q, G1)}, div(d, G1)}                        and
+#   Rat{Int{div(sub(sub(P,Q), sub(Q,P)), G2), div(sub(sub(Q,P), sub(P,Q)), G2)}, div(d, G2)}
+#
+# with P = sub(U,V), Q = sub(V,U), G1 = gcd(P + Q, d) and G2 = gcd of the
+# *truncations of the truncation pair*. The two agree coordinate by coordinate
+# once those truncations collapse: sub_diag at (P, Q) and then at (U, V) sends
+# sub(sub(P,Q), sub(Q,P)) to P, and the same two instances at the swapped
+# comparisons send the other coordinate to Q -- so the gcd's sum is P + Q in
+# either spelling (eg), the three divisions agree, and the two Rat constructors
+# are the same term.
+#
+# This is mk.rep's fill with the roles of the two representations exchanged (that
+# one collapses the *pair's* mag, this one collapses the truncation pair's), and
+# it is the same discipline: every rewrite is an Equal.cong with a motive, never a
+# `%`, because each one reaches under a Nat.div.
+def R.Rat.mk.trunc(U, V, d):
+  +P = Nat.sub(U, V)
+  +Q = Nat.sub(V, U)
+  +G1 = R.Rat.g(U, V, d)
+  +G2 = R.Rat.g(Nat.sub(P, Q), Nat.sub(Q, P), d)
+  +A1 = Nat.div(P, G1)
+  +B1 = Nat.div(Q, G1)
+  +R1 = Nat.div(d, G1)
+  +A2 = Nat.div(Nat.sub(Nat.sub(P, Q), Nat.sub(Q, P)), G2)
+  +B2 = Nat.div(Nat.sub(Nat.sub(Q, P), Nat.sub(P, Q)), G2)
+  +R2 = Nat.div(d, G2)
+  +eP = Equal.trans(Nat, Nat.sub(Nat.sub(P, Q), Nat.sub(Q, P)), Nat.sub(P, Q), P,
+    N.sub_diag(Nat.cmp(P, Q), P, Q, {==}),
+    N.sub_diag(Nat.cmp(U, V), U, V, {==}))
+  +eQ = Equal.trans(Nat, Nat.sub(Nat.sub(Q, P), Nat.sub(P, Q)), Nat.sub(Q, P), Q,
+    N.sub_diag(Nat.cmp(Q, P), Q, P, {==}),
+    N.sub_diag(Nat.cmp(V, U), V, U, {==}))
+  +eg0 = Equal.trans(Nat,
+    Nat.add(Nat.sub(Nat.sub(P, Q), Nat.sub(Q, P)), Nat.sub(Nat.sub(Q, P), Nat.sub(P, Q))),
+    Nat.add(P, Nat.sub(Nat.sub(Q, P), Nat.sub(P, Q))),
+    Nat.add(P, Q),
+    Equal.cong(Nat, Nat, u => Nat.add(u, Nat.sub(Nat.sub(Q, P), Nat.sub(P, Q))),
+      Nat.sub(Nat.sub(P, Q), Nat.sub(Q, P)), P, eP),
+    Equal.cong(Nat, Nat, u => Nat.add(P, u),
+      Nat.sub(Nat.sub(Q, P), Nat.sub(P, Q)), Q, eQ))
+  +eg = Equal.trans(Nat, G2, N.Nat.gcd(Nat.add(P, Q), d), G1,
+    Equal.cong(Nat, Nat, u => N.Nat.gcd(u, d),
+      Nat.add(Nat.sub(Nat.sub(P, Q), Nat.sub(Q, P)), Nat.sub(Nat.sub(Q, P), Nat.sub(P, Q))),
+      Nat.add(P, Q), eg0),
+    {==})
+  +E1 = Equal.trans(Nat, A2, Nat.div(P, G2), A1,
+    Equal.cong(Nat, Nat, u => Nat.div(u, G2), Nat.sub(Nat.sub(P, Q), Nat.sub(Q, P)), P, eP),
+    Equal.cong(Nat, Nat, u => Nat.div(P, u), G2, G1, eg))
+  +E2 = Equal.trans(Nat, B2, Nat.div(Q, G2), B1,
+    Equal.cong(Nat, Nat, u => Nat.div(u, G2), Nat.sub(Nat.sub(Q, P), Nat.sub(P, Q)), Q, eQ),
+    Equal.cong(Nat, Nat, u => Nat.div(Q, u), G2, G1, eg))
+  +E3 = Equal.cong(Nat, Nat, u => Nat.div(d, u), G2, G1, eg)
+  +En = Equal.trans(I.Int, I.Int{A2, B2}, I.Int{A1, B2}, I.Int{A1, B1},
+    Equal.cong(Nat, I.Int, u => I.Int{u, B2}, A2, A1, E1),
+    Equal.cong(Nat, I.Int, u => I.Int{A1, u}, B2, B1, E2))
+  Equal.trans(R.Rat,
+    R.Rat{I.Int{A1, B1}, R1},
+    R.Rat{I.Int{A1, B1}, R2},
+    R.Rat{I.Int{A2, B2}, R2},
+    Equal.cong(Nat, R.Rat, u => R.Rat{I.Int{A1, B1}, u}, R1, R2, Equal.sym(Nat, R2, R1, E3)),
+    Equal.cong(I.Int, R.Rat, u => R.Rat{u, R2}, I.Int{A1, B1}, I.Int{A2, B2},
+      Equal.sym(I.Int, I.Int{A2, B2}, I.Int{A1, B1}, En)))
+
 # Rat.mk.canon.go: canon.go's branch value and Rat.num(xp,xn) are the same pair
 # once the truncation the branch's own sign forces to zero has collapsed, so each
 # branch is one congruence after Rat.mk.rep (read backwards) has put the
