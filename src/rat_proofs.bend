@@ -1441,3 +1441,105 @@ def R.Rat.add.value(np1, nn1, dp1, np2, nn2, dp2):
     N.mul_pos(k1, k2, pk1, pk2),
     N.mul_pos(xd, yd, {==}, {==}),
     R.Rat.add.cross(A, B, R.Rat.num(a1, b1), I.Int{a1, b1}, R.Rat.num(a2, b2), I.Int{a2, b2}, xd, yd, k1, k2, v1, v2, s1, s2))
+# probe: Rat.neg_add -- -(x + y) = -x + -y for the canonical presentation.
+# Rat.neg_add: the goal is
+#   neg(add(Rat{Rat.num(np1,nn1), xd}, Rat{Rat.num(np2,nn2), yd}))   against
+#   add(neg(Rat{Rat.num(np1,nn1), xd}), neg(Rat{Rat.num(np2,nn2), yd}))
+# with xd = 1+dp1, yd = 1+dp2. The chain runs up the right-hand side and back
+# down the left one:
+#
+#   av   Rat.add.value at the two negated pieces -- both are mk of a swapped
+#        difference pair, which is exactly that law's shape -- giving mk(T, d)
+#        with T the raw sum of the two scaled pairs;
+#   teq  T == Int.neg(S): the coordinates differ only in the order of the two
+#        summands *inside* each of the four sums (Int.neg swaps the pair's
+#        sides, and Int.mul keeps the order of the sides it is handed), so it
+#        is four Nat.add commutations under the constructor;
+#   v    Rat.mk.value on the inner sum M1 = mk(S,d), whose raw coordinates are
+#        (Sp, Sn) -- the two coordinates of S as mk destructures them;
+#   nv   the negated value equation: Int.neg_mul moves the negation inside, and
+#        Int.neg(Rat.num(Sp,Sn)) is Rat.num(Sn,Sp) by definition;
+#   eqv  Rat.mk.eqv.raw at that cross product, rep Rat.mk.rep at the same
+#        value -- so the left-hand side is mk(nL, dL) up to the definition of
+#        Rat.neg, which is where the chain can stop.
+def R.Rat.neg_add(np1, nn1, dp1, np2, nn2, dp2):
+  +xd = Nat.add(1n, dp1)
+  +yd = Nat.add(1n, dp2)
+  +d = Nat.mul(xd, yd)
+  +a1 = Nat.sub(np1, nn1)
+  +b1 = Nat.sub(nn1, np1)
+  +a2 = Nat.sub(np2, nn2)
+  +b2 = Nat.sub(nn2, np2)
+  +xn = R.Rat.num(np1, nn1)
+  +yn = R.Rat.num(np2, nn2)
+  +S = I.Int.add(I.Int.mul(xn, I.Int.unit(yd)), I.Int.mul(yn, I.Int.unit(xd)))
+  +Sp = Nat.add(Nat.add(Nat.mul(a1, yd), Nat.mul(b1, 0n)), Nat.add(Nat.mul(a2, xd), Nat.mul(b2, 0n)))
+  +Sn = Nat.add(Nat.add(Nat.mul(a1, 0n), Nat.mul(b1, yd)), Nat.add(Nat.mul(a2, 0n), Nat.mul(b2, xd)))
+  +M1 = R.Rat.mk(S, d)
+  +nL = I.Int.neg(R.Rat.numof(M1))
+  +dL = R.Rat.denof(M1)
+  +G = R.Rat.g(Sp, Sn, d)
+  +T = I.Int.add(I.Int.mul(I.Int{b1, a1}, I.Int.unit(yd)), I.Int.mul(I.Int{b2, a2}, I.Int.unit(xd)))
+  +X1 = Nat.add(Nat.mul(b1, yd), Nat.mul(a1, 0n))
+  +X2 = Nat.add(Nat.mul(b2, xd), Nat.mul(a2, 0n))
+  +Y1 = Nat.add(Nat.mul(b1, 0n), Nat.mul(a1, yd))
+  +Y2 = Nat.add(Nat.mul(b2, 0n), Nat.mul(a2, xd))
+  +A1 = Nat.add(Nat.mul(a1, 0n), Nat.mul(b1, yd))
+  +A2 = Nat.add(Nat.mul(a2, 0n), Nat.mul(b2, xd))
+  +B1 = Nat.add(Nat.mul(a1, yd), Nat.mul(b1, 0n))
+  +B2 = Nat.add(Nat.mul(a2, xd), Nat.mul(b2, 0n))
+  +C1 = Nat.add(X1, X2)
+  +C2 = Nat.add(Y1, Y2)
+  +eC1 = Equal.trans(Nat, C1, Nat.add(A1, X2), Sn,
+    Equal.cong(Nat, Nat, w => Nat.add(w, X2), X1, A1,
+      N.add_comm(Nat.mul(b1, yd), Nat.mul(a1, 0n))),
+    Equal.cong(Nat, Nat, w => Nat.add(A1, w), X2, A2,
+      N.add_comm(Nat.mul(b2, xd), Nat.mul(a2, 0n))))
+  +eC2 = Equal.trans(Nat, C2, Nat.add(B1, Y2), Sp,
+    Equal.cong(Nat, Nat, w => Nat.add(w, Y2), Y1, B1,
+      N.add_comm(Nat.mul(b1, 0n), Nat.mul(a1, yd))),
+    Equal.cong(Nat, Nat, w => Nat.add(B1, w), Y2, B2,
+      N.add_comm(Nat.mul(b2, 0n), Nat.mul(a2, xd))))
+  +teq = Equal.trans(I.Int, T, I.Int{Sn, C2}, I.Int{Sn, Sp},
+    Equal.cong(Nat, I.Int, w => I.Int{w, C2}, C1, Sn, eC1),
+    Equal.cong(Nat, I.Int, w => I.Int{Sn, w}, C2, Sp, eC2))
+  +v = R.Rat.mk.value(Nat.cmp(Sp, Sn), Sp, Sn, d, {==}, N.mul_pos(xd, yd, {==}, {==}))
+  +nv = Equal.trans(I.Int,
+    I.Int.mul(I.Int.neg(R.Rat.numof(M1)), I.Int.unit(d)),
+    I.Int.neg(I.Int.mul(R.Rat.numof(M1), I.Int.unit(d))),
+    I.Int.mul(R.Rat.num(Sn, Sp), I.Int.unit(dL)),
+    Equal.sym(I.Int, I.Int.neg(I.Int.mul(R.Rat.numof(M1), I.Int.unit(d))),
+      I.Int.mul(I.Int.neg(R.Rat.numof(M1)), I.Int.unit(d)),
+      I.Int.neg_mul(R.Rat.numof(M1), I.Int.unit(d))),
+    Equal.trans(I.Int,
+      I.Int.neg(I.Int.mul(R.Rat.numof(M1), I.Int.unit(d))),
+      I.Int.neg(I.Int.mul(R.Rat.num(Sp, Sn), I.Int.unit(dL))),
+      I.Int.mul(R.Rat.num(Sn, Sp), I.Int.unit(dL)),
+      Equal.cong(I.Int, I.Int, u => I.Int.neg(u),
+        I.Int.mul(R.Rat.numof(M1), I.Int.unit(d)),
+        I.Int.mul(R.Rat.num(Sp, Sn), I.Int.unit(dL)), v),
+      I.Int.neg_mul(R.Rat.num(Sp, Sn), I.Int.unit(dL))))
+  +eqv = R.Rat.mk.eqv.raw(nL, dL, R.Rat.num(Sn, Sp), d,
+    N.div_pos_wit(G, Nat.add(dp2, Nat.mul(dp1, Nat.add(1n, dp2))),
+      Pair.snd(N.Nat.divides(G, R.Rat.mag(Sp, Sn)), N.Nat.divides(G, d), N.gcd_divides(R.Rat.mag(Sp, Sn), d))),
+    N.mul_pos(xd, yd, {==}, {==}),
+    nv)
+  Equal.trans(R.Rat,
+    R.Rat.mk(nL, dL),
+    R.Rat.mk(T, d),
+    R.Rat.add(R.Rat.neg(R.Rat{R.Rat.num(np1, nn1), xd}), R.Rat.neg(R.Rat{R.Rat.num(np2, nn2), yd})),
+    Equal.trans(R.Rat,
+      R.Rat.mk(nL, dL),
+      R.Rat.mk(R.Rat.num(Sn, Sp), d),
+      R.Rat.mk(T, d),
+      eqv,
+      Equal.trans(R.Rat,
+        R.Rat.mk(R.Rat.num(Sn, Sp), d),
+        R.Rat.mk(I.Int.neg(S), d),
+        R.Rat.mk(T, d),
+        R.Rat.mk.rep(Sn, Sp, d),
+        Equal.cong(I.Int, R.Rat, u => R.Rat.mk(u, d), I.Int.neg(S), T, Equal.sym(I.Int, T, I.Int.neg(S), teq)))),
+    Equal.sym(R.Rat,
+      R.Rat.add(R.Rat.neg(R.Rat{R.Rat.num(np1, nn1), xd}), R.Rat.neg(R.Rat{R.Rat.num(np2, nn2), yd})),
+      R.Rat.mk(T, d),
+      R.Rat.add.value(nn1, np1, dp1, nn2, np2, dp2)))

@@ -65,7 +65,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 124, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 186 = 124 Nat + 32 Int + 30 Rat.
+QExt, rat.bend 187 = 124 Nat + 32 Int + 31 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -150,14 +150,18 @@ Known gaps, in dependency order:
    relate it and the cross product has to be assembled instead — the fill is
    `Rat.mk.value` on each summand scaled into the shared denominator (the
    Int-level permutation of `R.Rat.add.piece`/`R.Rat.add.cross`), then
-   `Rat.mk.eqv.raw`. Still
+   `Rat.mk.eqv.raw`. `Rat.neg_add` is the newest — the first *additive*
+   composing law, and the template for the rest: the right-hand side is
+   `Rat.add.value` at the two negated summands, the left-hand side is
+   `Rat.mk.eqv.raw` at the value equation `Rat.mk.value` gives after
+   `Int.neg_mul` has moved the negation inside it, and `Rat.mk.rep` plus four
+   `Nat.add` commutations join the two raw spellings. No coprimality, no case
+   split, and no scaling at all — negation never touches a denominator. Still
    open:
-   - `add_assoc`, `add_exchange`, `mul_distrib`, `mul_add_left`, `neg_add` --
-     the rest of the additive block, now that both bridges are in:
-     `Rat.add.value` turns a sum of two mks into mk of the unreduced sum, and
-     `Rat.mk.rep` converts the resulting numerator's presentation into the raw
-     pair `Int.neg` and the Int ring laws see (`PROVING.md` has the
-     measurements, including why no cross product could relate them directly).
+   - `add_assoc`, `add_exchange`, `mul_distrib`, `mul_add_left` -- the rest of
+     the additive block, on the `Rat.neg_add` recipe (`Rat.add.value` for every
+     sum, `Rat.mk.eqv.raw` at the value equations, `Rat.mk.rep` where a
+     presentation has to change).
 2. `QExt` over `Rat`: field axioms plus the multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`).
 3. Binary nats for performance (unary `Nat` is O(value)).
