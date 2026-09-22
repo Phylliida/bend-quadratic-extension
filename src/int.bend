@@ -311,3 +311,35 @@ law Int.canon.eqv.fwd:
   for +e2: {c2 == Nat.cmp(yp, yn) : Cmp}
   for +e: {Int.canon.go(c1, xp, xn) == Int.canon.go(c2, yp, yn) : Int}
   {Nat.add(xp, yn) == Nat.add(yp, xn) : Nat}
+
+# Int.canon.eqv.bwd: the other half -- the cross sum forces the two canonical
+# forms to agree. Almost all of the arithmetic is Nat-level, in the two laws
+# nat.bend states for exactly this proof (cross_gt_gt, cross_cmp), so the
+# branch structure here is only which law applies:
+#
+#   - GT/GT and LT/LT: both forms are a difference against zero, and the two
+#     differences are equal -- cross_gt_gt for GT, the same law with the two
+#     arguments swapped for LT, since the LT form holds sub(xn,xp).
+#   - EQ/EQ: both forms are Int{0,0}, so the goal is reflexive.
+#   - the six disagreeing pairs: the branch is impossible. cross_cmp is the
+#     cross sum read as an equation between the two comparisons, and the
+#     matching one of the six discrimination laws (gt_ne_eq, gt_ne_lt, ...)
+#     refutes it -- no arithmetic in those branches at all.
+#
+# This is the reverse of Int.canon.eqv.fwd and the two together say canon
+# decides Int equality: canon x == canon y exactly when xp + yn == yp + xn.
+# Nothing downstream needs the reverse direction -- Rat equality goes through
+# the forward one (canon.scale) and reads equal canonical fields off an equal
+# pair -- so it is here because it is the law Int.canon's canonicality is
+# *stated* with, not because the Rat route consumes it.
+law Int.canon.eqv.bwd:
+  for c1: Cmp
+  for +xp: Nat
+  for +xn: Nat
+  for c2: Cmp
+  for +yp: Nat
+  for +yn: Nat
+  for +e1: {c1 == Nat.cmp(xp, xn) : Cmp}
+  for +e2: {c2 == Nat.cmp(yp, yn) : Cmp}
+  for +e: {Nat.add(xp, yn) == Nat.add(yp, xn) : Nat}
+  {Int.canon.go(c1, xp, xn) == Int.canon.go(c2, yp, yn) : Int}
