@@ -303,13 +303,16 @@ and say so in the law comment.
 
 ## The Rat route: remaining plan
 
-State at handoff (updated after the `Int.canon.eqv.bwd` unit): `Int` is
+State at handoff (updated after the Rat normalization unit): `Int` is
 `Int{pos, neg}` = `pos - neg` with all 19 ring laws proved; `Int.canon` (+
 `canon.pos`, `canon.neg`, `canon.idem`, `canon.scale`) is in, and so is the
 quotient lemma in both directions (`Int.canon.eqv.fwd` / `.bwd`); the Nat
 scaling groundwork (`cmp_add_left`, `cmp_mul_right`, `mul_sub_add`,
-`sub_of_add`, `mul_sub`, `mul_one`) is in. Everything from "The target" down is
-still open.
+`sub_of_add`, `mul_sub`, `mul_one`) is in. `src/rat.bend` has the type,
+`Rat.mk`, the operations, `Rat.mk.scale`/`Rat.mk.eqv` (so `==` decides rational
+equality on canonical values) and the identity laws; the Rat laws that compose
+two normalized results are still open. See "Rat: what the normalization cost"
+for that work's shape and its traps.
 
 Check with (from a bend checkout):
 
@@ -436,7 +439,10 @@ i.e. more division correctness.
    cross-sum lemmas `cross_gt_gt`/`cross_cmp` -- see the last section for the
    route that turned out to be cheaper than the plan.
 4. `Rat`: the type, `Rat.mk`, canonicality by the scaling route, then the
-   field axioms.
+   field axioms. **Partly done**: the type, `Rat.mk`, the normalization lemmas
+   (`mk.canon`, `mk.zero`, `mk.fixed`, `mk.scale`, `mk.eqv`), the commutations
+   and the identity laws are in; the laws that compose two normalized results
+   are not -- see "Rat: what the normalization cost".
 5. `QExt` over `Rat`: field axioms plus the inverse
    `1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2*d)`.
 
@@ -731,3 +737,124 @@ lemma coming for free because two equal canonical `Rat`s have equal fields.
   the cell and reports `an annotated term (cannot infer)`. `Data` ADT `+field`s
   are Many by declaration, so a plain pattern suffices and nothing is
   re-checked.
+
+## Rat: what the normalization cost
+
+`src/rat.bend` / `src/rat_proofs.bend` are in the tree: the type, `Rat.mk`, the
+operations (`add`, `neg`, `sub`, `mul`, `zero`, `one`), the normalization lemmas
+and the identity laws. `Rat.mk.scale` (`mk(n*(1+kp), d*(1+kp)) == mk(n, d)`) and
+`Rat.mk.eqv` (`n1*d2 == n2*d1` implies `mk(n1,d1) == mk(n2,d2)`) are the point
+of the whole exercise -- `==` on canonical Rats decides rational equality -- and
+both are proved. Notes from doing it; the first three are what the next law
+will hit.
+
+### Rat.mk is match-free on purpose, and that is what makes it provable
+
+`Nat.div`/`Nat.gcd` are total functions, so the normalization needs no case
+split of its own:
+
+    Rat.mk.go(np, nn, d) = Rat{Int{div(sub(np,nn), g), div(sub(nn,np), g)}, div(d, g)}
+
+for `g = Rat.g(np, nn, d) = gcd(sub(np,nn) + sub(nn,np), d)`, and `Rat.mk(n, d)`
+just destructures `n` and calls it. Nothing in the definition matches on a
+comparison, so the result is a constructor whose fields are `div`/`gcd` terms
+and never a stuck `match`. Every case split therefore lives in the laws, where
+the comparison can arrive as a parameter (`c: Cmp` with its evidence) exactly as
+`Int.canon` does it. The numerator it produces is the difference pair
+`sub(np,nn), sub(nn,np)`, which has one side zero by construction -- that is the
+"canonical shape" the rest of the file assumes, and it costs nothing.
+
+### A def application reduces only through its *arguments*, so laws go in the `go` spelling
+
+This is the trap that decides the shape of every Rat statement. Empirically (a
+two-line law with a `{==}` fill shows it): `T.mk(T.mk2(x), 2n)` reduces to
+`T{T.mk2(x), 2n}` -- the body is a constructor, so substituting is enough --
+while `Rat.mk(Rat.num(np,nn), d)` does *not* reduce to the same thing as
+`Rat.mk.go(sub(np,nn), sub(nn,np), d)`: `Rat.mk` destructures its argument, so
+what it sees is the difference pair's *own sides* re-used as raw coordinates,
+not the pair `(np,nn)`. Two consequences, both load-bearing:
+
+- The scaling lemma is stated over `Rat.mk.go` and *raw coordinates*
+  (`mk.go(mul(np,1+kp), mul(nn,1+kp), mul(1+dp,1+kp)) == mk.go(np, nn, 1+dp)`),
+  i.e. exactly what `Rat.mk(Int.mul(n, Int{1+kp,0}), d*(1+kp))` reduces to once
+  the `Int.mul`'s two zero products (`mul_zero`, `add_zero`) have come off. The
+  wrapper `Rat.mk.scale` is then three `Equal.cong`s and one call.
+- The fixed point of `mk` -- "canonical" for this representation -- is stated
+  *not* about a Rat but about a numerator pair: `Rat.mk.fixed` proves
+  `mk(Rat.num(np,nn), 1+dp) == Rat{Rat.num(np,nn), 1+dp}` from
+  `gcd(Rat.mag(np,nn), 1+dp) == 1` and a comparison, with `sub_diag` (the double
+  truncation of a one-sided pair is a no-op, at the given comparison and at the
+  swapped one) as the bridge. The identity laws (`mul_one`, `add_zero`, ...)
+  then take the *fixed-point equation itself* as their hypothesis
+  (`for +fx: {Rat.mk(n, d) == Rat{n, d} : Rat}`), which makes their fills three
+  lines each and keeps the double-sub bookkeeping in one place.
+
+### `%`, as the checker actually enforces it
+
+The rule from the earlier sections, restated as the thing to write code by, now
+confirmed against the error messages: **the evidence must be `{new == old}`**
+(the old term is the one currently in the goal), the annotation `P` is the
+*current* goal with `_` at an occurrence of the evidence's **right** side, the
+checker verifies `P`-with-the-right-side against the goal and makes the new goal
+`P`-with-the-left-side. A step that "did nothing" or produced a reversed goal is
+almost always an evidence orientation (`Equal.sym`'s endpoints are erased, so
+whatever you write as the second argument is what ends up on the left); two
+branches of `mk.scale.num` were exactly that, and the error message names it
+(its `expected` shows the goal, its `observed` shows your annotation with the
+*hole filled in*).
+
+### Scaling: split the law into its Nat halves, or drown in motives
+
+Normalization is a Rat of three Nats, so a motive over a whole Rat is ~500
+characters per rewrite and there are a dozen rewrites per branch. The way out is
+the "splitting a law into its two Nat halves" trick from earlier in this file,
+generalized: `mk.scale` is *three* Nat laws (`mk.scale.num`, `.neg`, `.den`),
+each with a one-term goal, plus an assembly law of three rewrites. `.neg` is
+`.num` at the swapped comparison (one call, after commuting the two arguments of
+each gcd's sum with `add_comm`), so only `.num` and `.den` are real work, and
+each branch is short: `cmp_mul_right` collapses the scaled comparison,
+`mul_sub_right` (GT) or `sub_of_lt` (the other side) collapses the scaled
+difference, `gcd_scale` collapses the scaled gcd, and `div_scale` says the
+scaled quotient is the unscaled one. The EQ branch needs `div_self` (both sides
+are `d/d`) and `div_zero` (a `div(0, d)` with a *variable* divisor is stuck --
+that is why `div_zero` is a law and not a reduction).
+
+### Exact division: uniqueness, not correctness
+
+`div_add_mod`/`mod_lt` give quotient-and-remainder; the normalization needs the
+other direction, and the whole content is *uniqueness*:
+
+    div_unique: d1*b + r1 == d2*b + r2, r1 < b, r2 < b  =>  d1 == d2
+
+-- a structural induction on `d1` needing no division correctness at all, only
+cancellation and ordering. The step's peel (`Nat.mul` of a successor puts the
+common factor *inside* the summand) is its own law (`add_assoc_cancel`), and the
+vacuous branches are `lt_ne_add` (`a < b` and `a = b + s` is impossible:
+`cmp_add_right` moves it to `cmp(s,0)`, which `cmp_lt_zero` refutes -- no sub,
+no induction). `div_exact` is then one call, `div_exact_mul` its scaled form,
+and `div_one` the gcd = 1 case.
+
+### Witnesses: `Pair.fst`, not destructuring
+
+`div_scale` and `divides_pos_wit` are stated over a `Nat.divides(g, a)` *binder*
+rather than over `(q, e)` because the caller's witness comes out of
+`gcd_divides`, i.e. it is a field of a computed pair, and a computed pair cannot
+be destructured where it is produced (the `Nat.Div` ADT fixed the *other* half
+of this problem -- a pair that arrives as a parameter -- and `Pair.fst` fixes
+this one: it takes one component out of the Sigma `Nat.divides_both` returns
+without any destructure). If a future lemma needs a second component, that is
+`Pair.snd` with the same type arguments, and no annotation is needed.
+
+### What is left
+
+The laws that compose two *normalized* results: `mul_assoc`, `add_assoc`,
+`add_exchange`, `mul_distrib`, `mul_add_left`, `neg_add`, `neg_neg`. Congruence
+does not reach them (the inner `Rat.mk` has cancelled a gcd before the outer one
+sees its arguments) and neither does `Rat.mk.eqv` alone: what they need on top is
+that an operation's value *is* the value of its raw fraction -- "mk preserves the
+value", `num(mk(n,d))*d == n*den(mk(n,d))` as a cross product -- which is the
+reverse direction of the same quotient argument and needs the two gcd witnesses
+(`g | mag` and `g | d`) with `div_exact`, not `div_scale`. With that in hand each
+law is: reduce both sides to raw fractions, identify them with the Int/Nat ring
+laws, apply `mk.eqv`. `Rat.mul_comm` and `Rat.add_comm` need none of this and
+`Rat.mul_assoc` is the cheapest of the rest to try first.
