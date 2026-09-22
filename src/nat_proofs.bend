@@ -716,3 +716,82 @@ def NL.mul_sub(a, b, c, e):
     Nat.mul(c, Nat.sub(a, b)),
     NL.sub_of_add(Nat.mul(c, Nat.sub(a, b)), Nat.mul(c, b), Nat.mul(c, a),
       NL.mul_sub_add(a, b, c, e)))
+
+# Nat.divmod
+# ==========
+#
+# Both laws are inductions on n, the fuel, with the budget hypothesis e1 as
+# the only side condition. e1 is oriented {r + (1 + m) == b}, so `%e1`
+# replaces b (its right side) with r + (1 + m); the two steps that need the
+# other direction wrap it in Equal.sym, exactly as the orientation note in
+# PROVING.md describes.
+#
+# The recursive calls carry a re-derived budget, because the loop's new state
+# spells it differently:
+#   m rolls over (m = 0): the new budget is 1 + r = b, i.e. the same equation
+#     with the sides added the other way round (Nat.add_comm on m = 0);
+#   m bumps (m = 1 + mp): the new budget is (1 + r) + (1 + mp) = b, which is
+#     the old one plus `add_succ` (1 + (r + X) = r + (1 + X)) -- this is the
+#     reason the law states 1 + m rather than m + 1.
+
+def NL.divmod.go.spec(n, m, d, r, b, e1):
+  match n:
+    case 0n:
+      # go(0, m, d, r) = (d, r), so the goal is d*b + r = d*b + (r + 0).
+      %Equal.sym(Nat, Nat.add(r, 0n), r, NL.add_zero(r)) : {Nat.add(Nat.mul(d, b), r) == Nat.add(Nat.mul(d, b), _) : Nat}
+      {==}
+    case 1n+np:
+      match m:
+        case 0n:
+          # go(1+np, 0, d, r) = go(np, r, 1+d, 0): the goal's right side
+          # r + (1 + np) has to become (1+d)*b + (0 + np), i.e. (b + d*b) + np.
+          %NL.add_assoc(r, 1n, np) : {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, r, 1n+d, 0n)), b), Nat.mod.fin(Nat.divmod.go(np, r, 1n+d, 0n))) == Nat.add(Nat.mul(d, b), _) : Nat}
+          %Equal.sym(Nat, Nat.add(r, 1n), b, e1) : {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, r, 1n+d, 0n)), b), Nat.mod.fin(Nat.divmod.go(np, r, 1n+d, 0n))) == Nat.add(Nat.mul(d, b), Nat.add(_, np)) : Nat}
+          %NL.add_assoc(Nat.mul(d, b), b, np) : {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, r, 1n+d, 0n)), b), Nat.mod.fin(Nat.divmod.go(np, r, 1n+d, 0n))) == _ : Nat}
+          %Equal.sym(Nat, Nat.add(Nat.mul(d, b), b), Nat.add(b, Nat.mul(d, b)), NL.add_comm(Nat.mul(d, b), b)) : {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, r, 1n+d, 0n)), b), Nat.mod.fin(Nat.divmod.go(np, r, 1n+d, 0n))) == Nat.add(_, np) : Nat}
+          NL.divmod.go.spec(np, r, 1n+d, 0n, b,
+            Equal.trans(Nat, Nat.add(1n, r), Nat.add(r, 1n), b,
+              Equal.sym(Nat, Nat.add(r, 1n), Nat.add(1n, r), NL.add_comm(r, 1n)),
+              e1))
+        case 1n+mp:
+          # go(1+np, 1+mp, d, r) = go(np, mp, d, 1+r): the goal's r + (1 + np)
+          # is the new state's (1 + r) + np up to add_succ, one rewrite.
+          %NL.add_succ(r, np) : {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, mp, d, 1n+r)), b), Nat.mod.fin(Nat.divmod.go(np, mp, d, 1n+r))) == Nat.add(Nat.mul(d, b), _) : Nat}
+          NL.divmod.go.spec(np, mp, d, 1n+r, b,
+            Equal.trans(Nat, Nat.add(Nat.add(1n, r), Nat.add(1n, mp)), Nat.add(r, Nat.add(1n, Nat.add(1n, mp))), b,
+              NL.add_succ(r, Nat.add(1n, mp)),
+              e1))
+
+def NL.divmod.go.mod_lt(n, m, d, r, b, e1):
+  match n:
+    case 0n:
+      # go(0, m, d, r) = (d, r): the remainder is r, and the budget
+      # r + (1 + m) = b already says r < b. Rewriting b to r + (1 + m) turns
+      # the goal into cmp(r, r + (1+m)) = LT, which cmp_add_same_left moves to
+      # cmp(0, 1+m) = LT -- and 1 + m is a constructor, so that is reflexive.
+      %e1 : {Nat.cmp(r, _) == LT{} : Cmp}
+      %Equal.sym(Cmp, Nat.cmp(r, Nat.add(r, Nat.add(1n, m))), Nat.cmp(0n, Nat.add(1n, m)), NL.cmp_add_same_left(r, Nat.add(1n, m))) : {_ == LT{} : Cmp}
+      {==}
+    case 1n+np:
+      match m:
+        case 0n:
+          NL.divmod.go.mod_lt(np, r, 1n+d, 0n, b,
+            Equal.trans(Nat, Nat.add(1n, r), Nat.add(r, 1n), b,
+              Equal.sym(Nat, Nat.add(r, 1n), Nat.add(1n, r), NL.add_comm(r, 1n)),
+              e1))
+        case 1n+mp:
+          NL.divmod.go.mod_lt(np, mp, d, 1n+r, b,
+            Equal.trans(Nat, Nat.add(Nat.add(1n, r), Nat.add(1n, mp)), Nat.add(r, Nat.add(1n, Nat.add(1n, mp))), b,
+              NL.add_succ(r, Nat.add(1n, mp)),
+              e1))
+
+# The initial state (a, bp, 0, 0) has budget 0 + (1 + bp) = 1 + bp, which is
+# the divisor itself, so e1 is `{==}` at both call sites and the two laws
+# about Nat.div / Nat.mod are one call each: Nat.divmod(a, 1+b) reduces to
+# Nat.divmod.go(a, b, 0, 0) and the invariant's right side d*b + (r + n)
+# reduces to a.
+def NL.div_add_mod(a, b):
+  NL.divmod.go.spec(a, b, 0n, 0n, 1n+b, {==})
+
+def NL.mod_lt(a, b):
+  NL.divmod.go.mod_lt(a, b, 0n, 0n, 1n+b, {==})
