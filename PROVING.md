@@ -980,3 +980,84 @@ one thing `mul_assoc` did not: an `Int.add` numerator is a *sum* of coordinates,
 so the `Rat.num`-of-a-sum facts (and the `Int.canon` projections under them)
 have to be stated before the same four-call fill can be written. Then `QExt`
 over `Rat`.
+
+### The composing laws: what `neg_neg` actually costs (measured, not guessed)
+
+The attempt to land the siblings went one law deep and stopped, and the reason
+is worth writing down before anyone re-pays for it: **`neg_neg` is not the
+one-congruence law it looks like, and `mk`'s output is not the difference pair
+the composing laws are stated over.** Two concrete findings, both from running
+the checker.
+
+**1. A composing law cannot be stated directly over an operation's output.**
+The first draft of `Rat.neg_neg` was
+
+    for +c: Cmp, +np, +nn, +dp ... {Rat.neg(Rat.neg(Rat{Rat.num(np,nn), 1n+dp})) == Rat{Rat.num(np,nn), 1n+dp} : Rat}
+
+and `{==}` does *not* close it: the goal's left side is `mk(neg(neg(A)), d)` with
+`A = numof(mk(neg(Rat.num(np,nn)), d))` -- a `div`/`gcd` pair, not
+`sub(np,nn), sub(nn,np)` -- and `Int.neg_invol` cannot be applied to it because
+the inner `Rat.neg` did not produce `Rat{neg(Rat.num), d}`, it produced
+`mk(neg(Rat.num), d)`, whose fields are `div(sub(...), G)`. Measured directly:
+the `{==}` fill was rejected with the goal `Rat{Int{div(divmod(...)), ...},
+div(...)}` against the observed `Rat{Int{sub(np,nn), sub(nn,np)}, 1n+dp}`.
+
+So the siblings need the identity laws' *own* hypothesis -- `mk(n,d) == Rat{n,d}`
+for the value in hand -- or a lemma that discharges it. The parent's read is
+confirmed: without that bridge the composing laws are unreachable from the
+canonical statements the layer's own identity laws use.
+
+**2. The bridge is `Rat.mk_idem`, and it *is* provable.** The useful form is not
+`mk(n,d) == Rat{n,d}` (that needs coprimality of `mk`'s output, the deep part
+this route avoids) but
+
+    Rat.mk(numof(mk(n,d)), denof(mk(n,d))) == mk(n,d)
+
+-- `mk` is the identity on its own output, stated over `numof`/`denof` because
+that is exactly what a caller holds after an operation. Its proof is
+`Rat.mk.eqv.raw` at the cross product `mul(numof(M),denof(M)) == mul(n,denof(M))`,
+which is `Rat.mk.value`'s own equation once `Int.mul(x, Int{k,0})` is unfolded
+with `Int.mul_scale` -- i.e. *no coprimality and no case split*. Two dead ends
+found on the way (both cost time, both are avoidable):
+
+- the `Nat` half is not free: `denof(mk(n,1+dp)) = div(1+dp, G)`, so the equation
+  `mul(G,q) == 1+dp` that `div_scale`/`mul_right_cancel` want has to be *built*
+  (`div_exact` at the gcd witness' quotient, then `pos_witness` on `G` and a
+  congruence on `mul(u,q)`), and it is needed on both sides.
+- `Rat.mk` **destructures its argument**, so a numerator spelled through another
+  function (`Int.sub(Int{np,0n}, Int{0n,nn})`) is *seen differently* from
+  `Int{np,nn}`: `mk` sees `add(np,nn), 0`, not `np, nn`. An `Int` value that is
+  going to be handed to `mk` must be spelled `Int{np,nn}` exactly, which also
+  means it *cannot be a `let`* ("an annotated term (cannot infer)" for a
+  constructor literal) -- it has to be written inline at every mention.
+
+**3. Two checker facts that cost the most time here, neither documented before.**
+
+- **A proof-only `def` in a `*_proofs.bend` file must be annotated**: `def F(x)`
+  with a bare parameter list works *only* when `F`'s name is a law in the book
+  (that is the fill mechanism). For any other helper the parameter list needs
+  types, and a dependent binder type forces a return annotation too --
+  `def NL.f(g: Nat, a: {p == q : Nat}) -> Nat:` parses; the same without
+  `-> Nat` fails with `expected : '->' / observed : ':'` pointing at the *def*
+  line, which reads like the body is at fault and is not.
+- **Reaching a law's fill from another file is not the same as calling the
+  law.** Probing with a file that imports both `nat.bend` (as `N`) and
+  `nat_proofs.bend` (as `NP`), *all four* spellings of a proved Nat law --
+  `N.mul_assoc`, `NP.mul_assoc`, `Nat.mul_assoc`, `nat.mul_assoc` -- were
+  rejected with `expected : a defined name`, even though
+  `rat_proofs.bend` calls `N.sub_diag` and friends successfully. Inside its own
+  file the fill's own spelling (`NL.mul_assoc`) is what resolves. Do not assume
+  a law key is callable by its laws-module name; check with a one-line probe.
+  `Pair.fst`/`Pair.snd` for their part only infer when spelled *inline* with
+  `Nat.divides(...)` type arguments at the call site -- binding the
+  `gcd_divides` pair to a `let` first makes the type argument fail with
+  `expected : Data / observed : Type`.
+
+Next step for the next round, in order: land `Rat.mk_idem` (statement in
+`rat.bend`, fill in `rat_proofs.bend`, using `Int.mul_scale` + `Rat.mk.eqv.raw`
+and the `Nat` equation built with `div_exact`/`pos_witness`), then `neg_neg`
+(one `Equal.cong` on `Int.neg_invol` after the `mk_idem` rewrite), then
+`neg_add` (a cross product through `Int.neg_mul`), and only then the
+associativity/distributivity four -- whose `Int.add` numerator also needs the
+sum form of `mk_idem`'s right-hand side, so budget for a `Rat.num`-of-a-sum
+family there.
