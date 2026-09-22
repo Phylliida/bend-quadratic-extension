@@ -301,3 +301,112 @@ def I.Int.canon.scale(x, kp):
   match x:
     case I.Int{+xp, +xn}:
       I.Int.canon.scale.go(Nat.cmp(xp, xn), xp, xn, kp, {==})
+
+# Int.canon.eqv
+# =============
+#
+# Int.proj.pos / Int.proj.neg: the two coordinates of an Int as functions. They
+# exist for the J motive in Int.eq.pos / Int.eq.neg below (and for nothing
+# else), so they live here with the other proof-only machinery. The fields are
+# read with + patterns: both projections are called on the same Int.
+def Int.proj.pos(x: I.Int) -> Nat:
+  I.Int{+p, +n} = x
+  p
+
+def Int.proj.neg(x: I.Int) -> Nat:
+  I.Int{+p, +n} = x
+  n
+
+# NatIsZero: Unit on 0n, Empty on a successor. The discrimination a
+# "a successor is not zero" proof needs.
+def NatIsZero(n: Nat) -> Type:
+  match n:
+    case 0n:
+      Unit
+    case 1n+p:
+      Empty
+
+# Nat.succ_ne_zero: 0 = 1 + a is impossible. Stated over 0 on the left because
+# that is the orientation the callers build (a truncated difference proved equal
+# to 0, then sub_pos turned round).
+def Nat.succ_ne_zero(a: Nat, e: {0n == 1n+a : Nat}) -> Empty:
+  %e : NatIsZero(_)
+  Unit{}
+
+def I.Int.eq.pos(a, b, c, d, e):
+  %e : {Int.proj.pos(I.Int{a, b}) == Int.proj.pos(_) : Nat}
+  {==}
+
+def I.Int.eq.neg(a, b, c, d, e):
+  %e : {Int.proj.neg(I.Int{a, b}) == Int.proj.neg(_) : Nat}
+  {==}
+
+# Int.canon.eqv.fwd: case on the two comparisons and grind. The `_` in each
+# motive marks the subterm the evidence's right side sits at, so a step that
+# rewrites a difference inside a sum spells the sum around the hole; a motive
+# that does not mention the subterm at all would rewrite nothing.
+def I.Int.canon.eqv.fwd(c1, xp, xn, c2, yp, yn, e1, e2, e):
+  match c1:
+    case GT{}:
+      match c2:
+        case GT{}:
+          %N.cmp_gt_sub_add(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e1)) : {Nat.add(_, yn) == Nat.add(yp, xn) : Nat}
+          %Equal.sym(Nat, Nat.sub(xp, xn), Nat.sub(yp, yn), I.Int.eq.pos(Nat.sub(xp, xn), 0n, Nat.sub(yp, yn), 0n, e)) : {Nat.add(Nat.add(_, xn), yn) == Nat.add(yp, xn) : Nat}
+          %Equal.sym(Nat, Nat.add(Nat.add(Nat.sub(yp, yn), xn), yn), Nat.add(Nat.sub(yp, yn), Nat.add(xn, yn)), N.add_assoc(Nat.sub(yp, yn), xn, yn)) : {_ == Nat.add(yp, xn) : Nat}
+          %Equal.sym(Nat, Nat.add(xn, yn), Nat.add(yn, xn), N.add_comm(xn, yn)) : {Nat.add(Nat.sub(yp, yn), _) == Nat.add(yp, xn) : Nat}
+          %N.add_assoc(Nat.sub(yp, yn), yn, xn) : {_ == Nat.add(yp, xn) : Nat}
+          %Equal.sym(Nat, Nat.add(Nat.sub(yp, yn), yn), yp, N.cmp_gt_sub_add(yp, yn, Equal.sym(Cmp, GT{}, Nat.cmp(yp, yn), e2))) : {Nat.add(_, xn) == Nat.add(yp, xn) : Nat}
+          {==}
+        case EQ{}:
+          Empty.absurd({Nat.add(xp, yn) == Nat.add(yp, xn) : Nat},
+            Nat.succ_ne_zero(Nat.sub(xp, 1n+xn),
+              Equal.trans(Nat, 0n, Nat.sub(xp, xn), 1n+Nat.sub(xp, 1n+xn),
+                Equal.sym(Nat, Nat.sub(xp, xn), 0n, I.Int.eq.pos(Nat.sub(xp, xn), 0n, 0n, 0n, e)),
+                N.sub_pos(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e1)))))
+        case LT{}:
+          Empty.absurd({Nat.add(xp, yn) == Nat.add(yp, xn) : Nat},
+            Nat.succ_ne_zero(Nat.sub(xp, 1n+xn),
+              Equal.trans(Nat, 0n, Nat.sub(xp, xn), 1n+Nat.sub(xp, 1n+xn),
+                Equal.sym(Nat, Nat.sub(xp, xn), 0n, I.Int.eq.pos(Nat.sub(xp, xn), 0n, 0n, Nat.sub(yn, yp), e)),
+                N.sub_pos(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e1)))))
+    case EQ{}:
+      match c2:
+        case GT{}:
+          Empty.absurd({Nat.add(xp, yn) == Nat.add(yp, xn) : Nat},
+            Nat.succ_ne_zero(Nat.sub(yp, 1n+yn),
+              Equal.trans(Nat, 0n, Nat.sub(yp, yn), 1n+Nat.sub(yp, 1n+yn),
+                I.Int.eq.pos(0n, 0n, Nat.sub(yp, yn), 0n, e),
+                N.sub_pos(yp, yn, Equal.sym(Cmp, GT{}, Nat.cmp(yp, yn), e2)))))
+        case EQ{}:
+          %Equal.sym(Nat, xp, xn, N.cmp_eq(xp, xn, Equal.sym(Cmp, EQ{}, Nat.cmp(xp, xn), e1))) : {Nat.add(_, yn) == Nat.add(yp, xn) : Nat}
+          %Equal.sym(Nat, Nat.add(xn, yn), Nat.add(yn, xn), N.add_comm(xn, yn)) : {_ == Nat.add(yp, xn) : Nat}
+          %N.cmp_eq(yp, yn, Equal.sym(Cmp, EQ{}, Nat.cmp(yp, yn), e2)) : {Nat.add(_, xn) == Nat.add(yp, xn) : Nat}
+          {==}
+        case LT{}:
+          Empty.absurd({Nat.add(xp, yn) == Nat.add(yp, xn) : Nat},
+            Nat.succ_ne_zero(Nat.sub(yn, 1n+yp),
+              Equal.trans(Nat, 0n, Nat.sub(yn, yp), 1n+Nat.sub(yn, 1n+yp),
+                I.Int.eq.neg(0n, 0n, 0n, Nat.sub(yn, yp), e),
+                N.sub_pos(yn, yp, N.cmp_gt_of_lt(yp, yn, Equal.sym(Cmp, LT{}, Nat.cmp(yp, yn), e2))))))
+    case LT{}:
+      match c2:
+        case GT{}:
+          Empty.absurd({Nat.add(xp, yn) == Nat.add(yp, xn) : Nat},
+            Nat.succ_ne_zero(Nat.sub(xn, 1n+xp),
+              Equal.trans(Nat, 0n, Nat.sub(xn, xp), 1n+Nat.sub(xn, 1n+xp),
+                Equal.sym(Nat, Nat.sub(xn, xp), 0n, I.Int.eq.neg(0n, Nat.sub(xn, xp), Nat.sub(yp, yn), 0n, e)),
+                N.sub_pos(xn, xp, N.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1))))))
+        case EQ{}:
+          Empty.absurd({Nat.add(xp, yn) == Nat.add(yp, xn) : Nat},
+            Nat.succ_ne_zero(Nat.sub(xn, 1n+xp),
+              Equal.trans(Nat, 0n, Nat.sub(xn, xp), 1n+Nat.sub(xn, 1n+xp),
+                Equal.sym(Nat, Nat.sub(xn, xp), 0n, I.Int.eq.neg(0n, Nat.sub(xn, xp), 0n, 0n, e)),
+                N.sub_pos(xn, xp, N.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1))))))
+        case LT{}:
+          %N.cmp_lt_sub_add(yp, yn, Equal.sym(Cmp, LT{}, Nat.cmp(yp, yn), e2)) : {Nat.add(xp, _) == Nat.add(yp, xn) : Nat}
+          %I.Int.eq.neg(0n, Nat.sub(xn, xp), 0n, Nat.sub(yn, yp), e) : {Nat.add(xp, Nat.add(_, yp)) == Nat.add(yp, xn) : Nat}
+          %Equal.sym(Nat, Nat.add(xp, Nat.add(Nat.sub(xn, xp), yp)), Nat.add(Nat.add(xp, Nat.sub(xn, xp)), yp), N.add_assoc_rev(xp, Nat.sub(xn, xp), yp)) : {_ == Nat.add(yp, xn) : Nat}
+          %Equal.sym(Nat, Nat.add(xp, Nat.sub(xn, xp)), Nat.add(Nat.sub(xn, xp), xp), N.add_comm(xp, Nat.sub(xn, xp))) : {Nat.add(_, yp) == Nat.add(yp, xn) : Nat}
+          %Equal.sym(Nat, Nat.add(Nat.sub(xn, xp), xp), xn, N.cmp_lt_sub_add(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1))) : {Nat.add(_, yp) == Nat.add(yp, xn) : Nat}
+          %Equal.sym(Nat, Nat.add(xn, yp), Nat.add(yp, xn), N.add_comm(xn, yp)) : {_ == Nat.add(yp, xn) : Nat}
+          {==}

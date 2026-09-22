@@ -259,3 +259,55 @@ law Int.canon.scale:
   for +x: Int
   for +kp: Nat
   {Int.canon(Int.mul(x, Int{1n+kp, 0n})) == Int.mul(Int.canon(x), Int{1n+kp, 0n}) : Int}
+
+# Int.eq.pos / Int.eq.neg: constructor injectivity for Int, one coordinate at a
+# time. Both are J steps whose motive projects the left-hand Int and the
+# right-hand one, so nothing here is specific to a caller -- but the motive has
+# to name a coordinate of an *arbitrary* Int, and that is what the proof-side
+# projections Int.proj.pos / Int.proj.neg exist for.
+law Int.eq.pos:
+  for +a: Nat
+  for +b: Nat
+  for +c: Nat
+  for +d: Nat
+  for +e: {Int{a, b} == Int{c, d} : Int}
+  {a == c : Nat}
+
+law Int.eq.neg:
+  for +a: Nat
+  for +b: Nat
+  for +c: Nat
+  for +d: Nat
+  for +e: {Int{a, b} == Int{c, d} : Int}
+  {b == d : Nat}
+
+# Int.canon.eqv.fwd: canon decides equality the way the cross sums do -- equal
+# canonical forms force xp + yn = yp + xn. This is the half of
+# "canon x == canon y iff xp + yn == yp + xn" that needs the work; the other
+# half is Int.canon.eqv.bwd.
+#
+# The comparison of each side is a parameter (c1, c2 with their evidence), for
+# the usual reason: Int.canon.go's body matches on it, and a computed match
+# scrutinee is not legal, so a law that cases on it has to receive it.
+#
+# Every branch after the case split is one of two shapes:
+#   - the two canon forms agree, so both sides are *non-zero* on the same side
+#     (GT/GT, LT/LT) or both are zero (EQ/EQ). Int.eq.pos / Int.eq.neg turn the
+#     Int equation into the coordinate equation, and the rest is Nat
+#     shuffling: cmp_gt_sub_add / cmp_lt_sub_add say the coordinate is the
+#     difference, and the goal follows by adding the common part to both sides.
+#   - they disagree (a difference against zero, or a difference against a
+#     difference of the other sign): the coordinate equation says a truncated
+#     difference is 0, sub_pos says it is 1 + something, and a successor is not
+#     zero -- so the branch is vacuous and Empty.absurd closes it.
+law Int.canon.eqv.fwd:
+  for c1: Cmp
+  for +xp: Nat
+  for +xn: Nat
+  for c2: Cmp
+  for +yp: Nat
+  for +yn: Nat
+  for +e1: {c1 == Nat.cmp(xp, xn) : Cmp}
+  for +e2: {c2 == Nat.cmp(yp, yn) : Cmp}
+  for +e: {Int.canon.go(c1, xp, xn) == Int.canon.go(c2, yp, yn) : Int}
+  {Nat.add(xp, yn) == Nat.add(yp, xn) : Nat}
