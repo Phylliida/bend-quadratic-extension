@@ -269,14 +269,25 @@ Known gaps, in dependency order:
    / `observed : {Nat.sub(Nat.sub(nn, np), Nat.sub(nn, np)) == 0n}`), and not
    `sub_cross` + `add_cancel`, which relates the two *padded* quantities and
    cannot cancel a padding that sits on the right of both products.
-   The remaining field laws are blocked on one missing Rat fact, not on QExt:
-   `Rat.mul_assoc`/`Rat.add_assoc`/`Rat.mul_distrib` are stated over the
-   *canonical presentation* and an operation's output is `mk`-headed, so
-   `QExt.mul_assoc` needs either a `Rat.mul_assoc` for `mk`-headed arguments or
-   the same three-comparison value route `Rat.mul_distrib` itself took (one
-   `Rat.mk.eqv.val` per coordinate); carrying that route over means restating
-   its helper block in `qrat_proofs.bend`, because a proof-only def in
-   rat_proofs.bend is not callable from another file. The multiplicative inverse
+   `QExt.add_assoc` is *not* yet in, and the reason is measured rather than
+   guessed. Its statement is componentwise -- `add` of QExt values is `Rat.add`
+   per coordinate -- so the fill looks like one `Rat.add_assoc` per coordinate,
+   but `Rat.add_assoc` is stated over the *canonical presentation*
+   (`Rat{Rat.num(np,nn), 1+dp}`) while the coordinates here are the *outputs*
+   of `Rat.add`, i.e. `mk`-headed; calling it with a `Rat` argument fails with
+   `expected : Nat / observed : qrat_rat.Rat`, because the law's parameters are
+   the nine `Nat`s of that presentation. So the composing laws need one more
+   Rat lemma each, stated for `mk`-headed arguments
+   (`add(add(x,y),z) == add(x,add(y,z))` with `x`, `y`, `z` operations'
+   outputs), whose fill is the ported proof below with the argument heads
+   generalised: in the ported `Rat.add_assoc`, every argument appears only
+   through `Rat.mk.trunc` on its own raw pair (`(U1,V1)` for the canonical
+   argument, computed from `np1`, `nn1` in the fill), so the same chain runs
+   with `(A_pos, A_neg) = (numof(x), denof(x))` in those slots -- the
+   `mk.trunc` step becomes the `mk_idem.raw`/`mk.rep` bridge that turns `x`
+   into `mk(Rat.num(numof(x),denof(x)), denof(x))`. `mul_assoc` and
+   `mul_distrib` need the same treatment; the value machinery and the whole
+   `add_assoc` proof are now in place for it (see below). The multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`) is the step after that,
    and it is the one that needs `Rat.sub` under both distributive laws.
 3. Binary nats for performance (unary `Nat` is O(value)).
