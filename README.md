@@ -8,9 +8,10 @@ with the full ring law set proved — `add_comm`, `add_assoc`, `add_exchange`,
 `mul_comm`, `mul_assoc`, `mul_swap`, `mul_distrib`, `mul_add_left`,
 `mul_zero`, `mul_one`, `one_mul`; a `Nat` lemma inventory (`add_comm`,
 `add_assoc`, `add_exchange`, `mul_distrib`, `mul_assoc`, `mul_one`,
-comparison-evidence bridges, the truncated-sub/ordering `ci*` family); and
-`QExt` (elements `re + im*sqrt(d)`, radicand as an operation parameter) with
-proved `add_comm` and `mul_comm`.
+comparison-evidence bridges, the truncated-sub/ordering `ci*` family, and
+division: the `Nat.divmod.go` loop invariant plus `div_add_mod`/`mod_lt`);
+and `QExt` (elements `re + im*sqrt(d)`, radicand as an operation parameter)
+with proved `add_comm` and `mul_comm`.
 
 ## Int is a presentation, not a canonical form
 
@@ -34,8 +35,8 @@ case analysis, and that case analysis is what the switch removed. See
 Laws and proofs live in separate files; each `*_proofs.bend` fills every
 law of its sibling via `def <alias>.<name>(...)`:
 
-- `src/nat.bend` — the 84 Nat/Cmp laws, plus `Cmp.flip` (used in law
-  statements). No proofs.
+- `src/nat.bend` — the 88 Nat/Cmp laws (including the `Nat.divmod` block),
+  plus `Cmp.flip` (used in law statements). No proofs.
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 - `src/int.bend` — `Int` type, the ops (`Int.zero`, `Int.one`, `Int.add`,
@@ -52,25 +53,25 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The three
 `*_proofs.bend` files and `scratch.bend` are the gates and print
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
-transitive over imports: nat.bend 84, int.bend 22 (it imports only `Base`),
+transitive over imports: nat.bend 88, int.bend 22 (it imports only `Base`),
 qext.bend 24 = 22 Int + 2 QExt.
+
+Nat division is proved (`div_add_mod`, `mod_lt`), including the
+`Nat.divmod.go` loop invariant it rests on.
 
 Known gaps, in dependency order:
 
 1. `Int.canon.eqv` — the quotient lemma (`canon x == canon y` iff
    `xp + yn == yp + xn`) — and `Int.canon.scale`
    (`canon(x*k) == canon(x)*k`), which is what Rat normalization uses.
-2. `Nat` division correctness: the `Nat.divmod.go` loop invariant
-   (`div(a,b)*b + mod(a,b) == a`, `mod(a,b) < b`) — needed for exact
-   division of a numerator by a gcd.
-3. `Nat.gcd` (subtractive Euclid, fuel-driven because Bend's termination
+2. `Nat.gcd` (subtractive Euclid, fuel-driven because Bend's termination
    check is structural and Euclid's descent is not) plus the scaling lemma
    `gcd(m*k, d*k) == k*gcd(m,d)`.
-4. `Rat{num: Int, den: Nat}` with `Rat.mk` normalizing via `Int.canon` +
+3. `Rat{num: Int, den: Nat}` with `Rat.mk` normalizing via `Int.canon` +
    gcd, then the field axioms. Canonicality is proved by the scaling route
    (`norm(n*k, d*k) == norm(n,d)`), which needs only the *forward*
    direction — "equal values have equal normal forms" — and therefore does
    not need coprime-ness or Euclid's lemma.
-5. `QExt` over `Rat`: field axioms plus the multiplicative inverse
+4. `QExt` over `Rat`: field axioms plus the multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`).
-6. Binary nats for performance (unary `Nat` is O(value)).
+5. Binary nats for performance (unary `Nat` is O(value)).

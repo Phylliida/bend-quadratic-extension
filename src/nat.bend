@@ -614,3 +614,66 @@ law cmp_sub_flip_of:
   for +ea: {Nat.cmp(c, a) == GT{} : Cmp}
   for +eb: {Nat.cmp(c, b) == GT{} : Cmp}
   {Cmp.flip(d) == Nat.cmp(a, Nat.sub(c, b)) : Cmp}
+
+# Nat.divmod
+# ==========
+#
+# base.bend's Nat.divmod.go(n, m, d, r) counts n down, either bumping r (while
+# m has room) or rolling r into d (when m runs out), and Nat.divmod(a, b) =
+# Nat.divmod.go(a, bp, 0, 0) for b = 1 + bp. So the loop state carries two
+# facts that survive every step:
+#
+#   r + (1 + m) = b     the roll-over budget -- r is one short of rolling over
+#   d*b + r + n = a     the total the loop is accounting for
+#
+# and at n = 0 the surviving state (d, r) satisfies d*b + r = a, i.e. division.
+#
+# The two facts are stated separately rather than as one conjunction so that
+# each induction is readable; both are inductions on n, the fuel, which is why
+# n is the first binder (Bend's descent check is structural, left-to-right).
+#
+# Shape notes, each of which buys a rewrite:
+#   - r + n (not n + r) is the "clock": after the m-bump step it becomes
+#     1 + (r + np), which is exactly what `add_succ` converts to the state's
+#     new spelling, while n + r would leave a stuck term behind.
+#   - 1 + m (not m + 1): 1 + m is a constructor, so the budget hypothesis of
+#     the m-bump recursive call is convertible, and `cmp(0, 1 + m) = LT` in
+#     the remainder bound falls out of reduction.
+
+# divmod.go.spec: the Nat.divmod.go loop invariant. The conclusion projects
+# the result with Nat.div.fin / Nat.mod.fin because a law statement cannot
+# destructure a pair; e1 is the budget r + (1 + m) = b.
+law divmod.go.spec:
+  for +n: Nat
+  for +m: Nat
+  for +d: Nat
+  for +r: Nat
+  for +b: Nat
+  for +e1: {Nat.add(r, Nat.add(1n, m)) == b : Nat}
+  {Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(n, m, d, r)), b), Nat.mod.fin(Nat.divmod.go(n, m, d, r))) == Nat.add(Nat.mul(d, b), Nat.add(r, n)) : Nat}
+
+# divmod.go.mod_lt: the companion bound. The budget alone is what bounds the
+# remainder: b = r + (1 + m) says r is strictly below b, so no arithmetic on d
+# or n is needed here at all.
+law divmod.go.mod_lt:
+  for +n: Nat
+  for +m: Nat
+  for +d: Nat
+  for +r: Nat
+  for +b: Nat
+  for +e1: {Nat.add(r, Nat.add(1n, m)) == b : Nat}
+  {Nat.cmp(Nat.mod.fin(Nat.divmod.go(n, m, d, r)), b) == LT{} : Cmp}
+
+# div_add_mod: a = (a / (1+b))* (1+b) + a % (1+b). Stated for the divisor
+# written as 1 + b so no positivity hypothesis is needed at all: that spelling
+# is exactly what Nat.divmod matches on.
+law div_add_mod:
+  for +a: Nat
+  for +b: Nat
+  {Nat.add(Nat.mul(Nat.div(a, 1n+b), 1n+b), Nat.mod(a, 1n+b)) == a : Nat}
+
+# mod_lt: a % (1+b) < 1+b
+law mod_lt:
+  for +a: Nat
+  for +b: Nat
+  {Nat.cmp(Nat.mod(a, 1n+b), 1n+b) == LT{} : Cmp}
