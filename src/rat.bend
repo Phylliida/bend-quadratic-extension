@@ -943,3 +943,58 @@ law Rat.neg_add:
   for +dp2: Nat
   {Rat.neg(Rat.add(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np2, nn2), 1n+dp2}))
    == Rat.add(Rat.neg(Rat{Rat.num(np1, nn1), 1n+dp1}), Rat.neg(Rat{Rat.num(np2, nn2), 1n+dp2})) : Rat}
+
+# Rat.mul_distrib
+# ===============
+#
+# x * (y + z) = x*y + x*z for canonical values -- the law that makes a product
+# meet a *sum*, and the last of the Rat field identities before QExt.
+#
+# It is the first law whose mk-headed argument is a sum of two difference
+# pairs, and the closing step had to be measured twice before it was settled:
+# **Rat.mk.eqv.raw cannot close it.** That law's hypothesis is a *cross product*
+# between the two arguments' coordinate pairs, and the two numerators here are
+# different representatives of the same rational -- the left-hand side's is the
+# product of x's numerator with the inner sum's quotient pair (`a1*q2p +
+# b1*q2n`), the right-hand side's is a sum of products of the two *products'*
+# quotient pairs -- so the product equation is false (at 1/2, -1/3, 1/5 the two
+# cross products are 360 against 720 in the reading of PROVING.md: the
+# representatives differ, and no rearrangement of the two mks removes that).
+# The consumer is Rat.mk.eqv.val, whose hypothesis is the cross *sum* -- the
+# value equation -- and the fill reaches it in three comparisons:
+#
+#   left   mk(num(x)*numof(M2), xd*denof(M2))  against  U_L, the same value
+#          written over the inner sum's own inputs (`num(x)*Rat.num(U2,V2)`
+#          over `xd*d2`) -- two coordinates of Rat.mk.value at M2, i.e. exactly
+#          the two Rat.value.scaled readings the previous unit landed;
+#   middle U_L against U_R, the right-hand side's own unreduced sum: no value
+#          equation at all, this is the pure Nat identity PROVING.md records as
+#          (T) -- `(a1*P2 + b1*Q2) + Q1*Zd + Q3*Yd = P1*Zd + P3*Yd + a1*Q2 +
+#          b1*P2` -- multiplied by the common denominator d1*d3. It is proved
+#          from the three truncation cross sums plus two pure ring facts that
+#          put x's multipliers next to the inner pair's coordinates, combined
+#          criss-cross by Nat.cross_add: the padded-hypotheses route, with no
+#          case analysis and no new Nat law.
+#   right  U_R against the right-hand side, which is *exactly*
+#          Rat.add.value -- add of two normal forms is mk of their unreduced
+#          sum -- so this step is three rewrites (Rat.mk.rep backwards on each
+#          summand, the successor denominators by pos_witness, and
+#          Int.mul_scale on the sum's two products) and no cross sum at all.
+#
+# No coprimality hypothesis and no comparison parameter, exactly like
+# Rat.mul_assoc and Rat.add_assoc: nothing is cased on, every Nat.sub_cross and
+# Nat.sub_diag instance is called at an explicit Nat.cmp with {==} evidence.
+law Rat.mul_distrib:
+  for +np1: Nat
+  for +nn1: Nat
+  for +dp1: Nat
+  for +np2: Nat
+  for +nn2: Nat
+  for +dp2: Nat
+  for +np3: Nat
+  for +nn3: Nat
+  for +dp3: Nat
+  {Rat.mul(Rat{Rat.num(np1, nn1), 1n+dp1},
+           Rat.add(Rat{Rat.num(np2, nn2), 1n+dp2}, Rat{Rat.num(np3, nn3), 1n+dp3}))
+   == Rat.add(Rat.mul(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np2, nn2), 1n+dp2}),
+              Rat.mul(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np3, nn3), 1n+dp3})) : Rat}
