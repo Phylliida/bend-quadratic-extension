@@ -3425,3 +3425,45 @@ def R.Rat.mul_distrib(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
         Equal.sym(R.Rat,
           R.Rat.add(R.Rat.mul(R.Rat{xn, Xd}, R.Rat{yn, Yd}), R.Rat.mul(R.Rat{xn, Xd}, R.Rat{zn, Zd})),
           UR, eR))))
+
+# Rat.mul_add_left: three steps and two congruences. mul_comm moves z in front
+# of the sum so that mul_distrib applies, and the two products come back in the
+# order the statement names -- one congruence each, under the outer add.
+def R.Rat.mul_add_left(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
+  +Xd = Nat.add(1n, dp1)
+  +Yd = Nat.add(1n, dp2)
+  +Zd = Nat.add(1n, dp3)
+  Equal.trans(R.Rat,
+    R.Rat.mul(R.Rat.add(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np2, nn2), Yd}),
+              R.Rat{R.Rat.num(np3, nn3), Zd}),
+    R.Rat.mul(R.Rat{R.Rat.num(np3, nn3), Zd},
+              R.Rat.add(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np2, nn2), Yd})),
+    R.Rat.add(R.Rat.mul(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np3, nn3), Zd}),
+              R.Rat.mul(R.Rat{R.Rat.num(np2, nn2), Yd}, R.Rat{R.Rat.num(np3, nn3), Zd})),
+    R.Rat.mul_comm(R.Rat.add(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np2, nn2), Yd}),
+                   R.Rat{R.Rat.num(np3, nn3), Zd}),
+    Equal.trans(R.Rat,
+      R.Rat.mul(R.Rat{R.Rat.num(np3, nn3), Zd},
+                R.Rat.add(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np2, nn2), Yd})),
+      R.Rat.add(R.Rat.mul(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np1, nn1), Xd}),
+                R.Rat.mul(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np2, nn2), Yd})),
+      R.Rat.add(R.Rat.mul(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np3, nn3), Zd}),
+                R.Rat.mul(R.Rat{R.Rat.num(np2, nn2), Yd}, R.Rat{R.Rat.num(np3, nn3), Zd})),
+      R.Rat.mul_distrib(np3, nn3, dp3, np1, nn1, dp1, np2, nn2, dp2),
+      Equal.trans(R.Rat,
+        R.Rat.add(R.Rat.mul(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np1, nn1), Xd}),
+                  R.Rat.mul(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np2, nn2), Yd})),
+        R.Rat.add(R.Rat.mul(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np3, nn3), Zd}),
+                  R.Rat.mul(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np2, nn2), Yd})),
+        R.Rat.add(R.Rat.mul(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np3, nn3), Zd}),
+                  R.Rat.mul(R.Rat{R.Rat.num(np2, nn2), Yd}, R.Rat{R.Rat.num(np3, nn3), Zd})),
+        Equal.cong(R.Rat, R.Rat,
+          u => R.Rat.add(u, R.Rat.mul(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np2, nn2), Yd})),
+          R.Rat.mul(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np1, nn1), Xd}),
+          R.Rat.mul(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np3, nn3), Zd}),
+          R.Rat.mul_comm(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np1, nn1), Xd})),
+        Equal.cong(R.Rat, R.Rat,
+          u => R.Rat.add(R.Rat.mul(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np3, nn3), Zd}), u),
+          R.Rat.mul(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np2, nn2), Yd}),
+          R.Rat.mul(R.Rat{R.Rat.num(np2, nn2), Yd}, R.Rat{R.Rat.num(np3, nn3), Zd}),
+          R.Rat.mul_comm(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np2, nn2), Yd})))))
