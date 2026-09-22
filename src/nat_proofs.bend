@@ -1095,6 +1095,13 @@ def NL.sub_diag(c, np, nn, e):
         : {_ == 0n : Nat}
       {==}
 
+# sub_diag_rev: sub_diag with its two ends exchanged, so a caller that has to
+# rewrite a division's dividend (whose motive takes the collapsed side first)
+# can pass this evidence directly. One call.
+def NL.sub_diag_rev(c, np, nn, e):
+  Equal.sym(Nat, Nat.sub(Nat.sub(np, nn), Nat.sub(nn, np)), Nat.sub(np, nn),
+    NL.sub_diag(c, np, nn, e))
+
 # sub_cross: one branch per comparison. GT and LT write the goal as
 # "the smaller side's truncation is 0, and the larger side's truncation plus the
 # smaller argument is the larger argument" (sub_of_lt for the zero, and

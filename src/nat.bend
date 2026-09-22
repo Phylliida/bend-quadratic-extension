@@ -896,6 +896,20 @@ law sub_diag:
   for +e: {c == Nat.cmp(np, nn) : Cmp}
   {Nat.sub(Nat.sub(np, nn), Nat.sub(nn, np)) == Nat.sub(np, nn) : Nat}
 
+# sub_diag_rev: sub(np,nn) == sub(sub(np,nn), sub(nn,np)) -- sub_diag read in
+# the other orientation, so that a rewrite *under* a division's dividend can use
+# it directly. The twin-law idiom of add_succ/mul_succ/add_assoc_rev/
+# cmp_gt_of_lt: `Equal.cong` at a dividend takes its evidence in the direction
+# "collapsed -> diagonal" (the goal's left side is what the operation was
+# applied to), and `Equal.sym` cannot be composed with it at this shape (see
+# PROVING.md). Stated rather than derived at each use.
+law sub_diag_rev:
+  for c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  {Nat.sub(np, nn) == Nat.sub(Nat.sub(np, nn), Nat.sub(nn, np)) : Nat}
+
 # sub_cross: the cross sum of a truncation pair -- (a - b) + b = (b - a) + a.
 # Both sides are the larger argument, which is why it needs no hypothesis on a
 # and b: the comparison decides which truncation is the difference and which is
