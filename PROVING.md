@@ -2299,3 +2299,81 @@ its stated orientation. The two ways out that the measurements leave open are (a
 a `sub_diag`-shaped law **stated in the reverse orientation** (which is legal and
 would make the evidence direct -- no `Equal.sym` anywhere), and (b) a cross-sum
 law stated over the collapse so that no re-orientation is needed at all.
+
+## The reverse law landed -- and what the write path actually costs (measured)
+
+Way (a) above was taken. `nat.bend` has `sub_diag_rev` (`sub(np,nn) ==
+sub(sub(np,nn), sub(nn,np))`, the twin spelling of `add_assoc_rev` /
+`cmp_gt_of_lt` / `mul_add_left`), its fill in `nat_proofs.bend` is one
+`Equal.sym` around `sub_diag`, and both check. Counts move transitively as the
+README records: nat 126 -> 127, rat 197 -> 198, qrat 202 -> 203. **The law is
+correct, filled and green; it does not by itself close the rung-2 fill.** The
+round stopped at a *different* wall, and the three measurements below are what
+the next round should start from.
+
+**`Equal.cong`'s orientation, read off the source, is a rule worth writing
+down.** `Equal.cong(A, B, f, a, b, e)` is defined as `%e : {f(a) == f(_) : B}`
+and `Equal.sym(A, a, b, e)` as `%e : {_ == a : A}`, i.e.
+
+    e : a == b      |- cong f a b e : f(a) == f(b)
+    e : a == b      |- sym a b e   : b == a
+
+At the shapes this file uses that is exactly what the checker does: the call
+`cong(Nat, Int, u => Int{u, c}, sub(X,Y), sub(sub(X,Y),sub(Y,X)), sub_diag_rev)`
+synthesizes `Int{sub(X,Y),c} == Int{sub(sub(X,Y),sub(Y,X)),c}` -- the collapsed
+side first, the diagonal side second -- and `sym` around the same evidence
+yields the reverse. So a rewrite in the orientation "collapsed -> diagonal"
+takes `sub_diag_rev` and one in the orientation "diagonal -> collapsed" takes
+`sub_diag` through `sym`; the spelling is what makes the evidence direct, and
+that part of the round's premise is confirmed.
+
+**A `cong` **nested** inside another `cong` does not compose at this shape, and
+the two message pairs are the reverse of each other.** Every one of the four
+combinations of `(inner a, inner b)` with `(plain evidence, Equal.sym around
+it)` was run at the product-collapse goal
+`Int{Xp,Yp} == Int{sub(X,Y),sub(Y,X)}` (`Xp = sub(sub(X,Y),sub(Y,X))`,
+`Yp = sub(sub(Y,X),sub(X,Y))`, under the motive `u => Int{u, 0n}`):
+
+    expected : {sub(X,Y) == Xp}          observed : {Xp == sub(X,Y)}
+    -- and the reverse pair for each of the other three spellings.
+
+The outer `cong` wants `f(a) == f(b)` at its own endpoints; the inner one
+delivers `f(a') == f(b')` at whatever its own endpoints are, and no choice of
+the four spellings makes the two meet. This is the same "the demand and the
+evidence come back as each other's reverse" shape the section above records for
+`Equal.sym`, now one level down: **the congruence has to be *standalone* (a
+direct argument of `Equal.trans`) for the orientation rule to apply.** Three
+rewrites of this kind are therefore written as
+`trans(a, b, c, cong(...), cong(...))` with the intermediate type spelled out --
+which is the repo's own idiom, and the measurement says it is the only one.
+
+**The wall is now `Int.mul`, not the evidence.** With the two standalone congs
+in place the chain reaches
+
+    Int.mul(Int{Xp, Yp}, Int{d, 0n})  ==  Int{mul(sub(X,Y), d), 0n}
+
+and the remaining step is `Int.mul_scale` at `(sub(X,Y), Yp)`, whose own fill
+(`int_proofs.bend:154`) proves that product reduces in exactly that way. What the
+checker reports instead is a *reduction* mismatch: the goal's left side comes
+back **stuck** as `Int.mul(...)` while the very same term inside the `trans`
+argument is observed **unfolded** to
+`Int{add(mul(Xp,d), mul(Yp,0)), add(mul(Xp,0), mul(Yp,d))}`:
+
+    - expected : {Int.mul(Int{Xp,Yp}, Int{d,0n}) == Int{mul(sub(X,Y),d), mul(Yp,0n)} : Int}
+    - observed : {Int{add(mul(Xp,d), mul(Yp,0n)), add(mul(Xp,0), mul(Yp,d))} == ...}
+
+So the same application is unfolding on one side of the comparison and staying
+stuck on the other. Two routes are open and neither was run to ground: force the
+unfold once, at `Int` level, so that both sides are the same *term* rather than a
+term and its reduct (the repo already has the shape -- `Rat.add.value`'s fill
+writes `Int.mul_scale` as the first `trans` step and never relies on the goal
+reducing); or state the collapse helper over the *unfolded* pair
+(`Int{add(mul(...),mul(...,0n)), ...}`), which is `I.Int.mul_scale`'s own source
+spelling, so that the motive never has to see `Int.mul` at all. The second is
+the smaller change and is the one to try first.
+
+**Not run, and therefore not claimed:** the rung-2 `Rat.add_assoc` statement is
+not in `rat.bend`, `QExt.mul_assoc` / `QExt.mul_distrib` / the multiplicative
+inverse are not started, and `QExt.add_assoc` is still the canonical-presentation
+form. Nothing was left stated-but-unfilled: `scratch.bend` was restored to its
+committed state and all six gates are green at that commit.
