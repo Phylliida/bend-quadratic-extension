@@ -2025,3 +2025,64 @@ Next, on the same recipe: **QExt over Rat** -- the field axioms, then the
 multiplicative inverse `1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`, whose
 denominator is a difference of two squares and so is the first place the two
 distributive laws meet a `Rat.sub`.
+
+
+## Cross-file imports: the helper-naming rule that cost three rounds
+
+`import ./laws.bend as L` plus `import ./proofs.bend` from a third file **does
+work** -- that is the nat/int/qext pattern in "Laws vs proofs" above, and it is
+how `int_proofs.bend` uses proved `Nat` laws. When it appears not to work, the
+cause is almost always the naming rule below, not the split itself.
+
+**The rule.** In a proofs file, two kinds of `def` share one namespace:
+
+- a **fill** of a law must be spelled `def <laws-alias>.<law key>(...)` --
+  that prefix is the mechanism that attaches the proof to the law;
+- a **proof-only helper** must be named **bare** (`Nat.pred`, `NatIsPos`,
+  `Nat.succ_add_ne_zero`), never with the laws-file alias.
+
+A helper that carries the alias resolves only while the proofs file itself is
+the *main* file. The moment another file imports it, the internal reference
+becomes
+
+    Error:
+    - expected : a defined name
+    - observed : R.Rat.add.piece
+
+which reads as "this file cannot be imported" and is not.
+
+**What it cost here.** All three of `Int.canon`-adjacent rounds were fine, but
+`rat_proofs.bend` had **35 helpers** named with the alias (`R.Rat.add.piece`,
+`R.Rat.add.cross`, `R.Rat.nat.d3`, ...). The symptom above was measured
+faithfully and then generalised into "a `*_proofs.bend` file is not importable
+at all", which is false. That mis-diagnosis produced `src/qrat_rat.bend` -- a
+684-line transcription of `rat.bend`'s statements -- plus the ported fills for
+them in `qrat_proofs.bend`, i.e. a hand-maintained duplicate of the whole Rat
+layer whose copies nothing mechanically checked.
+
+Commit `c921dbf` renamed the 35 helpers bare. `rat_proofs.bend` still checks,
+and a probe that imports `rat.bend` **and** `rat_proofs.bend` and calls
+`R.Rat.add_comm` checks too (it failed with exactly the error above before the
+rename). The duplicate is therefore unnecessary and is deleted in the round
+that follows; **no layer of this project needs to restate another layer's laws
+and proofs.**
+
+**The mechanical check**, before concluding that anything is unimportable:
+
+    # any def in the proofs file whose name is not a law key in the laws file
+    # is a helper, and must be bare
+    comm -23 <(grep -o '^def <alias>\.[A-Za-z0-9_.]*' proofs.bend | sed 's/^def <alias>\.//' | sort) \
+             <(grep -o '^law [A-Za-z0-9_.]*' laws.bend | sed 's/^law //' | sort)
+
+Every line it prints is a helper to rename. Empty output means the rule is
+satisfied.
+
+Still open, and not re-tested after the rename: earlier rounds reported that
+**import order is load-bearing** (laws files before proofs files). The probe
+above used that order and checked either way, so treat the claim as unverified
+rather than as a rule.
+
+**The lesson worth keeping.** A symptom that is measured honestly can still be
+generalised wrongly. When a wall appears, compare it against the mechanism this
+document already describes -- the helper-naming rule was written down for
+`nat_proofs` long before it bit `rat_proofs`.
