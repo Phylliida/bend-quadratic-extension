@@ -814,7 +814,7 @@ def R.Rat.mk.value(c, np, nn, d, e, pd):
         I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
         I.Int.mul_scale(P, Q, Rr))))
 
-# Rat.mk_idem: the goal's two sides are
+# Rat.mk_idem.raw: the goal's two sides are
 #   mk(numof(M), denof(M))   and   mk(Rat.num(np,nn), d)
 # with M = mk(Rat.num(np,nn), d), which is
 #   mk(Int{A, B}, R)   and   mk(Rat.num(np,nn), d)
@@ -832,7 +832,7 @@ def R.Rat.mk.value(c, np, nn, d, e, pd):
 #   and eqv.raw's cross product is v transported across ev by one cong.
 #
 # No coprimality is used anywhere; pd and pq are the law's own two hypotheses.
-def R.Rat.mk_idem(c, np, nn, d, e, pd, pq):
+def R.Rat.mk_idem.raw(c, np, nn, d, e, pd, pq):
   +P = Nat.sub(np, nn)
   +Q = Nat.sub(nn, np)
   +M = R.Rat.mk(R.Rat.num(np, nn), d)
@@ -861,6 +861,23 @@ def R.Rat.mk_idem(c, np, nn, d, e, pd, pq):
       R.Rat.mk.value(Nat.cmp(P, Q), P, Q, d, {==}, pd),
       Equal.cong(I.Int, I.Int, u => I.Int.mul(u, I.Int{k, 0n}),
         R.Rat.num(P, Q), R.Rat.num(np, nn), ev)))
+
+# Rat.mk_idem: the successor-denominator law is unconditional, so the only work
+# it does on its own is the positivity of the output's denominator -- and that
+# is one div_pos_wit at the gcd spelling the *goal* carries (Rat.g of the raw
+# coordinates mk destructured), with the divisibility witness gcd_divides
+# returns for that same magnitude. Rat.mk.den.pos is stated at the unexpanded
+# Rat.mag(np,nn) spelling of that gcd, which is why it does not fit here; this
+# call does not need it. The rest is mk_idem.raw with pd discharged by
+# computation, the denominator being a successor literal.
+def R.Rat.mk_idem(c, np, nn, dp, e):
+  +P = Nat.sub(np, nn)
+  +Q = Nat.sub(nn, np)
+  +G = R.Rat.g(P, Q, 1n+dp)
+  R.Rat.mk_idem.raw(c, np, nn, 1n+dp, e, {==},
+    N.div_pos_wit(G, dp,
+      Pair.snd(N.Nat.divides(G, R.Rat.mag(P, Q)), N.Nat.divides(G, 1n+dp),
+        N.gcd_divides(R.Rat.mag(P, Q), 1n+dp))))
 
 # The product shape
 # =================

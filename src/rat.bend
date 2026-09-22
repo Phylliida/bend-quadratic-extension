@@ -463,31 +463,50 @@ law Rat.mk.value:
 # nothing, which is what lets an outer operation's arguments meet the raw
 # spelling.
 #
-# Two hypotheses, neither of them canonicality and neither of them about
-# coprimality:
+# It is unconditional -- the comparison is the only parameter, and no
+# canonicality, coprimality or positivity hypothesis is stated. The fill is
+# Rat.mk.eqv.raw at the cross product Rat.mk.value already gives, and the two
+# facts that had been blocking it turn out to be one line each:
 #
-#   - pd: d is positive. Exactly Rat.mk.value's hypothesis, for the same reason
-#     -- d = 0 is the junk case no law speaks about (the denominator is a
-#     general d rather than the 1 + dp spelling for the same reason it is in
-#     mk.value: callers hold products of positive denominators).
-#   - pq: the *output's* denominator is positive. This is the whole reason the
-#     law is a bridge rather than a computation. denof(M) is div(d, gcd(...)),
-#     and the gcd Rat.mk computes once it has destructured its own
-#     difference-pair argument is a different *spelling* of Rat.mag's -- the
-#     two are equal by one sub_diag per coordinate -- and no congruence reaches
-#     a rewrite under Nat.div (the checker expands Nat.div into divmod form
-#     first, see PROVING.md). A caller holding an operation's output has this
-#     fact for free: Rat.mk.den.pos at its own gcd spelling, with gcd_divides'
-#     witness, is exactly pq. So the hypothesis costs the caller nothing, while
-#     deriving it inside the fill is what blocked three earlier rounds.
-#     Unconditional mk_idem stays future work.
+#   - the *positivity* of the output's denominator, which is what an earlier
+#     round could not produce, is one div_pos_wit at the gcd spelling *the goal
+#     itself carries* (Rat.g of the raw coordinates mk destructured, not
+#     Rat.g(np,nn)), with the divisibility witness gcd_divides returns for that
+#     same magnitude. Rat.mk.den.pos is at the *other* spelling of that gcd --
+#     the unexpanded Rat.mag(np,nn) -- which is why it looked like it should
+#     apply verbatim and does not; it is not needed here.
+#   - the numerator spelling: Rat.mk.value's right side names
+#     Rat.num(raw coordinates), while the statement is written over the
+#     difference pair, and the two are one sub_diag per coordinate apart (the
+#     same pair of rewrites, with the same flip evidence, that Rat.mk.fixed
+#     makes). Those rewrites are reachable by Equal.cong even though they sit
+#     under Nat.mul: no congruence has to reach under Nat.div at all.
 #
-# The fill is Rat.mk.eqv.raw at the cross product Rat.mk.value already gives --
-# no coprimality, no case split. The only arithmetic is the two sub_diag
-# rewrites that carry mk.value's Rat.num-of-the-raw-coordinates numerator to
-# the difference pair this statement is written over (the same pair of
-# rewrites, with the same flip evidence, that Rat.mk.fixed makes).
+# Rat.mk_idem.raw below is the same law with the denominator as it comes.
 law Rat.mk_idem:
+  for +c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  {Rat.mk(Rat.numof(Rat.mk(Rat.num(np, nn), 1n+dp)), Rat.denof(Rat.mk(Rat.num(np, nn), 1n+dp)))
+   == Rat.mk(Rat.num(np, nn), 1n+dp) : Rat}
+
+# Rat.mk_idem.raw: the same identity with a general denominator, which is the
+# form a caller holds after Rat.add/Rat.mul (their denominators are products of
+# two, not a successor literal). Two hypotheses, neither of them canonicality:
+#
+#   - pd: d is positive -- exactly Rat.mk.value's hypothesis, and for the same
+#     reason: d = 0 is the junk case no law speaks about.
+#   - pq: the output's denominator is positive. This one is not derivable in the
+#     fill the way it is above, because d is a variable here: div_pos_wit
+#     concludes at the 1 + ap spelling and the witness it needs would have to be
+#     re-spelled from divides(G, d) to divides(G, 1 + ap), which is a rewrite of
+#     an *evidence type*, not of a term. It costs a caller nothing: the caller's
+#     own Rat.g/gcd_divides pair at the spelling it wrote M with gives it in one
+#     call, exactly as Rat.mul_assoc derives the positivity of its two
+#     denominators.
+law Rat.mk_idem.raw:
   for +c: Cmp
   for +np: Nat
   for +nn: Nat
