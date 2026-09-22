@@ -303,4 +303,16 @@ Known gaps, in dependency order:
    The multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`) is the step after that,
    and it is the one that needs `Rat.sub` under both distributive laws.
+   The rung-2 form (arbitrary `Rat` variables, positivity of the three inputs as
+   hypotheses) is **not** in, and the reason is no longer the evidence
+   orientation: `Nat.sub_diag_rev` — `sub_diag` stated in the reverse
+   orientation, the twin spelling of `add_assoc_rev`, filled by one `Equal.sym`
+   — landed for exactly that step, so the collapses the composite numerator
+   needs now take direct evidence. What the round measured instead is that a
+   `Equal.cong` **nested** inside another `cong` does not compose at this shape
+   (all four argument/evidence spellings were run; the demand and the evidence
+   come back as each other's reverse) and that the chain's last step needs
+   `Int.mul` to unfold on both sides of a comparison at once — it unfolds in the
+   `trans` argument and stays stuck in the goal. Both measurements, and the two
+   routes they leave open, are in PROVING.md.
 3. Binary nats for performance (unary `Nat` is O(value)).
