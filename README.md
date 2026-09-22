@@ -213,9 +213,17 @@ Known gaps, in dependency order:
    machinery.
    Still open:
    - `mul_distrib` and its mirror `mul_add_left` -- the two distributive laws,
-     where the mk-headed summand meets a *product* rather than a sum, so the
-     cross sum is assembled from `Rat.mk.value` on the summands and the ring
-     laws rather than from `Nat.sub_cross` on two truncation pairs.
+     where the mk-headed summand meets a *product* rather than a sum. The route
+     is spelled out in `PROVING.md` with its two measured steps: `Rat.mk.eqv.raw`
+     *cannot* close it as the operations write it (at `1/2, -1/3, 1/5` the raw
+     cross products are `Int{0,120}` against `Int{180,300}`), while one
+     `Rat.mk.trunc` on the sum-side numerator makes them agree (`Int{0,120}`
+     against `Int{0,120}`), so the closing step is `mk.eqv.raw` after mk.trunc
+     and not `mk.eqv.val`; the cross product then comes from `Rat.mk.value` on
+     the three pieces scaled by the inner sum's denominator, which leaves one
+     pure Nat identity -- a `Nat.cross_add` combination of the same
+     `Nat.sub_cross` instances -- for the shuffle inventory
+     `rat_proofs.bend` already carries.
 2. `QExt` over `Rat`: field axioms plus the multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`).
 3. Binary nats for performance (unary `Nat` is O(value)).
