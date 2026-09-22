@@ -1061,3 +1061,76 @@ and the `Nat` equation built with `div_exact`/`pos_witness`), then `neg_neg`
 associativity/distributivity four -- whose `Int.add` numerator also needs the
 sum form of `mk_idem`'s right-hand side, so budget for a `Rat.num`-of-a-sum
 family there.
+
+### `Rat.mk_idem` is a *statement* problem, not a fill problem (measured)
+
+A round was spent on the `mk_idem` statement above and it does **not** go
+through as handed over: everything in its fill lands (the comparison, the
+`mk.value` cross product, `eqv.raw`'s two positivity slots) except the one step
+the handover described as bookkeeping -- the *positivity* of `denof(M)`. The
+tree was left green with the law and its fill removed; nothing about the route
+below is a fill bug, and three separate spellings of it were tried and measured
+against the checker.
+
+**1. `mk(Rat.num(np,nn), d)` is `mk(Int{np,nn}, d)` in everything but the cross
+product's right-hand side.** `mk` destructures its argument, and when the
+argument is `Rat.num(np,nn)` -- i.e. `Int{sub(np,nn), sub(nn,np)}` -- the fields
+`mk.go` receives are the pair's *own sides*, so:
+
+    numof(mk(Rat.num(np,nn), d)) = Int{div(sub(np,nn), G), div(sub(nn,np), G)}
+    G                            = gcd(add(sub(np,nn), sub(nn,np)), d)
+
+i.e. `G` is `Rat.g(np,nn,d)` **unexpanded**, and `denof(M) = div(d, Rat.g(np,nn,d))`.
+This is the measurement that kills the "bridge" framing: `Rat.mk.den.pos(np,nn,dp)`
+is stated at *exactly* that gcd, so `mk.den.pos` looked like it should apply
+verbatim -- and it does not, because of the fit rule in (2).
+
+**2. A type-level `Rat.mag(A, B)` is not the same term as `Rat.mag(np, nn)`, and
+the checker will not fit them.** `mk.den.pos`'s conclusion prints its gcd as
+`gcd(add(sub(np,nn),sub(nn,np)), 1n+dp)` -- the *unexpanded* magnitude, because a
+`def` applied to concrete arguments is only forced one level in a type -- while
+the goal's denominator carries the *expanded* one,
+`gcd(add(sub(sub(np,nn),sub(nn,np)), sub(sub(nn,np),sub(np,nn))), 1n+dp)`. The
+two are equal (one `sub_diag` per coordinate: the second at the comparison with
+the arguments swapped, `cmp_antisym` + `Cmp.flip`), but `div_pos_wit` and
+`Equal.cong` both *fit* rather than unify, so the equation cannot be transported
+across the `Nat.div` the two spellings sit under. Building the evidence at the
+term the goal actually has is not available either: the witness for `g | 1n+dp`
+has to come from `gcd_divides` at the *same* magnitude, and its conclusion is
+stated at whatever spelling the caller passes -- so the caller is back at (2).
+
+**3. No congruence seems to reach under `Nat.div`** (this is the load-bearing
+new fact, and it generalizes far past this law): `%` expands `Nat.div` into
+`Nat.divmod(x,y).fin` form *before* rewriting, and in `Equal.cong` the
+substitution of the argument lands **after** that expansion, so the two ends of
+the congruence differ by the shape of the substituted argument. Measured on a
+two-line probe with no Rat in it at all:
+
+    Equal.cong(Nat, Cmp, u => Nat.cmp(0n, Nat.div(1n, ZZ(u, v))), a, a, {==})
+
+is rejected with `expected : ... ZZ(Nat.add(np,nn), ...)` against
+`observed : ... ZZ(Nat.sub(np,nn), ...)` -- the ends disagree in the *argument*,
+not in the division. So `Rat.gden` was introduced as a named head
+(`def Rat.gden(np,nn,d) = Nat.div(d, Rat.g(np,nn,d))`) on the theory that a named
+application substituted one level at a time would keep the ends equal; it does
+not change the outcome (same mismatch, printed with the substituted argument).
+Two more spellings were rejected on the way and are worth not re-trying:
+`Cmp.flip(c)` as a value anywhere (let value, local binder, argument, clause
+kind, def return type) is `expected : a defined name` -- the *only* producer of a
+flipped comparison is a lambda body whose binder is a variable, i.e. a cong whose
+lambda **is** `N.Cmp.flip`; and the lambda's type arguments in `Equal.cong` must
+be written out (`Nat, Cmp`, not `Cmp, Cmp`) or the binder comes back typed `Cmp`.
+
+**What the next round should try, in order.** (a) State `mk_idem` with the
+positivity of `denof(M)` as a *hypothesis* and let the caller supply it (the
+caller holding an operation's output has `mk.den.pos` at its own value, so the
+hypothesis is exactly what it can write) -- this needs no new Nat lemma and no
+transport; (b) if the law must be self-contained, give `mk` a *variant* whose
+cross product names the numerator in the *expanded* spelling
+(`Int{div(sub(np,nn),G), ...}` rather than `numof(M)`), proved by the same
+coordinate argument as `mk.value.go` -- i.e. extend `mk.value` with a second
+statement rather than trying to bridge to the first; and (c) only then
+`neg_neg`, which is two congs once `mk_idem` exists (the whole reason the
+composing laws need it). Note for (b): `mk.value`'s own fill is content to take
+`pd` as `{==}` because its `d` is a successor literal; `mk_idem`'s `d` is
+`denof(M)`, which is why its positivity is the whole difficulty.
