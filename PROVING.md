@@ -2377,3 +2377,100 @@ not in `rat.bend`, `QExt.mul_assoc` / `QExt.mul_distrib` / the multiplicative
 inverse are not started, and `QExt.add_assoc` is still the canonical-presentation
 form. Nothing was left stated-but-unfilled: `scratch.bend` was restored to its
 committed state and all six gates are green at that commit.
+
+## The rung-2 additive law landed, and the bridge was not needed (measured)
+
+`Rat.add_assoc.arb` is in `rat.bend` and filled in `rat_proofs.bend`: arbitrary
+`Rat` variables `x`, `y`, `z` with `{Nat.cmp(0n, Rat.denof(_)) == LT{}}` on each
+of the three, conclusion `add(add(x,y),z) == add(x,add(y,z))`. Counts move as the
+README records: rat 198 -> 199, qrat 203 -> 204 (the canonical `Rat.add_assoc`
+stays stated and keeps its fill, so no existing call site moved).
+
+**The route that worked is not the route the last two rounds were on.** Those
+rounds tried to reach the law by *bridging a mk-headed summand*: to turn
+`mk(numof(M), denof(M))` into `mk(Rat.num(a,b), W)` (`Rat.mk_idem` and its five
+attempted forms), which is where the `Int.mul` wall and the nested-`cong` wall
+were measured. The fill that landed never writes those terms: it destructures the
+three inputs **twice** -- once into the Rat fields, once into the three `Int`
+numerators -- and after that second level *every* term on both sides is a
+constructor-headed `mk` whose arguments reduce by themselves. No `mk_idem`, no
+projection bridge, no `Int.mul`-stuck-against-its-reduct comparison appears
+anywhere in it. The two measurements that stopped the previous round are still
+true statements about the terms *that route* produces; they are simply not on
+this one. (The three `*_proofs` gates and `scratch` are green at this commit, and
+`rat_proofs.bend` has no unfilled law.)
+
+**Why two levels, and why the two matches are helpers.** `Rat.add(x, y)` on a
+*variable* is stuck -- `Rat.add` destructures its arguments -- so the first match
+(Rats into fields) is what makes the operations reducible at all. After it the
+numerator of each input is still an `Int` *variable*, so `Int.mul(numerator, unit
+den)` is stuck in turn (`Int.mul` matches on its first argument), and the `mk`
+around the stuck sum cannot destructure its argument. The second match (the three
+`Int`s into their coordinate pairs) is what makes all of that reduce. Each level
+is a `def` whose *parameters* are matched at its body head, which is the repo's
+way around "no nested match on a pattern variable"; the level-2 helper's
+statement is the law's own conclusion written over the three `Int` numerators,
+and the coordinates cannot appear in a type (they are bound by the match inside).
+
+**A dependent match does refine the hypotheses, measured.** The law's positivity
+hypotheses are stated over `Rat.denof(x)`; in the level-1 branch `px` is usable at
+`{Nat.cmp(0n, xd) == LT{}}` (the checker rewrites `Rat.denof(Rat{xn,xd})` to
+`xd`), so the hypotheses pass straight into the level-2 helper. A two-line probe
+(a helper taking `{Nat.cmp(0n, d) == LT{}}` called with `xd` and `px`) checks,
+and that is what the fill relies on.
+
+**The chain itself is the canonical fill's, at raw coordinates.** The three
+inputs' numerators are the pairs the match bound -- *truncations of nothing*, the
+whole difference from rung 1 -- the inner sums' clean coordinates are the two
+`Int.mul_scale` re-spellings `U1/V1`, `U2/V2`, the mk-headed summands become
+`mk(Rat.num(P,Q), d)` by `Rat.mk.trunc`, each outer add is one
+`Rat.add.value.mixed`, and the closing is `Rat.mk.eqv.val` at
+`Rat.nat.cross4`'s cross sum from the two `Nat.sub_cross` instances. That whole
+Nat block is *verbatim* the canonical fill's: its hypotheses are gaps in the raw
+coordinates, so it never saw the presentation at all.
+
+**Two pieces had to be new, and both are general.**
+
+- `Rat.add.value.mixed` (same key, statement generalized): its second summand was
+  `Rat{Rat.num(np2,nn2), 1+dp2}`, and rung 2 has `Rat{Int{Zp,Zn}, D}` -- a *raw*
+  pair, which is a different pair from `Rat.num(Zp,Zn)` unless a coordinate is
+  zero, over a denominator that is carried rather than computed. The old
+  statement is the reading `Zp := sub(np2,nn2)`, `Zn := sub(nn2,np2)`,
+  `D := 1n+dp2` of the new one (since `Rat.num(np2,nn2)` *is*
+  `Int{sub(np2,nn2),sub(nn2,np2)}`), which is why the canonical fill's two call
+  sites only gained three arguments. `D`'s positivity is a third hypothesis of
+  the same kind as the two it already had. The fill did not change its shape at
+  all: `Rat.add.mixed.cross` was already stated over an `Int` numerator and a
+  `Nat` denominator.
+- `Rat.div.pos` (a bare proof-only helper, no new Nat law): the positivity of
+  `Rat.denof(mk(Rat.num(P,Q), d)) = div(d, G)` at the *dividend's own spelling*.
+  `Nat.div_pos_wit` is stated at `div(1+ap, G)`, and here `d` is a variable
+  product (`Xd*Yd`), so no `1+ap` reduces to it -- which is exactly why
+  `Rat.mk_idem.raw` and `Rat.add.value.mixed` take the fact as a hypothesis and
+  why the earlier rounds called the derivation unavailable. It is available, by
+  two rewrites: `pos_witness` turns `d` into `1 + (d-1)`, the *witness type*
+  `Nat.divides(G, d)` is transported to `Nat.divides(G, 1+(d-1))` (**the `%`
+  rewrite form, `%e : {P(_)}; body`** -- the witness type is indexed by the
+  dividend and no conversion re-spells it), and the conclusion comes back along
+  the same equation. The helper is stated over `{Nat.cmp(0n, d) == LT{}}` and a
+  witness, so any caller with a carried denominator can use it.
+
+**A measurement about `%` worth keeping.** `%e : {T}; body` is a *goal rewriting*
+step, not an assertion: the motive `T` has `_` as its endpoint binder, the check
+is `T(b) <= goal` (where `b` is `e`'s second endpoint) and the body is checked
+against `T(a)` with the trivial equation. That is the only mechanism in the
+language that re-spells a *type* -- `Equal.cong`/`Equal.sym`/`Equal.trans` build
+equations between terms, and conversion is not a transport -- and it is what
+`Rat.div.pos` uses. `Equal.cong`/`Equal.sym` are themselves written with it
+(`base.bend`), which is also why the cong-orientation rule the section above
+records holds.
+
+**Not done, and therefore not claimed:** `QExt.mul_assoc` and `QExt.mul_distrib`
+are not started (they need the Rat multiplicative laws at mk-headed arguments,
+i.e. the same two-level treatment for three more laws); the inverse
+`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)` is not started; and
+`QExt.add_assoc` is still the canonical-presentation form whose fill calls the
+canonical `R.Rat.add_assoc` per coordinate -- it can now move to
+`Rat.add_assoc.arb`, and that is the next unit in that direction. Nothing was
+left stated-but-unfilled: every law in the five laws files has a fill, and the
+six gates are green (`nat 127`, `int 32`, `qext 34`, `rat 199`, `qrat 204`).
