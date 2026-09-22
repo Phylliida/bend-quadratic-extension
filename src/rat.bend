@@ -232,3 +232,102 @@ law Rat.mul_zero:
   for +n: I.Int
   for +dp: Nat
   {Rat.mul(Rat{n, 1n+dp}, Rat.zero()) == Rat.zero() : Rat}
+
+# Scaling
+# =======
+#
+# Rat.mk.scale is the lemma the whole quotient machinery rests on: normalization
+# is natural under scaling, mk(n*k, d*k) == mk(n, d) for k = 1 + kp. It is what
+# makes "equal cross products" give "equal normal forms" (Rat.mk.eqv), and it is
+# also what any law that composes two *normalized* results needs, because the
+# inner Rat.mk has already cancelled a gcd by the time the outer one looks at
+# its arguments.
+#
+# The proof is split into the three Nat coordinates of the result -- the
+# normalization is a Rat of three Nats, and each coordinate is its own scalar
+# equation -- so that no motive has to spell a whole Rat. The spelling is
+# mk.go's own: the scaled numerator has raw coordinates (np*(1+kp), nn*(1+kp)),
+# which is exactly what Rat.mk.scale hands mk.go after the Int.mul that scaled
+# it has been reduced.
+
+# Rat.mk.scale.num: the positive coordinate of mk.go's numerator.
+law Rat.mk.scale.num:
+  for c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +kp: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  {Nat.div(Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)),
+           Rat.g(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp)))
+   == Nat.div(Nat.sub(np, nn), Rat.g(np, nn, 1n+dp)) : Nat}
+
+# Rat.mk.scale.neg: the negative coordinate. The mirror of .num at the swapped
+# comparison, which is also how its fill is written: nothing new is proved.
+law Rat.mk.scale.neg:
+  for c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +kp: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  {Nat.div(Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)),
+           Rat.g(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp)))
+   == Nat.div(Nat.sub(nn, np), Rat.g(np, nn, 1n+dp)) : Nat}
+
+# Rat.mk.scale.den: the denominator. Same shape of proof as .num -- the same
+# rewrite of the scaled gcd, and the same div_scale with the other half of the
+# divisibility witness -- but the EQ branch is the interesting one here: with
+# np = nn the denominator's two sides are d/d and (d*(1+kp))/(d*(1+kp)), equal
+# by div_self rather than by 0/d = 0.
+law Rat.mk.scale.den:
+  for c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +kp: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  {Nat.div(Nat.mul(1n+dp, 1n+kp),
+           Rat.g(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp)))
+   == Nat.div(1n+dp, Rat.g(np, nn, 1n+dp)) : Nat}
+
+# Rat.mk.scale.go: the three coordinates together. mk.go's binder is the raw
+# coordinates, so this is the statement for a scaled numerator whose Int.mul has
+# already been reduced to its two coordinates.
+law Rat.mk.scale.go:
+  for +c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +kp: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  {Rat.mk.go(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp))
+   == Rat.mk.go(np, nn, 1n+dp) : Rat}
+
+# Rat.mk.scale: normalization is natural under scaling by k = 1 + kp. The three
+# rewrites at the top of the fill are the only place the *Int* spelling of the
+# scaled numerator shows up: Int.mul(x, Int{1+kp, 0}) is
+# Int{add(xp*(1+kp), xn*0), add(xp*0, xn*(1+kp))}, and the two zero products
+# have to come off before mk.go's raw coordinates are np*(1+kp), nn*(1+kp).
+law Rat.mk.scale:
+  for +n: I.Int
+  for +dp: Nat
+  for +kp: Nat
+  {Rat.mk(I.Int.mul(n, I.Int{1n+kp, 0n}), Nat.mul(1n+dp, 1n+kp)) == Rat.mk(n, 1n+dp) : Rat}
+
+# Rat.mk.eqv: equal cross products give equal normal forms -- the "forward
+# direction" of the quotient lemma, and the reason `==` on canonical Rats
+# decides rational equality. Its fill is two applications of Rat.mk.scale (each
+# side scaled by the other side's denominator) around one congruence, so this is
+# where the scaling lemma, gcd_scale and the exact-division cancellation all
+# land.
+#
+# Denominators are written 1 + dp rather than as an arbitrary Nat: a scaling
+# factor has to be known positive, and a successor is that for free.
+law Rat.mk.eqv:
+  for +n1: I.Int
+  for +dp1: Nat
+  for +n2: I.Int
+  for +dp2: Nat
+  for +e: {I.Int.mul(n1, I.Int{1n+dp2, 0n}) == I.Int.mul(n2, I.Int{1n+dp1, 0n}) : I.Int}
+  {Rat.mk(n1, 1n+dp1) == Rat.mk(n2, 1n+dp2) : Rat}

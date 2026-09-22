@@ -864,6 +864,26 @@ law sub_of_lt:
   for +e: {Nat.cmp(a, b) == LT{} : Cmp}
   {Nat.sub(a, b) == 0n : Nat}
 
+# pos_witness: 0 < n gives n == 1 + (n - 1) -- a *witness* that n is a
+# successor, which is what turns a general divisor into the 1 + b spelling that
+# div_exact and friends are stated over. One trans: sub_zero turns n into
+# n - 0, and sub_pos (stated at b = 0) turns that into the successor form.
+law pos_witness:
+  for +n: Nat
+  for +e: {Nat.cmp(0n, n) == LT{} : Cmp}
+  {n == 1n+Nat.sub(n, 1n) : Nat}
+
+# divides_pos: a positive multiple of g forces g to be a successor. Stated
+# about a = 1 + ap (rather than cmp(0,a) = LT) because that is the spelling the
+# callers have after sub_pos, and because the g = 0 branch then needs only
+# mul(0,q) = 0 and a zero/successor discrimination.
+law divides_pos:
+  for +g: Nat
+  for +q: Nat
+  for +ap: Nat
+  for +e: {1n+ap == Nat.mul(g, q) : Nat}
+  {Nat.cmp(0n, g) == LT{} : Cmp}
+
 # sub_diag: sub(sub(np,nn), sub(nn,np)) == sub(np,nn) -- truncating a difference
 # pair's own side by its other side is a no-op, because one of the two is zero.
 # The comparison is a parameter because it is what decides which side is zero:
@@ -1173,3 +1193,28 @@ law gcd_divides:
   for +b: Nat
   Nat.divides_both(Nat.gcd(a, b), a, b)
 
+# div_scale: the exact-division cancellation of the Rat normalization, packaged
+# for a divisor that arrives as a *divisibility witness* rather than as the
+# literal 1 + b that div_exact_mul wants.
+#
+# The witness is a binder (not something the caller destructures) for the usual
+# reason: the caller's witness comes from gcd_divides, i.e. it is a field of a
+# computed pair, and a computed pair cannot be taken apart where it is
+# produced. Pair.fst is how the caller gets one half of that pair out.
+law div_scale:
+  for +mag: Nat
+  for +g: Nat
+  for +kp: Nat
+  for w: Nat.divides(g, mag)
+  for +p: {Nat.cmp(0n, g) == LT{} : Cmp}
+  {Nat.div(Nat.mul(mag, 1n+kp), Nat.mul(g, 1n+kp)) == Nat.div(mag, g) : Nat}
+
+# divides_pos_wit: a positive multiple of g forces g to be a successor, stated
+# over the divisibility witness -- the positivity half of what div_scale needs
+# of its divisor.
+law divides_pos_wit:
+  for +g: Nat
+  for +a: Nat
+  for w: Nat.divides(g, a)
+  for +p: {Nat.cmp(0n, a) == LT{} : Cmp}
+  {Nat.cmp(0n, g) == LT{} : Cmp}

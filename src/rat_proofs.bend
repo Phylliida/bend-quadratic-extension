@@ -168,3 +168,468 @@ def R.Rat.mul_zero(n, dp):
     : {R.Rat.mk(_, Nat.mul(1n+dp, 1n)) == R.Rat.zero() : R.Rat}
   %N.mul_one(1n+dp) : {R.Rat.mk(I.Int.zero(), _) == R.Rat.zero() : R.Rat}
   R.Rat.mk.zero(dp)
+
+# Scaling
+# =======
+#
+# mk.scale.num is the whole content; .neg is its mirror at the swapped
+# comparison, .den is the same proof at the denominator, and .go/.scale are
+# three rewrites each. All the arithmetic is Nat-level: the scaled comparison
+# collapses with cmp_mul_right, the scaled difference with mul_sub_right, the
+# scaled gcd with gcd_scale, and the two divisions with div_scale -- the new
+# Nat lemma that packages div_exact_mul/div_exact around a divisor that only
+# arrives as a divisibility witness (Pair.fst takes the witness out of the pair
+# gcd_divides returns, which cannot be destructured where it is produced).
+
+def R.Rat.mk.scale.num(c, np, nn, dp, kp, e):
+  match c:
+    case GT{}:
+      %Equal.sym(Nat,
+        Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)), 0n,
+        N.sub_of_lt(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp),
+          Equal.trans(Cmp,
+            Nat.cmp(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)), Nat.cmp(nn, np), LT{},
+            N.cmp_mul_right(nn, np, kp),
+            N.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)))))
+        : {Nat.div(Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)),
+                   N.Nat.gcd(Nat.add(Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), _),
+                     Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %N.mul_sub_right(np, nn, 1n+kp, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))
+        : {Nat.div(_, N.Nat.gcd(Nat.add(_, 0n), Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        Nat.add(Nat.mul(Nat.sub(np, nn), 1n+kp), 0n),
+        Nat.mul(Nat.sub(np, nn), 1n+kp),
+        N.add_zero(Nat.mul(Nat.sub(np, nn), 1n+kp)))
+        : {Nat.div(Nat.mul(Nat.sub(np, nn), 1n+kp),
+                   N.Nat.gcd(_, Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        N.Nat.gcd(Nat.mul(Nat.sub(np, nn), 1n+kp), Nat.mul(1n+dp, 1n+kp)),
+        Nat.mul(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+kp),
+        N.gcd_scale(Nat.sub(np, nn), 1n+dp, kp))
+        : {Nat.div(Nat.mul(Nat.sub(np, nn), 1n+kp), _)
+            == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        N.Nat.gcd(Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)), 1n+dp),
+        N.Nat.gcd(Nat.sub(np, nn), 1n+dp),
+        Equal.cong(Nat, Nat, w => N.Nat.gcd(w, 1n+dp),
+          Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)), Nat.sub(np, nn),
+          Equal.trans(Nat,
+            Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)),
+            Nat.add(Nat.sub(np, nn), 0n),
+            Nat.sub(np, nn),
+            Equal.cong(Nat, Nat, u => Nat.add(Nat.sub(np, nn), u),
+              Nat.sub(nn, np), 0n,
+              N.sub_of_lt(nn, np, N.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)))),
+            N.add_zero(Nat.sub(np, nn)))))
+        : {Nat.div(Nat.mul(Nat.sub(np, nn), 1n+kp),
+                   Nat.mul(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+kp))
+            == Nat.div(Nat.sub(np, nn), _) : Nat}
+      N.div_scale(Nat.sub(np, nn), N.Nat.gcd(Nat.sub(np, nn), 1n+dp), kp,
+        Pair.fst(N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn)),
+          N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+dp),
+          N.gcd_divides(Nat.sub(np, nn), 1n+dp)),
+        N.divides_pos_wit(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn),
+          Pair.fst(N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn)),
+            N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+dp),
+            N.gcd_divides(Nat.sub(np, nn), 1n+dp)),
+          Equal.trans(Cmp,
+            Nat.cmp(0n, Nat.sub(np, nn)),
+            Nat.cmp(0n, 1n+Nat.sub(np, 1n+nn)),
+            LT{},
+            Equal.cong(Nat, Cmp, u => Nat.cmp(0n, u),
+              Nat.sub(np, nn), 1n+Nat.sub(np, 1n+nn),
+              N.sub_pos(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))),
+            {==})))
+    case EQ{}:
+      %Equal.sym(Nat,
+        Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), 0n,
+        Equal.trans(Nat,
+          Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)),
+          Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(np, 1n+kp)),
+          0n,
+          Equal.cong(Nat, Nat, u => Nat.sub(Nat.mul(np, 1n+kp), u),
+            Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp),
+            Equal.sym(Nat, Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp),
+              Equal.cong(Nat, Nat, u => Nat.mul(u, 1n+kp), np, nn,
+                N.cmp_eq(np, nn, Equal.sym(Cmp, EQ{}, Nat.cmp(np, nn), e))))),
+          N.sub_self(Nat.mul(np, 1n+kp))))
+        : {Nat.div(_, N.Nat.gcd(Nat.add(_, Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp))), Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)), 0n,
+        Equal.trans(Nat,
+          Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)),
+          Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(nn, 1n+kp)),
+          0n,
+          Equal.cong(Nat, Nat, u => Nat.sub(Nat.mul(nn, 1n+kp), u),
+            Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp),
+            Equal.cong(Nat, Nat, u => Nat.mul(u, 1n+kp), np, nn,
+              N.cmp_eq(np, nn, Equal.sym(Cmp, EQ{}, Nat.cmp(np, nn), e)))),
+          N.sub_self(Nat.mul(nn, 1n+kp))))
+        : {Nat.div(0n, N.Nat.gcd(Nat.add(0n, _), Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat, Nat.sub(np, nn), 0n,
+        Equal.trans(Nat, Nat.sub(np, nn), Nat.sub(np, np), 0n,
+          Equal.cong(Nat, Nat, u => Nat.sub(np, u), nn, np,
+            Equal.sym(Nat, np, nn, N.cmp_eq(np, nn, Equal.sym(Cmp, EQ{}, Nat.cmp(np, nn), e)))),
+          N.sub_self(np)))
+        : {Nat.div(0n, Nat.mul(1n+dp, 1n+kp))
+            == Nat.div(_, N.Nat.gcd(Nat.add(_, Nat.sub(nn, np)), 1n+dp)) : Nat}
+      %Equal.sym(Nat, Nat.sub(nn, np), 0n,
+        Equal.trans(Nat, Nat.sub(nn, np), Nat.sub(nn, nn), 0n,
+          Equal.cong(Nat, Nat, u => Nat.sub(nn, u), np, nn,
+            N.cmp_eq(np, nn, Equal.sym(Cmp, EQ{}, Nat.cmp(np, nn), e))),
+          N.sub_self(nn)))
+        : {Nat.div(0n, Nat.mul(1n+dp, 1n+kp))
+            == Nat.div(0n, N.Nat.gcd(Nat.add(0n, _), 1n+dp)) : Nat}
+      {==}
+    case LT{}:
+      %Equal.sym(Nat,
+        Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), 0n,
+        N.sub_of_lt(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp),
+          Equal.trans(Cmp,
+            Nat.cmp(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), Nat.cmp(np, nn), LT{},
+            N.cmp_mul_right(np, nn, kp),
+            Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e))))
+        : {Nat.div(_, N.Nat.gcd(Nat.add(_, Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp))), Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %N.mul_sub_right(nn, np, 1n+kp, N.cmp_gt_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))
+        : {Nat.div(0n, N.Nat.gcd(Nat.add(0n, _), Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        N.Nat.gcd(Nat.mul(Nat.sub(nn, np), 1n+kp), Nat.mul(1n+dp, 1n+kp)),
+        Nat.mul(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+kp),
+        N.gcd_scale(Nat.sub(nn, np), 1n+dp, kp))
+        : {Nat.div(0n, _) == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        N.Nat.gcd(Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)), 1n+dp),
+        N.Nat.gcd(Nat.sub(nn, np), 1n+dp),
+        Equal.cong(Nat, Nat, w => N.Nat.gcd(w, 1n+dp),
+          Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)), Nat.sub(nn, np),
+          Equal.trans(Nat,
+            Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)),
+            Nat.add(0n, Nat.sub(nn, np)),
+            Nat.sub(nn, np),
+            Equal.cong(Nat, Nat, u => Nat.add(u, Nat.sub(nn, np)),
+              Nat.sub(np, nn), 0n,
+              N.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e))),
+            {==})))
+        : {Nat.div(0n, Nat.mul(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+kp))
+            == Nat.div(Nat.sub(np, nn), _) : Nat}
+      %Equal.sym(Nat, Nat.sub(np, nn), 0n,
+        N.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))
+        : {Nat.div(0n, Nat.mul(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+kp))
+            == Nat.div(_, N.Nat.gcd(Nat.sub(nn, np), 1n+dp)) : Nat}
+      %Equal.sym(Nat, Nat.div(0n, N.Nat.gcd(Nat.sub(nn, np), 1n+dp)), 0n,
+        N.div_zero(N.Nat.gcd(Nat.sub(nn, np), 1n+dp)))
+        : {Nat.div(0n, Nat.mul(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+kp)) == _ : Nat}
+      %Equal.sym(Nat, Nat.div(0n, Nat.mul(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+kp)), 0n,
+        N.div_zero(Nat.mul(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+kp)))
+        : {_ == 0n : Nat}
+      {==}
+
+# Rat.mk.scale.neg: the mirror of .num at the swapped comparison -- one call,
+# after commuting the two arguments of each gcd's sum so that the goal is
+# literally the instance of .num at (nn, np).
+def R.Rat.mk.scale.neg(c, np, nn, dp, kp, e):
+  %Equal.sym(Nat,
+    Nat.add(Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)),
+            Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp))),
+    Nat.add(Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)),
+            Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp))),
+    N.add_comm(Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)),
+      Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp))))
+    : {Nat.div(Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)),
+               N.Nat.gcd(_, Nat.mul(1n+dp, 1n+kp)))
+        == Nat.div(Nat.sub(nn, np), R.Rat.g(np, nn, 1n+dp)) : Nat}
+  %Equal.sym(Nat,
+    Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)),
+    Nat.add(Nat.sub(nn, np), Nat.sub(np, nn)),
+    N.add_comm(Nat.sub(np, nn), Nat.sub(nn, np)))
+    : {Nat.div(Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)),
+               N.Nat.gcd(Nat.add(Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)),
+                                 Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp))),
+                 Nat.mul(1n+dp, 1n+kp)))
+        == Nat.div(Nat.sub(nn, np), N.Nat.gcd(_, 1n+dp)) : Nat}
+  R.Rat.mk.scale.num(N.Cmp.flip(c), nn, np, dp, kp,
+    Equal.trans(Cmp, N.Cmp.flip(c), N.Cmp.flip(Nat.cmp(np, nn)), Nat.cmp(nn, np),
+      Equal.cong(Cmp, Cmp, N.Cmp.flip, c, Nat.cmp(np, nn), e),
+      Equal.trans(Cmp, N.Cmp.flip(Nat.cmp(np, nn)), N.Cmp.flip(N.Cmp.flip(Nat.cmp(nn, np))), Nat.cmp(nn, np),
+        Equal.cong(Cmp, Cmp, N.Cmp.flip, Nat.cmp(np, nn), N.Cmp.flip(Nat.cmp(nn, np)), N.cmp_antisym(np, nn)),
+        N.flip_flip(Nat.cmp(nn, np)))))
+
+# Rat.mk.scale.den: the same three rewrites at the denominator, then div_scale
+# with the *other* half of the divisibility witness -- and with gravity
+# reversed in the EQ branch, where the two sides are d/d and (d*(1+kp))/(d*(1+kp))
+# and div_self, not div_zero, is what makes them equal.
+def R.Rat.mk.scale.den(c, np, nn, dp, kp, e):
+  match c:
+    case GT{}:
+      %Equal.sym(Nat,
+        Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)), 0n,
+        N.sub_of_lt(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp),
+          Equal.trans(Cmp,
+            Nat.cmp(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)), Nat.cmp(nn, np), LT{},
+            N.cmp_mul_right(nn, np, kp),
+            N.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)))))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp),
+                   N.Nat.gcd(Nat.add(Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), _),
+                     Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %N.mul_sub_right(np, nn, 1n+kp, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp),
+                   N.Nat.gcd(Nat.add(_, 0n), Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        Nat.add(Nat.mul(Nat.sub(np, nn), 1n+kp), 0n),
+        Nat.mul(Nat.sub(np, nn), 1n+kp),
+        N.add_zero(Nat.mul(Nat.sub(np, nn), 1n+kp)))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp),
+                   N.Nat.gcd(_, Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        N.Nat.gcd(Nat.mul(Nat.sub(np, nn), 1n+kp), Nat.mul(1n+dp, 1n+kp)),
+        Nat.mul(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+kp),
+        N.gcd_scale(Nat.sub(np, nn), 1n+dp, kp))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp), _)
+            == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        N.Nat.gcd(Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)), 1n+dp),
+        N.Nat.gcd(Nat.sub(np, nn), 1n+dp),
+        Equal.cong(Nat, Nat, w => N.Nat.gcd(w, 1n+dp),
+          Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)), Nat.sub(np, nn),
+          Equal.trans(Nat,
+            Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)),
+            Nat.add(Nat.sub(np, nn), 0n),
+            Nat.sub(np, nn),
+            Equal.cong(Nat, Nat, u => Nat.add(Nat.sub(np, nn), u),
+              Nat.sub(nn, np), 0n,
+              N.sub_of_lt(nn, np, N.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)))),
+            N.add_zero(Nat.sub(np, nn)))))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp),
+                   Nat.mul(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+kp))
+            == Nat.div(1n+dp, _) : Nat}
+      N.div_scale(1n+dp, N.Nat.gcd(Nat.sub(np, nn), 1n+dp), kp,
+        Pair.snd(N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn)),
+          N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+dp),
+          N.gcd_divides(Nat.sub(np, nn), 1n+dp)),
+        N.divides_pos_wit(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn),
+          Pair.fst(N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn)),
+            N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+dp),
+            N.gcd_divides(Nat.sub(np, nn), 1n+dp)),
+          Equal.trans(Cmp,
+            Nat.cmp(0n, Nat.sub(np, nn)),
+            Nat.cmp(0n, 1n+Nat.sub(np, 1n+nn)),
+            LT{},
+            Equal.cong(Nat, Cmp, u => Nat.cmp(0n, u),
+              Nat.sub(np, nn), 1n+Nat.sub(np, 1n+nn),
+              N.sub_pos(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))),
+            {==})))
+    case EQ{}:
+      %Equal.sym(Nat,
+        Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), 0n,
+        Equal.trans(Nat,
+          Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)),
+          Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(np, 1n+kp)),
+          0n,
+          Equal.cong(Nat, Nat, u => Nat.sub(Nat.mul(np, 1n+kp), u),
+            Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp),
+            Equal.sym(Nat, Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp),
+              Equal.cong(Nat, Nat, u => Nat.mul(u, 1n+kp), np, nn,
+                N.cmp_eq(np, nn, Equal.sym(Cmp, EQ{}, Nat.cmp(np, nn), e))))),
+          N.sub_self(Nat.mul(np, 1n+kp))))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp),
+                   N.Nat.gcd(Nat.add(_, Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp))),
+                     Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)), 0n,
+        Equal.trans(Nat,
+          Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)),
+          Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(nn, 1n+kp)),
+          0n,
+          Equal.cong(Nat, Nat, u => Nat.sub(Nat.mul(nn, 1n+kp), u),
+            Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp),
+            Equal.cong(Nat, Nat, u => Nat.mul(u, 1n+kp), np, nn,
+              N.cmp_eq(np, nn, Equal.sym(Cmp, EQ{}, Nat.cmp(np, nn), e)))),
+          N.sub_self(Nat.mul(nn, 1n+kp))))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp), N.Nat.gcd(Nat.add(0n, _), Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat, Nat.sub(np, nn), 0n,
+        Equal.trans(Nat, Nat.sub(np, nn), Nat.sub(np, np), 0n,
+          Equal.cong(Nat, Nat, u => Nat.sub(np, u), nn, np,
+            Equal.sym(Nat, np, nn, N.cmp_eq(np, nn, Equal.sym(Cmp, EQ{}, Nat.cmp(np, nn), e)))),
+          N.sub_self(np)))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp), Nat.mul(1n+dp, 1n+kp))
+            == Nat.div(1n+dp, N.Nat.gcd(Nat.add(_, Nat.sub(nn, np)), 1n+dp)) : Nat}
+      %Equal.sym(Nat, Nat.sub(nn, np), 0n,
+        Equal.trans(Nat, Nat.sub(nn, np), Nat.sub(nn, nn), 0n,
+          Equal.cong(Nat, Nat, u => Nat.sub(nn, u), np, nn,
+            N.cmp_eq(np, nn, Equal.sym(Cmp, EQ{}, Nat.cmp(np, nn), e))),
+          N.sub_self(nn)))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp), Nat.mul(1n+dp, 1n+kp))
+            == Nat.div(1n+dp, N.Nat.gcd(Nat.add(0n, _), 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        Nat.div(1n+dp, 1n+dp), 1n,
+        N.div_self(dp))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp), Nat.mul(1n+dp, 1n+kp)) == _ : Nat}
+      %Equal.sym(Nat,
+        Nat.div(Nat.mul(1n+dp, 1n+kp), Nat.mul(1n+dp, 1n+kp)),
+        1n,
+        N.div_self(Nat.add(kp, Nat.mul(dp, 1n+kp))))
+        : {_ == 1n : Nat}
+      {==}
+    case LT{}:
+      %Equal.sym(Nat,
+        Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), 0n,
+        N.sub_of_lt(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp),
+          Equal.trans(Cmp,
+            Nat.cmp(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), Nat.cmp(np, nn), LT{},
+            N.cmp_mul_right(np, nn, kp),
+            Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e))))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp),
+                   N.Nat.gcd(Nat.add(_, Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp))),
+                     Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %N.mul_sub_right(nn, np, 1n+kp, N.cmp_gt_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp), N.Nat.gcd(Nat.add(0n, _), Nat.mul(1n+dp, 1n+kp)))
+            == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        N.Nat.gcd(Nat.mul(Nat.sub(nn, np), 1n+kp), Nat.mul(1n+dp, 1n+kp)),
+        Nat.mul(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+kp),
+        N.gcd_scale(Nat.sub(nn, np), 1n+dp, kp))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp), _)
+            == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
+      %Equal.sym(Nat,
+        N.Nat.gcd(Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)), 1n+dp),
+        N.Nat.gcd(Nat.sub(nn, np), 1n+dp),
+        Equal.cong(Nat, Nat, w => N.Nat.gcd(w, 1n+dp),
+          Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)), Nat.sub(nn, np),
+          Equal.trans(Nat,
+            Nat.add(Nat.sub(np, nn), Nat.sub(nn, np)),
+            Nat.add(0n, Nat.sub(nn, np)),
+            Nat.sub(nn, np),
+            Equal.cong(Nat, Nat, u => Nat.add(u, Nat.sub(nn, np)),
+              Nat.sub(np, nn), 0n,
+              N.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e))),
+            {==})))
+        : {Nat.div(Nat.mul(1n+dp, 1n+kp), Nat.mul(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+kp))
+            == Nat.div(1n+dp, _) : Nat}
+      N.div_scale(1n+dp, N.Nat.gcd(Nat.sub(nn, np), 1n+dp), kp,
+        Pair.snd(N.Nat.divides(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), Nat.sub(nn, np)),
+          N.Nat.divides(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+dp),
+          N.gcd_divides(Nat.sub(nn, np), 1n+dp)),
+        N.divides_pos_wit(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), Nat.sub(nn, np),
+          Pair.fst(N.Nat.divides(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), Nat.sub(nn, np)),
+            N.Nat.divides(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+dp),
+            N.gcd_divides(Nat.sub(nn, np), 1n+dp)),
+          Equal.trans(Cmp,
+            Nat.cmp(0n, Nat.sub(nn, np)),
+            Nat.cmp(0n, 1n+Nat.sub(nn, 1n+np)),
+            LT{},
+            Equal.cong(Nat, Cmp, u => Nat.cmp(0n, u),
+              Nat.sub(nn, np), 1n+Nat.sub(nn, 1n+np),
+              N.sub_pos(nn, np, N.cmp_gt_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))),
+            {==})))
+
+# Rat.mk.scale.go: one rewrite per coordinate, each the matching Nat half.
+def R.Rat.mk.scale.go(c, np, nn, dp, kp, e):
+  %Equal.sym(Nat,
+    Nat.div(Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)),
+      R.Rat.g(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp))),
+    Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)),
+    R.Rat.mk.scale.num(c, np, nn, dp, kp, e))
+    : {R.Rat{I.Int{_, Nat.div(Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)),
+                             R.Rat.g(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp)))},
+              Nat.div(Nat.mul(1n+dp, 1n+kp),
+                R.Rat.g(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp)))}
+        == R.Rat.mk.go(np, nn, 1n+dp) : R.Rat}
+  %Equal.sym(Nat,
+    Nat.div(Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)),
+      R.Rat.g(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp))),
+    Nat.div(Nat.sub(nn, np), R.Rat.g(np, nn, 1n+dp)),
+    R.Rat.mk.scale.neg(c, np, nn, dp, kp, e))
+    : {R.Rat{I.Int{Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)), _},
+              Nat.div(Nat.mul(1n+dp, 1n+kp),
+                R.Rat.g(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp)))}
+        == R.Rat.mk.go(np, nn, 1n+dp) : R.Rat}
+  %Equal.sym(Nat,
+    Nat.div(Nat.mul(1n+dp, 1n+kp),
+      R.Rat.g(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp))),
+    Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)),
+    R.Rat.mk.scale.den(c, np, nn, dp, kp, e))
+    : {R.Rat{I.Int{Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)),
+                   Nat.div(Nat.sub(nn, np), R.Rat.g(np, nn, 1n+dp))}, _}
+        == R.Rat.mk.go(np, nn, 1n+dp) : R.Rat}
+  {==}
+
+# Rat.mk.scale: the Int spelling of the scaled numerator is
+# Int{add(xp*(1+kp), xn*0), add(xp*0, xn*(1+kp))}; the two zero products come
+# off (mul_zero and add_zero), the second slot is then already the scaled
+# coordinate, and the reduced term is exactly what mk.scale.go is stated about.
+def R.Rat.mk.scale(n, dp, kp):
+  match n:
+    case I.Int{np, nn}:
+      Equal.trans(R.Rat,
+        R.Rat.mk(I.Int.mul(I.Int{np, nn}, I.Int{1n+kp, 0n}), Nat.mul(1n+dp, 1n+kp)),
+        R.Rat.mk.go(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp)),
+        R.Rat.mk(I.Int{np, nn}, 1n+dp),
+        Equal.trans(R.Rat,
+          R.Rat.mk(I.Int.mul(I.Int{np, nn}, I.Int{1n+kp, 0n}), Nat.mul(1n+dp, 1n+kp)),
+          R.Rat.mk.go(Nat.add(Nat.mul(np, 1n+kp), Nat.mul(nn, 0n)),
+            Nat.add(Nat.mul(np, 0n), Nat.mul(nn, 1n+kp)), Nat.mul(1n+dp, 1n+kp)),
+          R.Rat.mk.go(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp)),
+          {==},
+          Equal.trans(R.Rat,
+            R.Rat.mk.go(Nat.add(Nat.mul(np, 1n+kp), Nat.mul(nn, 0n)),
+              Nat.add(Nat.mul(np, 0n), Nat.mul(nn, 1n+kp)), Nat.mul(1n+dp, 1n+kp)),
+            R.Rat.mk.go(Nat.mul(np, 1n+kp), Nat.add(Nat.mul(np, 0n), Nat.mul(nn, 1n+kp)),
+              Nat.mul(1n+dp, 1n+kp)),
+            R.Rat.mk.go(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp), Nat.mul(1n+dp, 1n+kp)),
+            Equal.cong(Nat, R.Rat,
+              u => R.Rat.mk.go(u, Nat.add(Nat.mul(np, 0n), Nat.mul(nn, 1n+kp)), Nat.mul(1n+dp, 1n+kp)),
+              Nat.add(Nat.mul(np, 1n+kp), Nat.mul(nn, 0n)), Nat.mul(np, 1n+kp),
+              Equal.trans(Nat,
+                Nat.add(Nat.mul(np, 1n+kp), Nat.mul(nn, 0n)),
+                Nat.add(Nat.mul(np, 1n+kp), 0n),
+                Nat.mul(np, 1n+kp),
+                Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(np, 1n+kp), u),
+                  Nat.mul(nn, 0n), 0n, N.mul_zero(nn)),
+                N.add_zero(Nat.mul(np, 1n+kp)))),
+            Equal.cong(Nat, R.Rat,
+              u => R.Rat.mk.go(Nat.mul(np, 1n+kp), u, Nat.mul(1n+dp, 1n+kp)),
+              Nat.add(Nat.mul(np, 0n), Nat.mul(nn, 1n+kp)), Nat.mul(nn, 1n+kp),
+              Equal.cong(Nat, Nat, u => Nat.add(u, Nat.mul(nn, 1n+kp)),
+                Nat.mul(np, 0n), 0n, N.mul_zero(np))))),
+        R.Rat.mk.scale.go(Nat.cmp(np, nn), np, nn, dp, kp, {==}))
+
+# Rat.mk.eqv: equal cross products give equal normal forms. The two sides are
+# scaled up to a common denominator -- each by the *other* side's denominator,
+# which is what Rat.mk.scale is for -- and in the middle the two numerators are
+# the same term by the hypothesis, with the two denominators equal by
+# Nat.mul_comm.
+def R.Rat.mk.eqv(n1, dp1, n2, dp2, e):
+  Equal.trans(R.Rat,
+    R.Rat.mk(n1, 1n+dp1),
+    R.Rat.mk(I.Int.mul(n1, I.Int{1n+dp2, 0n}), Nat.mul(1n+dp1, 1n+dp2)),
+    R.Rat.mk(n2, 1n+dp2),
+    Equal.sym(R.Rat,
+      R.Rat.mk(I.Int.mul(n1, I.Int{1n+dp2, 0n}), Nat.mul(1n+dp1, 1n+dp2)),
+      R.Rat.mk(n1, 1n+dp1),
+      R.Rat.mk.scale(n1, dp1, dp2)),
+    Equal.trans(R.Rat,
+      R.Rat.mk(I.Int.mul(n1, I.Int{1n+dp2, 0n}), Nat.mul(1n+dp1, 1n+dp2)),
+      R.Rat.mk(I.Int.mul(n2, I.Int{1n+dp1, 0n}), Nat.mul(1n+dp1, 1n+dp2)),
+      R.Rat.mk(n2, 1n+dp2),
+      Equal.cong(I.Int, R.Rat, u => R.Rat.mk(u, Nat.mul(1n+dp1, 1n+dp2)),
+        I.Int.mul(n1, I.Int{1n+dp2, 0n}), I.Int.mul(n2, I.Int{1n+dp1, 0n}), e),
+      Equal.trans(R.Rat,
+        R.Rat.mk(I.Int.mul(n2, I.Int{1n+dp1, 0n}), Nat.mul(1n+dp1, 1n+dp2)),
+        R.Rat.mk(I.Int.mul(n2, I.Int{1n+dp1, 0n}), Nat.mul(1n+dp2, 1n+dp1)),
+        R.Rat.mk(n2, 1n+dp2),
+        Equal.cong(Nat, R.Rat, u => R.Rat.mk(I.Int.mul(n2, I.Int{1n+dp1, 0n}), u),
+          Nat.mul(1n+dp1, 1n+dp2), Nat.mul(1n+dp2, 1n+dp1), N.mul_comm(1n+dp1, 1n+dp2)),
+        R.Rat.mk.scale(n2, dp2, dp1))))
