@@ -895,6 +895,35 @@ law Rat.add_assoc:
    == Rat.add(Rat{Rat.num(np1, nn1), 1n+dp1},
               Rat.add(Rat{Rat.num(np2, nn2), 1n+dp2}, Rat{Rat.num(np3, nn3), 1n+dp3})) : Rat}
 
+# Rat.add_assoc.arb
+# =================
+#
+# (x + y) + z = x + (y + z) for *arbitrary* Rats, with the positivity of the
+# three input denominators as the only hypotheses. This is the form a caller
+# whose summands are pattern variables can use -- a law stated over
+# Rat.mk(...)/Rat{Rat.num(np,nn), 1+dp} applications cannot be instantiated at a
+# stuck term, which is exactly what an arbitrary Rat is -- and it is the form
+# the QExt composing laws need, since a QExt coordinate is a Rat *variable*.
+#
+# Rat.add_assoc above is the same law in the canonical presentation, with no
+# hypothesis at all. Neither is derivable from the other as a statement: the
+# canonical form has no positivity slot to fill, and the general form's inputs
+# are not mk-shaped, so the extra hypotheses are not a weakening that could be
+# discharged. The canonical law's fill is this one at its own coordinates.
+#
+# The hypotheses are what the *normalization* needs, not a canonicality
+# condition: mk's output denominator div(d, G) is positive only when it is a
+# quotient of positive numbers, and for an arbitrary input the caller is the only
+# one who knows that. Nothing here needs coprimality.
+law Rat.add_assoc.arb:
+  for +x: Rat
+  for +y: Rat
+  for +z: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
+  for +pz: {Nat.cmp(0n, Rat.denof(z)) == LT{} : Cmp}
+  {Rat.add(Rat.add(x, y), z) == Rat.add(x, Rat.add(y, z)) : Rat}
+
 # Rat.add_exchange
 # ================
 #

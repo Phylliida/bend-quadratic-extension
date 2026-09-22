@@ -81,8 +81,8 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The five
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 127, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 198 = 127 Nat + 32 Int + 39 Rat, qrat.bend 203 = 127 Nat +
-32 Int + 39 Rat + 5 QExt (it imports rat.bend itself, so its count is
+QExt, rat.bend 199 = 127 Nat + 32 Int + 40 Rat, qrat.bend 204 = 127 Nat +
+32 Int + 40 Rat + 5 QExt (it imports rat.bend itself, so its count is
 rat.bend's plus its own five laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
@@ -254,6 +254,25 @@ Known gaps, in dependency order:
    `Rat.mul_add_left` follows for free, exactly as PROVING.md predicted: three
    steps (`mul_comm`, `mul_distrib`, two `mul_comm`s under a congruence) and no
    arithmetic at all.
+   `Rat.add_assoc.arb` is the newest, and it is the *rung-2* form of the law
+   above: arbitrary `Rat` variables with the positivity of the three input
+   denominators as the only hypotheses. It is the statement a caller whose
+   summands are pattern variables can instantiate (a law stated over `Rat.mk(...)`
+   applications cannot be used at a stuck term, which is what an arbitrary `Rat`
+   is), and the canonical law above is its reading at its own coordinates -- both
+   stay stated, because neither is derivable from the other: the canonical form
+   has no positivity slot and the general form's inputs are not mk-shaped. The
+   fill is the canonical fill's chain at the *raw* coordinates the two levels of
+   destructuring expose (three Rats, then their three `Int` numerators -- one
+   helper per level, since a def's parameters may be matched at its body head and
+   a nested match on a pattern variable may not), with the Nat cross-sum block
+   reused verbatim: its gaps are the raw coordinates, so it never saw the
+   presentation at all. The two new pieces are `Rat.add.value.mixed` in its raw
+   form (the outer adds' mk summands are raw pairs) and the positivity of the mk
+   output's denominator, `Rat.div.pos` -- `Nat.div_pos_wit` at the dividend's own
+   spelling, by one `pos_witness` rewrite that the divisibility witness is
+   transported along. No projection bridge and no `Rat.mk_idem`-shaped step is
+   needed anywhere in it.
    Still open: the `QExt` block below -- both distributive laws are now in, so
    the remaining Rat-side work is the field axioms and the inverse.
 2. `QExt` over `Rat` — landed so far:
@@ -310,15 +329,17 @@ Known gaps, in dependency order:
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`) is the step after that,
    and it is the one that needs `Rat.sub` under both distributive laws.
    The rung-2 form (arbitrary `Rat` variables, positivity of the three inputs as
-   hypotheses) is **not** in, and the reason is no longer the evidence
-   orientation: `Nat.sub_diag_rev` — `sub_diag` stated in the reverse
-   orientation, the twin spelling of `add_assoc_rev`, filled by one `Equal.sym`
-   — landed for exactly that step, so the collapses the composite numerator
-   needs now take direct evidence. What the round measured instead is that a
-   `Equal.cong` **nested** inside another `cong` does not compose at this shape
-   (all four argument/evidence spellings were run; the demand and the evidence
-   come back as each other's reverse) and that the chain's last step needs
-   `Int.mul` to unfold on both sides of a comparison at once — it unfolds in the
-   `trans` argument and stays stuck in the goal. Both measurements, and the two
-   routes they leave open, are in PROVING.md.
+   hypotheses) is **in for the additive law now**: `Rat.add_assoc.arb` landed in
+   `rat.bend`, filled in `rat_proofs.bend`, and `QExt.add_assoc` is the next unit
+   that can move to it (its fill is currently the canonical `R.Rat.add_assoc` per
+   coordinate). What that round had *not* measured — and two earlier rounds had
+   assumed — is that the rung-2 fill needs no bridge of the `Rat.mk_idem` kind at
+   all; the spelling the previous round was stuck on (`mk` of a projection pair
+   against `mk(Rat.num(a,b), W)`, and the `Int.mul` that stays stuck in the goal
+   while its `trans` argument unfolds) belongs to the *other* route, which bridged
+   a mk-headed summand by naming its projection. Destructuring the three inputs
+   twice instead — one helper level per layer — makes every term on both sides
+   reduce, and the chain is then the canonical one at raw coordinates. PROVING.md
+   records both the two measurements that stopped the previous round and this
+   round's result.
 3. Binary nats for performance (unary `Nat` is O(value)).
