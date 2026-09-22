@@ -2777,3 +2777,53 @@ exactly the Rat-level facts of the division-free rationalization
 (`QExt.conj`, `QExt.norm` and the law itself) is the next unit; the literal
 division form additionally needs a `Rat` inverse operation with its own laws,
 which is still open.
+
+## The division-free rationalization landed (measured)
+
+`QExt.conj`, `QExt.norm` and `QExt.mul_conj` are in `qrat.bend`, filled in
+`qrat_proofs.bend`. Counts: rat 208 (unchanged), qrat 215 -> 216. Six gates
+green.
+
+**The law is four Rat laws wide, and all four are from the negation block.**
+With the coefficients destructured as `QExt{xa,xb}`, `QExt.mul(d, x,
+QExt.conj(x))` unfolds to `QExt{xa*xa + D*(xb*(-xb)), xa*(-xb) + xb*xa}` with
+`D = QExt.nat(d)` (a stuck term is enough: `QExt.mul` destructures its third
+argument, which `QExt{xa, Rat.neg(xb)}` still is -- the negative is only stuck
+*inside* a field). The real coordinate is then
+
+    xa*xa + D*(xb*(-xb))  =  xa*xa + D*(-(xb*xb))     Rat.mul_neg(xb,xb)
+                          =  xa*xa + (-(D*(xb*xb)))    Rat.mul_neg(D, xb*xb)
+                          =  Rat.sub(xa*xa, D*(xb*xb)) {==}
+
+and the imaginary one
+
+    xa*(-xb) + xb*xa  =  (-(xa*xb)) + xb*xa           Rat.mul_neg(xa,xb)
+                      =  (-(xa*xb)) + xa*xb           Rat.mul_comm(xb,xa)
+                      =  u + (-u)                     Rat.add_comm
+                      =  0                            Rat.add_neg(u)
+
+-- i.e. no distributivity, no associativity, no value law and no cross sum
+anywhere: the rationalization is exactly the two negation laws applied to the
+conjugate pair. Both coordinates need a positivity fact that is not a
+hypothesis, and `Rat.mul.den.pos` is what supplies it (`mul(xb,xb)` in the real
+chain and the mixed law's product `mul(D, E)`, `mul(xa,xb)` for `Rat.add_neg`);
+`QExt.nat(d)`'s own denominator is 1, so `{==}` discharges that slot.
+
+**A new checker fact, measured on the first attempt.** A *def* whose body reads
+the same argument twice has to declare that parameter `+`: `QExt.conj(x)` (which
+calls `QExt.re(x)` and `QExt.im(x)`) and `QExt.norm(d,x)` (four reads) both
+failed with `expected : x / observed : x (consumed more than once)` until the
+parameter was written `+x`. Law fills inherit their linearity from the law, so
+this only shows up on new helper defs -- `QExt.re`/`QExt.im` were already
+`(+a, +b)` for the same reason.
+
+**The QExt assembly is the same three-endpoint trans as every other QExt law**
+(`qext.re` then `qext.im`), so the fill is two coordinate chains plus two lines
+of gluing. The statement's right side is `QExt{QExt.norm(d,x), Rat.zero()}` and
+the fill's is the same term with `Rat.sub` unfolded -- the def is transparent, so
+the two spellings are one conversion apart.
+
+**What is still open on this route.** `1/(a + b*sqrt d) = conj(x)/norm(d,x)`
+needs a `Rat` inverse: the operation, its laws, and the `Rat` division that
+consumes it. That is the field-axioms-and-inverse unit the README already names,
+and nothing in this round shortens it.

@@ -117,6 +117,22 @@ def QExt.mul(+d: Nat, x: QExt, y: QExt) -> QExt:
   QExt{R.Rat.add(R.Rat.mul(xa, ya), R.Rat.mul(di, R.Rat.mul(xb, yb))),
        R.Rat.add(R.Rat.mul(xa, yb), R.Rat.mul(xb, ya))}
 
+# QExt.conj(x): the conjugate a - b*sqrt(d) -- the real coefficient unchanged,
+# the imaginary one negated. It is what gives the extension an inverse at all:
+# x * conj(x) is a *rational* number, and QExt.norm names it.
+def QExt.conj(+x: QExt) -> QExt:
+  QExt{QExt.re(x), R.Rat.neg(QExt.im(x))}
+
+# QExt.norm(d, x): the norm a^2 - b^2 d, as the Rat the product x*conj(x) lands
+# on. The radicand coefficient is QExt.nat(d), the same one QExt.mul multiplies
+# the imaginary product by, and the subtraction is Rat.sub -- so this is
+# literally the cleared denominator of the rationalization, which is why the
+# inverse can be stated without a Rat division: conj(x)/norm(d,x) *is* the
+# inverse up to the division that is still open.
+def QExt.norm(+d: Nat, +x: QExt) -> R.Rat:
+  R.Rat.sub(R.Rat.mul(QExt.re(x), QExt.re(x)),
+            R.Rat.mul(QExt.nat(d), R.Rat.mul(QExt.im(x), QExt.im(x))))
+
 # QExt.add_comm: x + y = y + x. Holds for every pair: addition is
 # componentwise, and Rat.add_comm is unconditional.
 law QExt.add_comm:
@@ -249,3 +265,31 @@ law QExt.mul_distrib:
   for +hz: {Nat.cmp(0n, R.Rat.denof(QExt.im(z))) == LT{} : Cmp}
   {QExt.mul(d, x, QExt.add(y, z))
    == QExt.add(QExt.mul(d, x, y), QExt.mul(d, x, z)) : QExt}
+
+# QExt.mul_conj: x * conj(x) = a^2 - b^2 d -- the division-free form of the
+# rationalization, and the fact the inverse rests on.
+#
+# The product is the conjugate pair, so its *imaginary* coordinate is
+# xa*(-xb) + xb*xa: two products that are each other's negative, and zero by the
+# additive inverse identity. Its real coordinate is xa*xa + d*(xb*(-xb)), which
+# is QExt.norm written with the negation pushed inside the radicand product.
+# Both coordinates are therefore Rat chains over the two coefficients and
+# nothing else -- `Rat.mul_neg` (`x*(-y) = -(x*y)`) twice in the real one and
+# once in the imaginary one, `Rat.mul_comm` and `Rat.add_comm` to put the
+# products in the order the identity law wants, and `Rat.add_neg`
+# (`x + (-x) = 0`) to close.
+#
+# The two hypotheses are the positivity of the two coefficients' denominators,
+# which is what those Rat laws carry at arbitrary values -- the same rung-2
+# hypothesis every composing QExt law above states, and supplied by `{==}` at
+# every canonical call site. The radicand coefficient QExt.nat(d) needs none: it
+# is Rat{Rat.num(d,0), 1}, whose denominator is 1 by computation.
+#
+# What is *not* here is the division: `1/(a + b*sqrt d) = conj(x)/norm(d,x)` is
+# one Rat division away, and that operation and its laws are their own unit.
+law QExt.mul_conj:
+  for +d: Nat
+  for +x: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  {QExt.mul(d, x, QExt.conj(x)) == QExt{QExt.norm(d, x), R.Rat.zero()} : QExt}
