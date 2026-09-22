@@ -1095,6 +1095,133 @@ def NL.sub_diag(c, np, nn, e):
         : {_ == 0n : Nat}
       {==}
 
+# sub_cross: one branch per comparison. GT and LT write the goal as
+# "the smaller side's truncation is 0, and the larger side's truncation plus the
+# smaller argument is the larger argument" (sub_of_lt for the zero, and
+# cmp_gt_sub_add / cmp_lt_sub_add for the other), so both sides reduce to the
+# larger argument -- add(0, x) is a *computation*, which is why only the outer
+# trans is written out. EQ turns the comparison into a == b, moves both sides to
+# sub(a,a) and uses sub_self.
+def NL.sub_cross(c, a, b, e):
+  match c:
+    case GT{}:
+      Equal.trans(Nat,
+        Nat.add(Nat.sub(a, b), b),
+        a,
+        Nat.add(Nat.sub(b, a), a),
+        NL.cmp_gt_sub_add(a, b, Equal.sym(Cmp, GT{}, Nat.cmp(a, b), e)),
+        Equal.sym(Nat, Nat.add(Nat.sub(b, a), a), a,
+          Equal.trans(Nat, Nat.add(Nat.sub(b, a), a), Nat.add(0n, a), a,
+            Equal.cong(Nat, Nat, u => Nat.add(u, a), Nat.sub(b, a), 0n,
+              NL.sub_of_lt(b, a, NL.cmp_lt_of_gt(a, b, Equal.sym(Cmp, GT{}, Nat.cmp(a, b), e)))),
+            {==})))
+    case LT{}:
+      Equal.trans(Nat,
+        Nat.add(Nat.sub(a, b), b),
+        b,
+        Nat.add(Nat.sub(b, a), a),
+        Equal.trans(Nat, Nat.add(Nat.sub(a, b), b), Nat.add(0n, b), b,
+          Equal.cong(Nat, Nat, u => Nat.add(u, b), Nat.sub(a, b), 0n,
+            NL.sub_of_lt(a, b, Equal.sym(Cmp, LT{}, Nat.cmp(a, b), e))),
+          {==}),
+        Equal.sym(Nat, Nat.add(Nat.sub(b, a), a), b,
+          NL.cmp_lt_sub_add(a, b, Equal.sym(Cmp, LT{}, Nat.cmp(a, b), e))))
+    case EQ{}:
+      Equal.trans(Nat,
+        Nat.add(Nat.sub(a, b), b),
+        a,
+        Nat.add(Nat.sub(b, a), a),
+        NL.cmp_eq_sub_add(a, b, Equal.sym(Cmp, EQ{}, Nat.cmp(a, b), e)),
+        Equal.sym(Nat, Nat.add(Nat.sub(b, a), a), a,
+          Equal.trans(Nat, Nat.add(Nat.sub(b, a), a), Nat.add(Nat.sub(a, a), a), a,
+            Equal.cong(Nat, Nat, u => Nat.add(Nat.sub(u, a), a), b, a,
+              Equal.sym(Nat, a, b, NL.cmp_eq(a, b, Equal.sym(Cmp, EQ{}, Nat.cmp(a, b), e)))),
+            Equal.trans(Nat, Nat.add(Nat.sub(a, a), a), Nat.add(0n, a), a,
+              Equal.cong(Nat, Nat, u => Nat.add(u, a), Nat.sub(a, a), 0n, NL.sub_self(a)),
+              {==}))))
+
+# cross_add: pad both sides by t + t2 and cancel. The padded equation is built
+# from the two hypotheses by rearranging each side into (A + t) + (B2 + t2) --
+# three add_assoc/add_comm steps per side -- applying e1 on the first summand and
+# the *reversed* e2 on the second, and rearranging back; add_cancel then drops
+# the common padding.
+def NL.cross_add(A, A2, B, B2, t, t2, e1, e2):
+  +P = Nat.add(t, t2)
+  +s1 = Equal.trans(Nat,
+    Nat.add(Nat.add(A, B2), P),
+    Nat.add(A, Nat.add(B2, P)),
+    Nat.add(Nat.add(A, t), Nat.add(B2, t2)),
+    NL.add_assoc(A, B2, P),
+    Equal.trans(Nat,
+      Nat.add(A, Nat.add(B2, P)),
+      Nat.add(A, Nat.add(Nat.add(B2, t), t2)),
+      Nat.add(Nat.add(A, t), Nat.add(B2, t2)),
+      Equal.cong(Nat, Nat, u => Nat.add(A, u), Nat.add(B2, P), Nat.add(Nat.add(B2, t), t2),
+        Equal.sym(Nat, Nat.add(Nat.add(B2, t), t2), Nat.add(B2, Nat.add(t, t2)),
+          NL.add_assoc(B2, t, t2))),
+      Equal.trans(Nat,
+        Nat.add(A, Nat.add(Nat.add(B2, t), t2)),
+        Nat.add(A, Nat.add(Nat.add(t, B2), t2)),
+        Nat.add(Nat.add(A, t), Nat.add(B2, t2)),
+        Equal.cong(Nat, Nat, u => Nat.add(A, Nat.add(u, t2)), Nat.add(B2, t), Nat.add(t, B2),
+          NL.add_comm(B2, t)),
+        Equal.trans(Nat,
+          Nat.add(A, Nat.add(Nat.add(t, B2), t2)),
+          Nat.add(A, Nat.add(t, Nat.add(B2, t2))),
+          Nat.add(Nat.add(A, t), Nat.add(B2, t2)),
+          Equal.cong(Nat, Nat, u => Nat.add(A, u), Nat.add(Nat.add(t, B2), t2),
+            Nat.add(t, Nat.add(B2, t2)), NL.add_assoc(t, B2, t2)),
+          NL.add_assoc_rev(A, t, Nat.add(B2, t2))))))
+  +s4 = Equal.trans(Nat,
+    Nat.add(Nat.add(A2, t2), Nat.add(B, t)),
+    Nat.add(A2, Nat.add(t2, Nat.add(B, t))),
+    Nat.add(Nat.add(A2, B), P),
+    NL.add_assoc(A2, t2, Nat.add(B, t)),
+    Equal.trans(Nat,
+      Nat.add(A2, Nat.add(t2, Nat.add(B, t))),
+      Nat.add(A2, Nat.add(Nat.add(t2, B), t)),
+      Nat.add(Nat.add(A2, B), P),
+      Equal.cong(Nat, Nat, u => Nat.add(A2, u), Nat.add(t2, Nat.add(B, t)),
+        Nat.add(Nat.add(t2, B), t), Equal.sym(Nat, Nat.add(Nat.add(t2, B), t),
+          Nat.add(t2, Nat.add(B, t)), NL.add_assoc(t2, B, t))),
+      Equal.trans(Nat,
+        Nat.add(A2, Nat.add(Nat.add(t2, B), t)),
+        Nat.add(A2, Nat.add(Nat.add(B, t2), t)),
+        Nat.add(Nat.add(A2, B), P),
+        Equal.cong(Nat, Nat, u => Nat.add(A2, Nat.add(u, t)), Nat.add(t2, B), Nat.add(B, t2),
+          NL.add_comm(t2, B)),
+        Equal.trans(Nat,
+          Nat.add(A2, Nat.add(Nat.add(B, t2), t)),
+          Nat.add(A2, Nat.add(B, Nat.add(t2, t))),
+          Nat.add(Nat.add(A2, B), P),
+          Equal.cong(Nat, Nat, u => Nat.add(A2, u), Nat.add(Nat.add(B, t2), t),
+            Nat.add(B, Nat.add(t2, t)), NL.add_assoc(B, t2, t)),
+          Equal.trans(Nat,
+            Nat.add(A2, Nat.add(B, Nat.add(t2, t))),
+            Nat.add(Nat.add(A2, B), Nat.add(t2, t)),
+            Nat.add(Nat.add(A2, B), P),
+            NL.add_assoc_rev(A2, B, Nat.add(t2, t)),
+            Equal.cong(Nat, Nat, u => Nat.add(Nat.add(A2, B), u), Nat.add(t2, t), Nat.add(t, t2),
+              NL.add_comm(t2, t)))))))
+  NL.add_cancel(Nat.add(A, B2), Nat.add(A2, B), P,
+    Equal.trans(Nat,
+      Nat.add(Nat.add(A, B2), P),
+      Nat.add(Nat.add(A, t), Nat.add(B2, t2)),
+      Nat.add(Nat.add(A2, B), P),
+      s1,
+      Equal.trans(Nat,
+        Nat.add(Nat.add(A, t), Nat.add(B2, t2)),
+        Nat.add(Nat.add(A2, t2), Nat.add(B2, t2)),
+        Nat.add(Nat.add(A2, B), P),
+        Equal.cong(Nat, Nat, u => Nat.add(u, Nat.add(B2, t2)), Nat.add(A, t), Nat.add(A2, t2), e1),
+        Equal.trans(Nat,
+          Nat.add(Nat.add(A2, t2), Nat.add(B2, t2)),
+          Nat.add(Nat.add(A2, t2), Nat.add(B, t)),
+          Nat.add(Nat.add(A2, B), P),
+          Equal.cong(Nat, Nat, u => Nat.add(Nat.add(A2, t2), u), Nat.add(B2, t2), Nat.add(B, t),
+            Equal.sym(Nat, Nat.add(B, t), Nat.add(B2, t2), e2)),
+          s4))))
+
 # Nat.gcd
 # =======
 #
