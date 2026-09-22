@@ -65,7 +65,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 124, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 188 = 124 Nat + 32 Int + 32 Rat.
+QExt, rat.bend 189 = 124 Nat + 32 Int + 33 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -163,8 +163,18 @@ Known gaps, in dependency order:
    `Rat.mk.eqv.raw` at the value equation `Rat.mk.value` gives after
    `Int.neg_mul` has moved the negation inside it, and `Rat.mk.rep` plus four
    `Nat.add` commutations join the two raw spellings. No coprimality, no case
-   split, and no scaling at all — negation never touches a denominator. Still
-   open:
+   split, and no scaling at all — negation never touches a denominator.
+   `Rat.add.value.mixed` is the newest, and it is the shape the additive block
+   actually needs: `Rat.add.value` requires *both* summands mk-spelled, while
+   add_assoc's outer add has one mk summand and one constructor summand. The
+   mixed law is that law's twin with the second summand still a constructor and
+   the mk summand's denominator the general `d` it was handed (a product at every
+   call site), so its fill is the value equation of the mk summand scaled by the
+   square of the other denominator and carried through the two sums by the ring
+   laws — no truncation reasoning, no case split, and the same two positivity
+   hypotheses `Rat.mk.value`/`Rat.mk_idem.raw` take. Its mirror image
+   (constructor first) is `Rat.add_comm` away, so it is not stated separately.
+   Still open:
    - `add_assoc`, `add_exchange`, `mul_distrib`, `mul_add_left` -- the rest of
      the additive block, on the `Rat.neg_add` recipe (`Rat.add.value` for every
      sum, `Rat.mk.eqv.raw` at the value equations, `Rat.mk.rep` where a

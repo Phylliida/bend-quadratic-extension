@@ -1002,27 +1002,6 @@ def R.Rat.mk.canon.go(c, xp, xn, d, e):
           Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(xn, xp)}, Nat.sub(xp, xn), 0n,
             N.sub_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e)))))
 
-# The product shape
-# =================
-#
-# The composing laws (mul_assoc and its siblings) have to relate two
-# *normalized* results, and the only tool for that is Rat.mk.eqv, whose
-# hypothesis is a cross product of the raw numerators. Rat.mk.value supplies
-# each factor's cross product, but it names its numerator in Rat.num spelling
-# (the difference pair), while the products the operations write are raw
-# coordinates -- and those two are not the same Int: Rat.num(np,nn) is the
-# one-sided pair sub(np,nn), sub(nn,np), which is a different *pair* from
-# Int{np,nn}. Closing that gap is what the two helpers below do.
-#
-# Rat.num.mul: the product of two difference pairs is Rat.num of the product's
-# own coordinates -- i.e. that product is one-sided again. Which side is zero is
-# exactly the sign of the two factors, so the two comparisons arrive as
-# parameters and the fill splits on them; each branch derives the zeros
-# (sub_of_lt at the flipped comparison) and finishes with dp.eq.right /
-# dp.eq.left, which need nothing but "one side is zero". In between, a zero
-# factor kills its product: mul_zero for a zero on the right, computation for a
-# zero on the left.
-
 def R.Rat.dp.eq.right(U, V, z):
   %Equal.sym(Nat, V, 0n, z) : {I.Int{U, _} == R.Rat.num(U, _) : I.Int}
   %Equal.sym(Nat, Nat.sub(U, 0n), U, N.sub_zero(U)) : {I.Int{U, 0n} == I.Int{_, Nat.sub(0n, U)} : I.Int}
@@ -1499,6 +1478,203 @@ def R.Rat.add.value(np1, nn1, dp1, np2, nn2, dp2):
     N.mul_pos(k1, k2, pk1, pk2),
     N.mul_pos(xd, yd, {==}, {==}),
     R.Rat.add.cross(A, B, R.Rat.num(a1, b1), I.Int{a1, b1}, R.Rat.num(a2, b2), I.Int{a2, b2}, xd, yd, k1, k2, v1, v2, s1, s2))
+
+# The mixed value equation
+# ========================
+#
+# Rat.add.value.mixed's cross product is one helper and nothing else: the whole
+# proof is the *value equation* mk.value gives for the mk summand, scaled by the
+# square of the second summand's denominator and carried through the two sums by
+# the ring laws. No truncation reasoning and no case split -- because the mk
+# summand's numerator is named by the presentation's own truncations (sub(np,nn),
+# sub(nn,np)), which is exactly the spelling mk.value's conclusion is stated in.
+#
+# The two Nat reorderings the helper needs are the associativity/commutativity
+# shuffles that put the scaled value equation next to the scale the goal carries.
+
+# R.Rat.add.mixed.cross: the cross product mk.eqv.raw consumes in
+# Rat.add.value.mixed, from the value equation v of the mk summand:
+#
+#   (A*Y + C*k1) * (d*Y)  ==  (R*Y + C*d) * (k1*Y)
+#
+# Both sides are read as "one summand scaled by the other's denominator" --
+# A and R are the mk summand's numerator (projection and difference pair, the
+# two sides of v) and C is the constructor summand's. The proof pushes each outer
+# scale into its sum (mul_add_left), turns the two scales of each product into
+# one (scale.pair, read backwards), applies v scaled by Y*Y to the first summand
+# of each side, and reorders the pure-Nat scales of the second (mul_comm and
+# mul_assoc inside Int.unit).
+def R.Rat.add.mixed.cross(+A: I.Int, +R: I.Int, +C: I.Int, +d: Nat, +Yd: Nat, +k1: Nat,
+             v: {I.Int.mul(A, I.Int.unit(d)) == I.Int.mul(R, I.Int.unit(k1)) : I.Int})
+  -> {I.Int.mul(I.Int.add(I.Int.mul(A, I.Int.unit(Yd)), I.Int.mul(C, I.Int.unit(k1))),
+               I.Int.unit(Nat.mul(d, Yd)))
+      == I.Int.mul(I.Int.add(I.Int.mul(R, I.Int.unit(Yd)), I.Int.mul(C, I.Int.unit(d))),
+                   I.Int.unit(Nat.mul(k1, Yd))) : I.Int}:
+  +YY = Nat.mul(Yd, Yd)
+  +DYY = Nat.mul(d, YY)
+  +KYY = Nat.mul(k1, YY)
+  +KDY = Nat.mul(k1, Nat.mul(d, Yd))
+  +DKY = Nat.mul(d, Nat.mul(k1, Yd))
+  +Yu = I.Int.unit(Yd)
+  +Ku = I.Int.unit(k1)
+  +du = I.Int.unit(d)
+  +Duu = I.Int.unit(Nat.mul(d, Yd))
+  +Kuu = I.Int.unit(Nat.mul(k1, Yd))
+  +AY = I.Int.mul(A, Yu)
+  +CK = I.Int.mul(C, Ku)
+  +RY = I.Int.mul(R, Yu)
+  +Cd = I.Int.mul(C, du)
+  +LX1 = I.Int.add(I.Int.mul(AY, Duu), I.Int.mul(CK, Duu))
+  +LX2 = I.Int.add(I.Int.mul(A, I.Int.mul(Yu, Duu)), I.Int.mul(C, I.Int.mul(Ku, Duu)))
+  +LX3 = I.Int.add(I.Int.mul(A, I.Int.unit(DYY)), I.Int.mul(C, I.Int.unit(KDY)))
+  +LX4 = I.Int.add(I.Int.mul(R, I.Int.unit(KYY)), I.Int.mul(C, I.Int.unit(KDY)))
+  +RX1 = I.Int.add(I.Int.mul(RY, Kuu), I.Int.mul(Cd, Kuu))
+  +RX2 = I.Int.add(I.Int.mul(R, I.Int.mul(Yu, Kuu)), I.Int.mul(C, I.Int.mul(du, Kuu)))
+  +RX3 = I.Int.add(I.Int.mul(R, I.Int.unit(KYY)), I.Int.mul(C, I.Int.unit(DKY)))
+  +n1 = Equal.trans(Nat, Nat.mul(Yd, Nat.mul(d, Yd)), Nat.mul(Nat.mul(Yd, d), Yd), DYY,
+    Equal.sym(Nat, Nat.mul(Nat.mul(Yd, d), Yd), Nat.mul(Yd, Nat.mul(d, Yd)), N.mul_assoc(Yd, d, Yd)),
+    Equal.trans(Nat, Nat.mul(Nat.mul(Yd, d), Yd), Nat.mul(Nat.mul(d, Yd), Yd), DYY,
+      Equal.cong(Nat, Nat, u => Nat.mul(u, Yd), Nat.mul(Yd, d), Nat.mul(d, Yd), N.mul_comm(Yd, d)),
+      N.mul_assoc(d, Yd, Yd)))
+  +n2 = Equal.trans(Nat, Nat.mul(Yd, Nat.mul(k1, Yd)), Nat.mul(Nat.mul(Yd, k1), Yd), KYY,
+    Equal.sym(Nat, Nat.mul(Nat.mul(Yd, k1), Yd), Nat.mul(Yd, Nat.mul(k1, Yd)), N.mul_assoc(Yd, k1, Yd)),
+    Equal.trans(Nat, Nat.mul(Nat.mul(Yd, k1), Yd), Nat.mul(Nat.mul(k1, Yd), Yd), KYY,
+      Equal.cong(Nat, Nat, u => Nat.mul(u, Yd), Nat.mul(Yd, k1), Nat.mul(k1, Yd), N.mul_comm(Yd, k1)),
+      N.mul_assoc(k1, Yd, Yd)))
+  +n3 = Equal.trans(Nat, KDY, Nat.mul(Nat.mul(k1, d), Yd), DKY,
+    Equal.sym(Nat, Nat.mul(Nat.mul(k1, d), Yd), KDY, N.mul_assoc(k1, d, Yd)),
+    Equal.trans(Nat, Nat.mul(Nat.mul(k1, d), Yd), Nat.mul(Nat.mul(d, k1), Yd), DKY,
+      Equal.cong(Nat, Nat, u => Nat.mul(u, Yd), Nat.mul(k1, d), Nat.mul(d, k1), N.mul_comm(k1, d)),
+      N.mul_assoc(d, k1, Yd)))
+  +e_u1 = Equal.trans(I.Int, I.Int.mul(Yu, Duu), I.Int.unit(Nat.mul(Yd, Nat.mul(d, Yd))), I.Int.unit(DYY),
+    Equal.sym(I.Int, I.Int.unit(Nat.mul(Yd, Nat.mul(d, Yd))), I.Int.mul(Yu, Duu),
+      I.Int.scale.pair(Yd, Nat.mul(d, Yd))),
+    Equal.cong(Nat, I.Int, u => I.Int.unit(u), Nat.mul(Yd, Nat.mul(d, Yd)), DYY, n1))
+  +e_u2 = Equal.sym(I.Int, I.Int.unit(KDY), I.Int.mul(Ku, Duu), I.Int.scale.pair(k1, Nat.mul(d, Yd)))
+  +e_u3 = Equal.trans(I.Int, I.Int.mul(Yu, Kuu), I.Int.unit(Nat.mul(Yd, Nat.mul(k1, Yd))), I.Int.unit(KYY),
+    Equal.sym(I.Int, I.Int.unit(Nat.mul(Yd, Nat.mul(k1, Yd))), I.Int.mul(Yu, Kuu),
+      I.Int.scale.pair(Yd, Nat.mul(k1, Yd))),
+    Equal.cong(Nat, I.Int, u => I.Int.unit(u), Nat.mul(Yd, Nat.mul(k1, Yd)), KYY, n2))
+  +e_u4 = Equal.sym(I.Int, I.Int.unit(DKY), I.Int.mul(du, Kuu), I.Int.scale.pair(d, Nat.mul(k1, Yd)))
+  +e_sv = Equal.trans(I.Int, I.Int.mul(A, I.Int.unit(DYY)), I.Int.mul(I.Int.mul(A, du), I.Int.unit(YY)),
+    I.Int.mul(R, I.Int.unit(KYY)),
+    Equal.trans(I.Int, I.Int.mul(A, I.Int.unit(DYY)), I.Int.mul(A, I.Int.mul(du, I.Int.unit(YY))),
+      I.Int.mul(I.Int.mul(A, du), I.Int.unit(YY)),
+      Equal.cong(I.Int, I.Int, u => I.Int.mul(A, u), I.Int.unit(DYY), I.Int.mul(du, I.Int.unit(YY)),
+        I.Int.scale.pair(d, YY)),
+      Equal.sym(I.Int, I.Int.mul(I.Int.mul(A, du), I.Int.unit(YY)),
+        I.Int.mul(A, I.Int.mul(du, I.Int.unit(YY))), I.Int.mul_assoc(A, du, I.Int.unit(YY)))),
+    Equal.trans(I.Int, I.Int.mul(I.Int.mul(A, du), I.Int.unit(YY)),
+      I.Int.mul(I.Int.mul(R, Ku), I.Int.unit(YY)), I.Int.mul(R, I.Int.unit(KYY)),
+      Equal.cong(I.Int, I.Int, u => I.Int.mul(u, I.Int.unit(YY)), I.Int.mul(A, du), I.Int.mul(R, Ku), v),
+      Equal.trans(I.Int, I.Int.mul(I.Int.mul(R, Ku), I.Int.unit(YY)), I.Int.mul(R, I.Int.mul(Ku, I.Int.unit(YY))),
+        I.Int.mul(R, I.Int.unit(KYY)),
+        I.Int.mul_assoc(R, Ku, I.Int.unit(YY)),
+        Equal.cong(I.Int, I.Int, u => I.Int.mul(R, u), I.Int.mul(Ku, I.Int.unit(YY)), I.Int.unit(KYY),
+          Equal.sym(I.Int, I.Int.unit(KYY), I.Int.mul(Ku, I.Int.unit(YY)), I.Int.scale.pair(k1, YY))))))
+  Equal.trans(I.Int,
+    I.Int.mul(I.Int.add(AY, CK), Duu),
+    LX1,
+    I.Int.mul(I.Int.add(RY, Cd), Kuu),
+    I.Int.mul_add_left(AY, CK, Duu),
+    Equal.trans(I.Int, LX1, LX2, I.Int.mul(I.Int.add(RY, Cd), Kuu),
+      Equal.trans(I.Int, LX1, I.Int.add(I.Int.mul(A, I.Int.mul(Yu, Duu)), I.Int.mul(CK, Duu)), LX2,
+        Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(CK, Duu)), I.Int.mul(AY, Duu),
+          I.Int.mul(A, I.Int.mul(Yu, Duu)), I.Int.mul_assoc(A, Yu, Duu)),
+        Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int.mul(A, I.Int.mul(Yu, Duu)), u), I.Int.mul(CK, Duu),
+          I.Int.mul(C, I.Int.mul(Ku, Duu)), I.Int.mul_assoc(C, Ku, Duu))),
+      Equal.trans(I.Int, LX2, LX3, I.Int.mul(I.Int.add(RY, Cd), Kuu),
+        Equal.trans(I.Int, LX2, I.Int.add(I.Int.mul(A, I.Int.unit(DYY)), I.Int.mul(C, I.Int.mul(Ku, Duu))), LX3,
+          Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(C, I.Int.mul(Ku, Duu))),
+            I.Int.mul(A, I.Int.mul(Yu, Duu)), I.Int.mul(A, I.Int.unit(DYY)),
+            Equal.cong(I.Int, I.Int, u => I.Int.mul(A, u), I.Int.mul(Yu, Duu), I.Int.unit(DYY), e_u1)),
+          Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int.mul(A, I.Int.unit(DYY)), u),
+            I.Int.mul(C, I.Int.mul(Ku, Duu)), I.Int.mul(C, I.Int.unit(KDY)),
+            Equal.cong(I.Int, I.Int, u => I.Int.mul(C, u), I.Int.mul(Ku, Duu), I.Int.unit(KDY), e_u2))),
+        Equal.trans(I.Int, LX3, LX4, I.Int.mul(I.Int.add(RY, Cd), Kuu),
+          Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(C, I.Int.unit(KDY))),
+            I.Int.mul(A, I.Int.unit(DYY)), I.Int.mul(R, I.Int.unit(KYY)), e_sv),
+          Equal.trans(I.Int, LX4, RX3, I.Int.mul(I.Int.add(RY, Cd), Kuu),
+            Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int.mul(R, I.Int.unit(KYY)), u),
+              I.Int.mul(C, I.Int.unit(KDY)), I.Int.mul(C, I.Int.unit(DKY)),
+              Equal.cong(I.Int, I.Int, u => I.Int.mul(C, u), I.Int.unit(KDY), I.Int.unit(DKY),
+                Equal.cong(Nat, I.Int, u => I.Int.unit(u), KDY, DKY, n3))),
+            Equal.trans(I.Int, RX3, RX2, I.Int.mul(I.Int.add(RY, Cd), Kuu),
+            Equal.sym(I.Int, RX2, RX3,
+              Equal.trans(I.Int, RX2, I.Int.add(I.Int.mul(R, I.Int.unit(KYY)), I.Int.mul(C, I.Int.mul(du, Kuu))), RX3,
+                Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(C, I.Int.mul(du, Kuu))),
+                  I.Int.mul(R, I.Int.mul(Yu, Kuu)), I.Int.mul(R, I.Int.unit(KYY)),
+                  Equal.cong(I.Int, I.Int, u => I.Int.mul(R, u), I.Int.mul(Yu, Kuu), I.Int.unit(KYY), e_u3)),
+                Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int.mul(R, I.Int.unit(KYY)), u),
+                  I.Int.mul(C, I.Int.mul(du, Kuu)), I.Int.mul(C, I.Int.unit(DKY)),
+                  Equal.cong(I.Int, I.Int, u => I.Int.mul(C, u), I.Int.mul(du, Kuu), I.Int.unit(DKY), e_u4)))),
+            Equal.trans(I.Int, RX2, RX1, I.Int.mul(I.Int.add(RY, Cd), Kuu),
+            Equal.sym(I.Int, RX1, RX2,
+              Equal.trans(I.Int, RX1, I.Int.add(I.Int.mul(R, I.Int.mul(Yu, Kuu)), I.Int.mul(Cd, Kuu)), RX2,
+                Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(Cd, Kuu)), I.Int.mul(RY, Kuu),
+                  I.Int.mul(R, I.Int.mul(Yu, Kuu)), I.Int.mul_assoc(R, Yu, Kuu)),
+                Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int.mul(R, I.Int.mul(Yu, Kuu)), u), I.Int.mul(Cd, Kuu),
+                  I.Int.mul(C, I.Int.mul(du, Kuu)), I.Int.mul_assoc(C, du, Kuu)))),
+            Equal.sym(I.Int, I.Int.mul(I.Int.add(RY, Cd), Kuu), RX1,
+              I.Int.mul_add_left(RY, Cd, Kuu)))))))))
+
+# Rat.add.value.mixed: the goal's two sides are
+#   add(mk(Rat.num(np1,nn1), d), Rat{Rat.num(np2,nn2), 1+dp2})   and   mk(T, dT)
+# with Yd = 1+dp2, P1 = sub(np1,nn1), Q1 = sub(nn1,np1), (P2, Q2) likewise for the
+# second summand, dT = d*Yd and T the raw sum of the two scaled pairs. Both
+# arguments of the add are constructors once unfolded, so the left side is
+# mk(nL, dL) with nL the two projections scaled by the *other* denominator
+# (k1 = denof(M1) for the mk summand, Yd for the constructor) and dL = k1*Yd --
+# two normal forms compared by exactly the cross product R.Rat.add.mixed.cross
+# assembles from the value equation v. The three facts it is built from:
+#
+#   v   mk.value on the mk summand: numof(M1)*d == Rat.num(P1,Q1)*k1, which is
+#       already the difference-pair spelling the goal's T uses -- one sub_diag
+#       per coordinate (ev) puts the raw pair Int{P1,Q1} there;
+#   pd  the law's own positivity hypothesis (mk.value's);
+#   pq  the law's second one: mk.eqv.raw needs the *output* denominator positive,
+#       and pos_witness-style derivation is not available for a general d (the
+#       witness type would have to be re-spelled), exactly as Rat.mk_idem.raw
+#       documents.
+#
+# The mk.eqv.raw call is the whole fill: no coprimality, no case split on the
+# gcds, and no scale of the goal itself.
+def R.Rat.add.value.mixed(np1, nn1, d, pd, pq, np2, nn2, dp2):
+  +Yd = Nat.add(1n, dp2)
+  +P1 = Nat.sub(np1, nn1)
+  +Q1 = Nat.sub(nn1, np1)
+  +P2 = Nat.sub(np2, nn2)
+  +Q2 = Nat.sub(nn2, np2)
+  +M1 = R.Rat.mk(I.Int{P1, Q1}, d)
+  +A = R.Rat.numof(M1)
+  +k1 = R.Rat.denof(M1)
+  +nL = I.Int.add(I.Int.mul(A, I.Int.unit(Yd)), I.Int.mul(I.Int{P2, Q2}, I.Int.unit(k1)))
+  +dL = Nat.mul(k1, Yd)
+  +T = I.Int.add(I.Int.mul(I.Int{P1, Q1}, I.Int.unit(Yd)), I.Int.mul(I.Int{P2, Q2}, I.Int.unit(d)))
+  +dT = Nat.mul(d, Yd)
+  +ev = Equal.trans(I.Int,
+    R.Rat.num(P1, Q1),
+    I.Int{P1, Nat.sub(Q1, P1)},
+    I.Int{P1, Q1},
+    Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(Q1, P1)}, Nat.sub(P1, Q1), P1,
+      N.sub_diag(Nat.cmp(np1, nn1), np1, nn1, {==})),
+    Equal.cong(Nat, I.Int, u => I.Int{P1, u}, Nat.sub(Q1, P1), Q1,
+      N.sub_diag(N.Cmp.flip(Nat.cmp(np1, nn1)), nn1, np1,
+        Equal.trans(Cmp, N.Cmp.flip(Nat.cmp(np1, nn1)),
+          N.Cmp.flip(N.Cmp.flip(Nat.cmp(nn1, np1))), Nat.cmp(nn1, np1),
+          Equal.cong(Cmp, Cmp, N.Cmp.flip, Nat.cmp(np1, nn1), N.Cmp.flip(Nat.cmp(nn1, np1)),
+            N.cmp_antisym(np1, nn1)),
+          N.flip_flip(Nat.cmp(nn1, np1))))))
+  +v = Equal.trans(I.Int,
+    I.Int.mul(A, I.Int.unit(d)),
+    I.Int.mul(R.Rat.num(P1, Q1), I.Int.unit(k1)),
+    I.Int.mul(I.Int{P1, Q1}, I.Int.unit(k1)),
+    R.Rat.mk.value(Nat.cmp(P1, Q1), P1, Q1, d, {==}, pd),
+    Equal.cong(I.Int, I.Int, u => I.Int.mul(u, I.Int.unit(k1)), R.Rat.num(P1, Q1), I.Int{P1, Q1}, ev))
+  R.Rat.mk.eqv.raw(nL, dL, T, dT,
+    N.mul_pos(k1, Yd, pq, {==}),
+    N.mul_pos(d, Yd, pd, {==}),
+    R.Rat.add.mixed.cross(A, I.Int{P1, Q1}, I.Int{P2, Q2}, d, Yd, k1, v))
 # probe: Rat.neg_add -- -(x + y) = -x + -y for the canonical presentation.
 # Rat.neg_add: the goal is
 #   neg(add(Rat{Rat.num(np1,nn1), xd}, Rat{Rat.num(np2,nn2), yd}))   against
