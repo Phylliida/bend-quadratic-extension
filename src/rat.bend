@@ -671,3 +671,42 @@ law Rat.neg_neg:
   for +e: {c == Nat.cmp(np, nn) : Cmp}
   for +g1: {N.Nat.gcd(Rat.mag(np, nn), 1n+dp) == 1n : Nat}
   {Rat.neg(Rat.neg(Rat{Rat.num(np, nn), 1n+dp})) == Rat{Rat.num(np, nn), 1n+dp} : Rat}
+
+# The additive value equation
+# ===========================
+#
+# Rat.add of two normal forms is the normal form of the *unreduced* sum. This
+# is the additive twin of the product shape above, and the bridge every
+# additive composing law crosses: the summands are spelled
+# mk(Rat.num(np,nn), 1+dp) -- which is what an operation's output looks like,
+# since Rat.neg(A) is mk of the swapped pair -- and the conclusion names the
+# sum's coordinates the way mk itself sees them, the difference pair of each
+# summand scaled by the other summand's denominator.
+#
+# Why it is not free: mk.eqv.raw compares two normal forms by a cross product
+# of their *arguments*, and here those arguments are a sum of two div/gcd-headed
+# numerators against a raw pair of products -- a cross product no rearrangement
+# of the two mks can produce directly, because the sum's own coordinates are a
+# different representative of the same value from the pieces' (that is the
+# representative gap Rat.mk.rep closes one level up). What proves it is
+# Rat.mk.value on each summand scaled into the shared denominator, merged by the
+# ring laws -- the whole assembly is in the fill, and no additive law has to
+# touch a div again.
+
+# Rat.add.value: add of two normalized fractions is mk of their unreduced sum.
+# d1 = 1+dp1 and d2 = 1+dp2 are successors so that both denominators are
+# positive by computation, exactly as the rest of the file spells them, and the
+# sum's numerator is written with Int{Nat.sub(np,nn), Nat.sub(nn,np)} -- the
+# pair mk destructures Rat.num(np,nn) into.
+law Rat.add.value:
+  for +np1: Nat
+  for +nn1: Nat
+  for +dp1: Nat
+  for +np2: Nat
+  for +nn2: Nat
+  for +dp2: Nat
+  {Rat.add(Rat.mk(Rat.num(np1, nn1), 1n+dp1), Rat.mk(Rat.num(np2, nn2), 1n+dp2))
+   == Rat.mk(I.Int.add(
+        I.Int.mul(I.Int{Nat.sub(np1, nn1), Nat.sub(nn1, np1)}, I.Int.unit(1n+dp2)),
+        I.Int.mul(I.Int{Nat.sub(np2, nn2), Nat.sub(nn2, np2)}, I.Int.unit(1n+dp1))),
+      Nat.mul(1n+dp1, 1n+dp2)) : Rat}
