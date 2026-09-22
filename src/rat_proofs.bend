@@ -814,6 +814,54 @@ def R.Rat.mk.value(c, np, nn, d, e, pd):
         I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
         I.Int.mul_scale(P, Q, Rr))))
 
+# Rat.mk_idem: the goal's two sides are
+#   mk(numof(M), denof(M))   and   mk(Rat.num(np,nn), d)
+# with M = mk(Rat.num(np,nn), d), which is
+#   mk(Int{A, B}, R)   and   mk(Rat.num(np,nn), d)
+# for A = div(P, G), B = div(Q, G), P = sub(np,nn), Q = sub(nn,np),
+# G = Rat.g(P, Q, d) and R = denof(M) = div(d, G) -- i.e. exactly the two
+# normal forms mk.eqv.raw compares, at the cross product mk.value gives for M:
+#
+#   v  is mk.value at (P, Q, d), the value equation numof(M)*d == Rat.num(P,Q)*R
+#      (mk.value is stated over the raw coordinates, and P, Q are how mk sees
+#      the difference pair it destructured -- so its own gcd is Rat.g(P,Q,d),
+#      the very term in the goal, and no spelling has to be transported);
+#   ev is the two sub_diags that turn Rat.num(P,Q) into Rat.num(np,nn): one at
+#      the comparison c, one at the flipped comparison (cmp_antisym through
+#      Cmp.flip, exactly as mk.fixed's fill does it);
+#   and eqv.raw's cross product is v transported across ev by one cong.
+#
+# No coprimality is used anywhere; pd and pq are the law's own two hypotheses.
+def R.Rat.mk_idem(c, np, nn, d, e, pd, pq):
+  +P = Nat.sub(np, nn)
+  +Q = Nat.sub(nn, np)
+  +M = R.Rat.mk(R.Rat.num(np, nn), d)
+  +k = R.Rat.denof(M)
+  +ev = Equal.trans(I.Int,
+    R.Rat.num(P, Q),
+    I.Int{Nat.sub(np, nn), Nat.sub(Q, P)},
+    R.Rat.num(np, nn),
+    Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(Q, P)},
+      Nat.sub(P, Q), Nat.sub(np, nn), N.sub_diag(c, np, nn, e)),
+    Equal.cong(Nat, I.Int, u => I.Int{Nat.sub(np, nn), u},
+      Nat.sub(Q, P), Nat.sub(nn, np),
+      N.sub_diag(N.Cmp.flip(c), nn, np,
+        Equal.trans(Cmp, N.Cmp.flip(c), N.Cmp.flip(Nat.cmp(np, nn)), Nat.cmp(nn, np),
+          Equal.cong(Cmp, Cmp, N.Cmp.flip, c, Nat.cmp(np, nn), e),
+          Equal.trans(Cmp, N.Cmp.flip(Nat.cmp(np, nn)),
+            N.Cmp.flip(N.Cmp.flip(Nat.cmp(nn, np))), Nat.cmp(nn, np),
+            Equal.cong(Cmp, Cmp, N.Cmp.flip, Nat.cmp(np, nn),
+              N.Cmp.flip(Nat.cmp(nn, np)), N.cmp_antisym(np, nn)),
+            N.flip_flip(Nat.cmp(nn, np)))))))
+  R.Rat.mk.eqv.raw(R.Rat.numof(M), k, R.Rat.num(np, nn), d, pq, pd,
+    Equal.trans(I.Int,
+      I.Int.mul(R.Rat.numof(M), I.Int{d, 0n}),
+      I.Int.mul(R.Rat.num(P, Q), I.Int{k, 0n}),
+      I.Int.mul(R.Rat.num(np, nn), I.Int{k, 0n}),
+      R.Rat.mk.value(Nat.cmp(P, Q), P, Q, d, {==}, pd),
+      Equal.cong(I.Int, I.Int, u => I.Int.mul(u, I.Int{k, 0n}),
+        R.Rat.num(P, Q), R.Rat.num(np, nn), ev)))
+
 # The product shape
 # =================
 #
