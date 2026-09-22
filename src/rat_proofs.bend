@@ -642,3 +642,108 @@ def R.Rat.mk.den.pos(np, nn, dp):
     Pair.snd(N.Nat.divides(R.Rat.g(np, nn, 1n+dp), R.Rat.mag(np, nn)),
       N.Nat.divides(R.Rat.g(np, nn, 1n+dp), 1n+dp),
       N.gcd_divides(R.Rat.mag(np, nn), 1n+dp)))
+
+# The value lemma
+# ===============
+#
+# Rat.mk.value.go: the two witnesses come apart first (they are binders, so the
+# destructure is legal -- a computed pair could not be), then each branch is the
+# same three steps:
+#
+#   - positivity of the gcd, once for both coordinates: the d-witness is rebuilt
+#     from its own fields (a Div value is a constructor, and divides_pos_wit
+#     wants a witness, not its parts) and handed to divides_pos_wit.
+#   - the nontrivial coordinate: g | |n| is a witness for the gcd's *dividend*
+#     mag = P + Q, so the branch's comparison is what turns it into a witness
+#     for the coordinate that is not zero -- mag collapses to P under GT, to Q
+#     under LT (one cong on the sum, add_zero only in the GT case: add(0, Q)
+#     already reduces). In EQ both coordinates are 0 and their witness equation
+#     is 0 == g*0, which mul_zero gives.
+#   - the trivial coordinate (the other one of P, Q): its witness equation
+#     Q == g*0 (or P == g*0) is the same mul_zero, and div_cross then proves the
+#     coordinate equation from it -- q = 0 is a perfectly good quotient, so no
+#     branch needs a second argument.
+#
+# The assembly is two Equal.cong steps over the Int pair, one per coordinate.
+def R.Rat.mk.value.go(c, np, nn, d, e, pd, wm, wd):
+  match c:
+    case GT{}:
+      N.Div{mq, mwe} = wm
+      N.Div{dr, dwe} = wd
+      +G = R.Rat.g(np, nn, d)
+      +P = Nat.sub(np, nn)
+      +Q = Nat.sub(nn, np)
+      +A = Nat.div(P, G)
+      +B = Nat.div(Q, G)
+      +Rr = Nat.div(d, G)
+      +M = R.Rat.mag(np, nn)
+      +pg = N.divides_pos_wit(G, d, N.Div{dr, dwe}, pd)
+      +gte = Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)
+      +qe = N.sub_of_lt(nn, np, N.cmp_lt_of_gt(np, nn, gte))
+      +mm = Equal.trans(Nat, M, Nat.add(P, 0n), P,
+        Equal.cong(Nat, Nat, u => Nat.add(P, u), Q, 0n, qe), N.add_zero(P))
+      +e1 = Equal.trans(Nat, P, M, Nat.mul(G, mq), Equal.sym(Nat, M, P, mm), mwe)
+      +e1z = Equal.trans(Nat, Q, 0n, Nat.mul(G, 0n), qe,
+        Equal.sym(Nat, Nat.mul(G, 0n), 0n, N.mul_zero(G)))
+      Equal.trans(I.Int,
+        I.Int{Nat.mul(A, d), Nat.mul(B, d)},
+        I.Int{Nat.mul(P, Rr), Nat.mul(B, d)},
+        I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
+        Equal.cong(Nat, I.Int, u => I.Int{u, Nat.mul(B, d)}, Nat.mul(A, d), Nat.mul(P, Rr),
+          N.div_cross(P, G, mq, d, dr, pg, e1, dwe)),
+        Equal.cong(Nat, I.Int, u => I.Int{Nat.mul(P, Rr), u}, Nat.mul(B, d), Nat.mul(Q, Rr),
+          N.div_cross(Q, G, 0n, d, dr, pg, e1z, dwe)))
+    case LT{}:
+      N.Div{mq, mwe} = wm
+      N.Div{dr, dwe} = wd
+      +G = R.Rat.g(np, nn, d)
+      +P = Nat.sub(np, nn)
+      +Q = Nat.sub(nn, np)
+      +A = Nat.div(P, G)
+      +B = Nat.div(Q, G)
+      +Rr = Nat.div(d, G)
+      +M = R.Rat.mag(np, nn)
+      +pg = N.divides_pos_wit(G, d, N.Div{dr, dwe}, pd)
+      +lte = Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)
+      +pe = N.sub_of_lt(np, nn, lte)
+      +mm = Equal.cong(Nat, Nat, u => Nat.add(u, Q), P, 0n, pe)
+      +e1 = Equal.trans(Nat, Q, M, Nat.mul(G, mq), Equal.sym(Nat, M, Q, mm), mwe)
+      +e1z = Equal.trans(Nat, P, 0n, Nat.mul(G, 0n), pe,
+        Equal.sym(Nat, Nat.mul(G, 0n), 0n, N.mul_zero(G)))
+      Equal.trans(I.Int,
+        I.Int{Nat.mul(A, d), Nat.mul(B, d)},
+        I.Int{Nat.mul(P, Rr), Nat.mul(B, d)},
+        I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
+        Equal.cong(Nat, I.Int, u => I.Int{u, Nat.mul(B, d)}, Nat.mul(A, d), Nat.mul(P, Rr),
+          N.div_cross(P, G, 0n, d, dr, pg, e1z, dwe)),
+        Equal.cong(Nat, I.Int, u => I.Int{Nat.mul(P, Rr), u}, Nat.mul(B, d), Nat.mul(Q, Rr),
+          N.div_cross(Q, G, mq, d, dr, pg, e1, dwe)))
+    case EQ{}:
+      N.Div{dr, dwe} = wd
+      +G = R.Rat.g(np, nn, d)
+      +P = Nat.sub(np, nn)
+      +Q = Nat.sub(nn, np)
+      +A = Nat.div(P, G)
+      +B = Nat.div(Q, G)
+      +Rr = Nat.div(d, G)
+      +pg = N.divides_pos_wit(G, d, N.Div{dr, dwe}, pd)
+      +eqe = Equal.sym(Cmp, EQ{}, Nat.cmp(np, nn), e)
+      +pe = Equal.trans(Nat, P, Nat.sub(np, np), 0n,
+        Equal.cong(Nat, Nat, u => Nat.sub(np, u), nn, np,
+          Equal.sym(Nat, np, nn, N.cmp_eq(np, nn, eqe))),
+        N.sub_self(np))
+      +qe = Equal.trans(Nat, Q, Nat.sub(nn, nn), 0n,
+        Equal.cong(Nat, Nat, u => Nat.sub(nn, u), np, nn, N.cmp_eq(np, nn, eqe)),
+        N.sub_self(nn))
+      +e1 = Equal.trans(Nat, P, 0n, Nat.mul(G, 0n), pe,
+        Equal.sym(Nat, Nat.mul(G, 0n), 0n, N.mul_zero(G)))
+      +e1z = Equal.trans(Nat, Q, 0n, Nat.mul(G, 0n), qe,
+        Equal.sym(Nat, Nat.mul(G, 0n), 0n, N.mul_zero(G)))
+      Equal.trans(I.Int,
+        I.Int{Nat.mul(A, d), Nat.mul(B, d)},
+        I.Int{Nat.mul(P, Rr), Nat.mul(B, d)},
+        I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
+        Equal.cong(Nat, I.Int, u => I.Int{u, Nat.mul(B, d)}, Nat.mul(A, d), Nat.mul(P, Rr),
+          N.div_cross(P, G, 0n, d, dr, pg, e1, dwe)),
+        Equal.cong(Nat, I.Int, u => I.Int{Nat.mul(P, Rr), u}, Nat.mul(B, d), Nat.mul(Q, Rr),
+          N.div_cross(Q, G, 0n, d, dr, pg, e1z, dwe)))
