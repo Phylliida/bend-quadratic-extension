@@ -347,6 +347,25 @@ law Rat.mk.eqv:
   for +e: {I.Int.mul(n1, I.Int{1n+dp2, 0n}) == I.Int.mul(n2, I.Int{1n+dp1, 0n}) : I.Int}
   {Rat.mk(n1, 1n+dp1) == Rat.mk(n2, 1n+dp2) : Rat}
 
+# Rat.mk.eqv.raw: mk.eqv with the denominators as they come -- an arbitrary
+# positive Nat rather than the 1n+dp spelling -- and with the cross product in
+# that same raw spelling. A consumer that has just composed two fractions holds
+# products of denominators (Rat.mul's xd*yd, Rat.add's) and a cross product
+# whose scales are written as those products; this is the form it can call.
+#
+# The fill is bookkeeping: pos_witness rewrites each denominator into the
+# successor mk.eqv is stated over, the same rewrite is carried through the cross
+# product by two congs, and mk.eqv closes it.
+law Rat.mk.eqv.raw:
+  for +n1: I.Int
+  for +d1: Nat
+  for +n2: I.Int
+  for +d2: Nat
+  for +p1: {Nat.cmp(0n, d1) == LT{} : Cmp}
+  for +p2: {Nat.cmp(0n, d2) == LT{} : Cmp}
+  for e: {I.Int.mul(n1, I.Int{d2, 0n}) == I.Int.mul(n2, I.Int{d1, 0n}) : I.Int}
+  {Rat.mk(n1, d1) == Rat.mk(n2, d2) : Rat}
+
 # Rat.mk.den.pos: the denominator of a normalized fraction is positive. This is
 # the one canonicality clause of Rat.mk's output the normalization proves by
 # itself -- the numerator is a difference pair by construction, and coprimality
