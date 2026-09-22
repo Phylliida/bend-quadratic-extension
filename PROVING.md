@@ -1387,3 +1387,44 @@ endpoints of the surrounding term fix it. So the congs live inline; only the
 
 Measured state after this commit: `rat.bend` alone 188 TODOs (was 187), the
 other three unchanged (nat 124, int 32, qext 34), and all five gates green.
+
+### `Rat.add.value.mixed`: the mixed summand, and what it actually costs
+
+Landed: **`Rat.add.value.mixed`** -- `add(mk(Rat.num(np1,nn1), d),
+Rat{Rat.num(np2,nn2), 1+dp2})` is `mk` of the unreduced sum, with each summand's
+numerator scaled by the *other* summand's denominator. This is the shape
+`add_assoc`'s outer add really has (one mk summand, one constructor summand), and
+it is the second item of the plan above.
+
+Two things about the statement are load-bearing, and both were decided by what
+the fill can reach:
+
+- the mk summand is named by the **presentation's** coordinates `(np1, nn1)`,
+  because mk destructures `Rat.num(np1,nn1)` into the truncations
+  `(sub(np1,nn1), sub(nn1,np1))` -- and being truncations, their own
+  diagonal is a `sub_diag` away from vanishing, which is exactly what makes the
+  cross product close. (That is the difference from the *composite* case: the
+  coordinates of a sum of two difference pairs are not truncations of anything,
+  so no `sub_diag` applies there. The mixed law is not the composite bridge.)
+- `d` is a general Nat with two hypotheses (`pd`: `d` positive, `pq`: the
+  *output's* denominator positive), the same pair `Rat.mk_idem.raw` takes and for
+  the same reason: `div_pos_wit` concludes at the successor spelling of its
+  dividend, so the output denominator's positivity cannot be derived for a
+  variable `d`, and a caller at a product denominator (`d = xd*yd`) supplies it
+  with its own `gcd_divides` + `div_pos_wit`, exactly as `Rat.mul_assoc` does.
+
+The fill is **one helper plus one `mk.eqv.raw`**, and the helper is pure Int ring
+permutation around the mk summand's own value equation:
+
+    (A*Y + C*k1) * (d*Y)  ==  (R*Y + C*d) * (k1*Y)
+
+with `A` the projection (`numof`), `R` its difference pair (`Rat.num(P1,Q1)`),
+`C` the constructor's numerator, `Y = 1+dp2` and `k1 = denof(M1)`. Push each
+outer scale into its sum (`mul_add_left`), turn each pair of scales into one
+(`Int.scale.pair`, read backwards), apply the value equation scaled by `Y*Y`, and
+the two sides meet. The only "new" facts are two `sub_diag`s putting the raw pair
+`Int{P1,Q1}` where `Rat.num(P1,Q1)` sits (the same collapse `Rat.mk.fixed`'s fill
+makes, and legal because they sit under the constructor, not under a `Nat.div`).
+
+Measured: it lands with no truncation case split, no coprimality and no scale of
+the goal itself; the rat gate is green, `rat.bend` alone reports 189 TODOs.

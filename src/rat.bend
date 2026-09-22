@@ -745,6 +745,50 @@ law Rat.add.value:
         I.Int.mul(I.Int{Nat.sub(np2, nn2), Nat.sub(nn2, np2)}, I.Int.unit(1n+dp1))),
       Nat.mul(1n+dp1, 1n+dp2)) : Rat}
 
+# Rat.add.value.mixed: the same law when only *one* summand is mk-spelled.
+#
+# Rat.add.value above requires both summands spelled mk(Rat.num(np,nn), 1+dp),
+# and that is not the shape the outer add of add_assoc has: there the first
+# summand is an operation's output (mk-headed, with a denominator that is a
+# *product* of two others) and the second is still a constructor. This is that
+# law's mixed twin, and its right-hand side is the same unreduced sum: each
+# summand's numerator scaled by the *other* summand's denominator.
+#
+# Why the first summand is named by the presentation's coordinates (np1, nn1)
+# rather than by mk.go's own: mk(Rat.num(np1,nn1), d) destructures the difference
+# pair, so the coordinates the value lemma speaks about are
+# (sub(np1,nn1), sub(nn1,np1)) -- and those *are* truncations of (np1,nn1), which
+# is exactly what makes the two sub_diags (and so the cross product mk.eqv.raw
+# consumes) collapse. A numerator that is a sum of two difference pairs has no
+# such collapse, which is why the *composite* case is not this law.
+#
+# The denominators are spelled differently on purpose. The second summand's is
+# the successor 1+dp2 its constructor carries, and the first's is the general d
+# the mk was handed -- mk's own reduced denominator div(d, G) is not a successor,
+# and the value equation's scale has to be d for the cross product to close. d is
+# a general Nat with a positivity hypothesis and the *output's* denominator
+# positivity as a second one, exactly as Rat.mk.value and Rat.mk_idem.raw take
+# them: div_pos_wit concludes at the successor spelling of its dividend, and a
+# caller whose d is a product supplies the fact the same way it supplies it to
+# those two laws.
+#
+# The mirror image (constructor first, mk second) is this law through
+# Rat.add_comm, so it is not stated separately.
+law Rat.add.value.mixed:
+  for +np1: Nat
+  for +nn1: Nat
+  for +d: Nat
+  for +pd: {Nat.cmp(0n, d) == LT{} : Cmp}
+  for +pq: {Nat.cmp(0n, Rat.denof(Rat.mk(Rat.num(np1, nn1), d))) == LT{} : Cmp}
+  for +np2: Nat
+  for +nn2: Nat
+  for +dp2: Nat
+  {Rat.add(Rat.mk(Rat.num(np1, nn1), d), Rat{Rat.num(np2, nn2), 1n+dp2})
+   == Rat.mk(I.Int.add(
+        I.Int.mul(I.Int{Nat.sub(np1, nn1), Nat.sub(nn1, np1)}, I.Int.unit(1n+dp2)),
+        I.Int.mul(I.Int{Nat.sub(np2, nn2), Nat.sub(nn2, np2)}, I.Int.unit(d))),
+      Nat.mul(d, 1n+dp2)) : Rat}
+
 # Rat.neg_add
 # ===========
 #
