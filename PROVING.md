@@ -2469,8 +2469,15 @@ records holds.
 are not started (they need the Rat multiplicative laws at mk-headed arguments,
 i.e. the same two-level treatment for three more laws); the inverse
 `1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)` is not started; and
-`QExt.add_assoc` is still the canonical-presentation form whose fill calls the
-canonical `R.Rat.add_assoc` per coordinate -- it can now move to
-`Rat.add_assoc.arb`, and that is the next unit in that direction. Nothing was
-left stated-but-unfilled: every law in the five laws files has a fill, and the
-six gates are green (`nat 127`, `int 32`, `qext 34`, `rat 199`, `qrat 204`).
+`QExt.add_assoc` **is** the form over arbitrary values now: same key, statement
+replaced, and its fill is one `Rat.add_assoc.arb` per coordinate with the six
+positivity hypotheses spent three per coordinate. The canonical statement is gone
+rather than kept beside it, because at this layer the general form *does*
+subsume it (a canonical caller supplies each hypothesis with `{==}`, since
+`Rat.denof(Rat{Rat.num(np,nn), 1n+dp})` is `1n+dp`) -- unlike the Rat layer, where
+the canonical `Rat.add_assoc` stays stated because its positivity slot is empty.
+Two new `def`s came with it, `QExt.re`/`QExt.im`, since a statement has no body to
+put the destructuring match in. The counts do not move: qrat 204 was already
+counting that law. Nothing was left stated-but-unfilled: every law in the five
+laws files has a fill, and the six gates are green (`nat 127`, `int 32`,
+`qext 34`, `rat 199`, `qrat 204`).
