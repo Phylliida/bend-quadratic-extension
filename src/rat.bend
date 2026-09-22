@@ -820,14 +820,25 @@ law Rat.add.value:
 # consumes) collapse. A numerator that is a sum of two difference pairs has no
 # such collapse, which is why the *composite* case is not this law.
 #
-# The denominators are spelled differently on purpose. The second summand's is
-# the successor 1+dp2 its constructor carries, and the first's is the general d
-# the mk was handed -- mk's own reduced denominator div(d, G) is not a successor,
-# and the value equation's scale has to be d for the cross product to close. d is
-# a general Nat with a positivity hypothesis and the *output's* denominator
-# positivity as a second one, exactly as Rat.mk.value and Rat.mk_idem.raw take
-# them: div_pos_wit concludes at the successor spelling of its dividend, and a
-# caller whose d is a product supplies the fact the same way it supplies it to
+# The second summand is a *raw* coordinate pair (Zp, Zn) over its own
+# denominator D, not the difference pair Rat.num(np2,nn2) over a successor. That
+# is the form the rung-2 composing law needs: its inputs are arbitrary Rat
+# *variables*, so what its fill has in hand after destructuring is
+# Rat{Int{Zp,Zn}, D} -- a raw pair over a denominator that is carried rather than
+# computed -- and Rat.num(Zp,Zn) is a *different* pair from Int{Zp,Zn} unless one
+# of the two coordinates is zero. Reading this law at Zp := sub(np2,nn2),
+# Zn := sub(nn2,np2) and D := 1n+dp2 gives back the difference-pair/successor
+# statement it had before, because Rat.num(np2,nn2) *is*
+# Int{sub(np2,nn2), sub(nn2,np2)}.
+#
+# The three denominators are spelled differently on purpose. The second
+# summand's is the general D its constructor carries, and the first's is the
+# general d the mk was handed -- mk's own reduced denominator div(d, G) is not a
+# successor, and the value equation's scale has to be d for the cross product to
+# close. d, D and the *output's* denominator all arrive as general Nats with a
+# positivity hypothesis, exactly as Rat.mk.value and Rat.mk_idem.raw take them:
+# div_pos_wit concludes at the successor spelling of its dividend, so a caller
+# whose denominator is a product supplies the fact the same way it supplies it to
 # those two laws.
 #
 # The mirror image (constructor first, mk second) is this law through
@@ -838,14 +849,15 @@ law Rat.add.value.mixed:
   for +d: Nat
   for +pd: {Nat.cmp(0n, d) == LT{} : Cmp}
   for +pq: {Nat.cmp(0n, Rat.denof(Rat.mk(Rat.num(np1, nn1), d))) == LT{} : Cmp}
-  for +np2: Nat
-  for +nn2: Nat
-  for +dp2: Nat
-  {Rat.add(Rat.mk(Rat.num(np1, nn1), d), Rat{Rat.num(np2, nn2), 1n+dp2})
+  for +Zp: Nat
+  for +Zn: Nat
+  for +D: Nat
+  for +pD: {Nat.cmp(0n, D) == LT{} : Cmp}
+  {Rat.add(Rat.mk(Rat.num(np1, nn1), d), Rat{I.Int{Zp, Zn}, D})
    == Rat.mk(I.Int.add(
-        I.Int.mul(I.Int{Nat.sub(np1, nn1), Nat.sub(nn1, np1)}, I.Int.unit(1n+dp2)),
-        I.Int.mul(I.Int{Nat.sub(np2, nn2), Nat.sub(nn2, np2)}, I.Int.unit(d))),
-      Nat.mul(d, 1n+dp2)) : Rat}
+        I.Int.mul(I.Int{Nat.sub(np1, nn1), Nat.sub(nn1, np1)}, I.Int.unit(D)),
+        I.Int.mul(I.Int{Zp, Zn}, I.Int.unit(d))),
+      Nat.mul(d, D)) : Rat}
 
 # Rat.add_assoc
 # =============

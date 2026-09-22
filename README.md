@@ -206,13 +206,19 @@ Known gaps, in dependency order:
    `Rat.add.value.mixed` is also new, and it is the shape the additive block
    actually needs: `Rat.add.value` requires *both* summands mk-spelled, while
    add_assoc's outer add has one mk summand and one constructor summand. The
-   mixed law is that law's twin with the second summand still a constructor and
-   the mk summand's denominator the general `d` it was handed (a product at every
-   call site), so its fill is the value equation of the mk summand scaled by the
-   square of the other denominator and carried through the two sums by the ring
-   laws — no truncation reasoning, no case split, and the same two positivity
-   hypotheses `Rat.mk.value`/`Rat.mk_idem.raw` take. Its mirror image
-   (constructor first) is `Rat.add_comm` away, so it is not stated separately.
+   mixed law is that law's twin with the second summand a *raw* coordinate pair
+   `Int{Zp,Zn}` over its own denominator `D` (the difference-pair/successor form
+   is the reading `Zp := sub(np2,nn2)`, `Zn := sub(nn2,np2)`, `D := 1n+dp2` of
+   it) and the mk summand's denominator the general `d` it was handed (a product
+   at every call site), so its fill is the value equation of the mk summand
+   scaled by the square of the other denominator and carried through the two sums
+   by the ring laws — no truncation reasoning, no case split, and three positivity
+   hypotheses (`d`, `D`, and the mk output's denominator) of the same kind
+   `Rat.mk.value`/`Rat.mk_idem.raw` take. The raw form is what the rung-2
+   composing law can call, since its summands are arbitrary Rats and
+   `Rat.num(Zp,Zn)` is a different pair from `Int{Zp,Zn}` unless a coordinate is
+   zero. Its mirror image (constructor first) is `Rat.add_comm` away, so it is not
+   stated separately.
    `Rat.add_assoc` is the newest, and the first law that composes a sum with a
    *sum*: the outer add's mk-headed summand has a numerator that is a sum of two
    difference pairs — not one-sided, which is what `Rat.mk.trunc` bridges — and
