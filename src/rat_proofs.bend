@@ -1049,3 +1049,66 @@ def R.Rat.num.mul(c1, np1, nn1, e1, c2, np2, nn2, e2):
                   P2, 0n, z2),
                 Equal.cong(Nat, Nat, w => Nat.add(0n, w), Nat.mul(Q1, 0n), 0n,
                   N.mul_zero(Q1)))))
+
+# Rat.mul_assoc: the goal unfolds (Rat.mul and Rat.mk both destructure) to
+#   mk(numof(M1)*zn, denof(M1)*zd) == mk(xn*numof(M2), xd*denof(M2))
+# with M1 = mk(xn*yn, xd*yd) and M2 = mk(yn*zn, yd*zd), so the two sides are
+# two normal forms whose *raw* cross product is the one mk.eqv.raw consumes:
+#
+#   - v1/v2 are mk.value on M1 and M2: numof(Mi)*di == Ri*denof(Mi), with Ri
+#     the difference pair of the product's coordinates;
+#   - s1/s2 are num.mul: Ri is that product (the sign analysis lives there);
+#   - cr is Int.scale_cross: the two value equations scaled by the denominator
+#     they share (yd) and reduced to the cross product of the composed
+#     fraction -- (A*zn)*(xd*b) == (xn*B)*(a*zd), scaled by yd;
+#   - w cancels that yd (Int.scale_cancel), which is the hypothesis mk.eqv.raw
+#     wants, and the last call is the equality of the two normal forms.
+#
+# The positivity mk.value and mk.eqv.raw need of the denominators is
+# div_pos_wit on each gcd (the dividend is a product of two successors, which
+# is the 1n+ap spelling that law wants) and mul_pos on the product.
+def R.Rat.mul_assoc(c1, np1, nn1, e1, dp1, c2, np2, nn2, e2, dp2, c3, np3, nn3, e3, dp3):
+  +xd = Nat.add(1n, dp1)
+  +yd = Nat.add(1n, dp2)
+  +zd = Nat.add(1n, dp3)
+  +xn = R.Rat.num(np1, nn1)
+  +yn = R.Rat.num(np2, nn2)
+  +zn = R.Rat.num(np3, nn3)
+  +d1 = Nat.mul(xd, yd)
+  +d2 = Nat.mul(yd, zd)
+  +U1 = Nat.add(Nat.mul(Nat.sub(np1, nn1), Nat.sub(np2, nn2)),
+                Nat.mul(Nat.sub(nn1, np1), Nat.sub(nn2, np2)))
+  +V1 = Nat.add(Nat.mul(Nat.sub(np1, nn1), Nat.sub(nn2, np2)),
+                Nat.mul(Nat.sub(nn1, np1), Nat.sub(np2, nn2)))
+  +U2 = Nat.add(Nat.mul(Nat.sub(np2, nn2), Nat.sub(np3, nn3)),
+                Nat.mul(Nat.sub(nn2, np2), Nat.sub(nn3, np3)))
+  +V2 = Nat.add(Nat.mul(Nat.sub(np2, nn2), Nat.sub(nn3, np3)),
+                Nat.mul(Nat.sub(nn2, np2), Nat.sub(np3, nn3)))
+  +g1 = R.Rat.g(U1, V1, d1)
+  +g2 = R.Rat.g(U2, V2, d2)
+  +M1 = R.Rat.mk(I.Int{U1, V1}, d1)
+  +M2 = R.Rat.mk(I.Int{U2, V2}, d2)
+  +A = R.Rat.numof(M1)
+  +a = R.Rat.denof(M1)
+  +B = R.Rat.numof(M2)
+  +b = R.Rat.denof(M2)
+  +R1 = R.Rat.num(U1, V1)
+  +R2 = R.Rat.num(U2, V2)
+  +pa1 = N.div_pos_wit(g1, Nat.add(dp2, Nat.mul(dp1, Nat.add(1n, dp2))),
+    Pair.snd(N.Nat.divides(g1, R.Rat.mag(U1, V1)), N.Nat.divides(g1, d1),
+      N.gcd_divides(R.Rat.mag(U1, V1), d1)))
+  +pa2 = N.div_pos_wit(g2, Nat.add(dp3, Nat.mul(dp2, Nat.add(1n, dp3))),
+    Pair.snd(N.Nat.divides(g2, R.Rat.mag(U2, V2)), N.Nat.divides(g2, d2),
+      N.gcd_divides(R.Rat.mag(U2, V2), d2)))
+  +p1 = N.mul_pos(a, zd, pa1, {==})
+  +p2 = N.mul_pos(xd, b, {==}, pa2)
+  +v1 = R.Rat.mk.value(Nat.cmp(U1, V1), U1, V1, d1, {==}, N.mul_pos(xd, yd, {==}, {==}))
+  +v2 = R.Rat.mk.value(Nat.cmp(U2, V2), U2, V2, d2, {==}, N.mul_pos(yd, zd, {==}, {==}))
+  +s1 = Equal.sym(I.Int, I.Int.mul(xn, yn), R1,
+    R.Rat.num.mul(c1, np1, nn1, e1, c2, np2, nn2, e2))
+  +s2 = Equal.sym(I.Int, I.Int.mul(yn, zn), R2,
+    R.Rat.num.mul(c2, np2, nn2, e2, c3, np3, nn3, e3))
+  +cr = I.Int.scale_cross(A, R1, B, R2, xn, yn, zn, a, b, xd, zd, dp2, v1, v2, s1, s2)
+  +w = I.Int.scale.cancel(I.Int.mul(I.Int.mul(A, zn), I.Int.unit(Nat.mul(xd, b))),
+    I.Int.mul(I.Int.mul(xn, B), I.Int.unit(Nat.mul(a, zd))), dp2, cr)
+  R.Rat.mk.eqv.raw(I.Int.mul(A, zn), Nat.mul(a, zd), I.Int.mul(xn, B), Nat.mul(xd, b), p1, p2, w)
