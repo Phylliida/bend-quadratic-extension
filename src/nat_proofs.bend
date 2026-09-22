@@ -1455,6 +1455,24 @@ def NL.mul_pos_right(g, q, ap, e):
     case 1n+qp:
       {==}
 
+# mul_pos: both factors go to the successor form pos_witness provides (one
+# cong each), and then the goal is cmp(0n, mul(1+ap, 1+bp)) = LT, which is what
+# the product of two successors *reduces* to -- no arithmetic left.
+def NL.mul_pos(a, b, pa, pb):
+  Equal.trans(Cmp,
+    Nat.cmp(0n, Nat.mul(a, b)),
+    Nat.cmp(0n, Nat.mul(1n+Nat.sub(a, 1n), 1n+Nat.sub(b, 1n))),
+    LT{},
+    Equal.trans(Cmp,
+      Nat.cmp(0n, Nat.mul(a, b)),
+      Nat.cmp(0n, Nat.mul(1n+Nat.sub(a, 1n), b)),
+      Nat.cmp(0n, Nat.mul(1n+Nat.sub(a, 1n), 1n+Nat.sub(b, 1n))),
+      Equal.cong(Nat, Cmp, u => Nat.cmp(0n, Nat.mul(u, b)),
+        a, 1n+Nat.sub(a, 1n), NL.pos_witness(a, pa)),
+      Equal.cong(Nat, Cmp, u => Nat.cmp(0n, Nat.mul(1n+Nat.sub(a, 1n), u)),
+        b, 1n+Nat.sub(b, 1n), NL.pos_witness(b, pb))),
+    {==})
+
 # div_pos_wit: the witness gives div(1+ap, g) = q (div_exact, once g is written
 # as the successor pos_witness provides), so the goal is cmp(0, q) = LT, which
 # is mul_pos_right at the same witness.

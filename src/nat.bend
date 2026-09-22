@@ -1265,6 +1265,21 @@ law mul_pos_right:
   for +e: {1n+ap == Nat.mul(g, q) : Nat}
   {Nat.cmp(0n, q) == LT{} : Cmp}
 
+# mul_pos: a product of two positive factors is positive. Stated over the two
+# positivity hypotheses (rather than over successor spellings) because that is
+# what a caller holds: a denominator out of Rat.mk.den.pos is positive by its
+# comparison, and a product of two of them has to be positive to be rewritten
+# into the 1n+dp shape Rat.mk.eqv and its relatives are stated over. Both
+# factors go to successor form with pos_witness, and then the comparison
+# reduces: mul(1+ap, 1+bp) = add(1+bp, mul(ap, 1+bp)) = 1 + ..., a successor,
+# and cmp(0n, 1n+k) is LT by computation.
+law mul_pos:
+  for +a: Nat
+  for +b: Nat
+  for +pa: {Nat.cmp(0n, a) == LT{} : Cmp}
+  for +pb: {Nat.cmp(0n, b) == LT{} : Cmp}
+  {Nat.cmp(0n, Nat.mul(a, b)) == LT{} : Cmp}
+
 # div_pos_wit: a positive dividend divided by a divisor of it is positive --
 # the denominator of Rat.mk's output is never zero, which is the one
 # canonicality clause of mk that the normalization proves by itself (the
