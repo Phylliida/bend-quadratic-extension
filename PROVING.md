@@ -2063,9 +2063,17 @@ layer whose copies nothing mechanically checked.
 Commit `c921dbf` renamed the 35 helpers bare. `rat_proofs.bend` still checks,
 and a probe that imports `rat.bend` **and** `rat_proofs.bend` and calls
 `R.Rat.add_comm` checks too (it failed with exactly the error above before the
-rename). The duplicate is therefore unnecessary and is deleted in the round
-that follows; **no layer of this project needs to restate another layer's laws
-and proofs.**
+rename). The duplicate is therefore unnecessary and **it is gone**: `src/qrat_rat.bend`
+(684 lines) is deleted, `qrat_proofs.bend` keeps only the QExt-specific fills
+(the two coordinate witnesses, the two `QExt.mul` coordinate chains, and the
+four law fills) and calls rat.bend's laws as `R.Rat.<law>`, filled by its
+`rat_proofs.bend` import -- 1929 lines to 181. The whole QExt layer above the
+Rat one now costs one call per Rat law: `QExt.neg_neg`, which used to carry a
+port of `Rat.neg_neg` plus the Nat helper `nat.sub.min` and the two Rat helpers
+`rat.mk.fixed.neg`/`rat.neg.neg`, is two `R.Rat.neg_neg` applications at the
+law's own telescope (a literal `Nat.cmp` and `{==}` evidence, exactly as
+`rat_proofs.bend` passes them to its own inner `mk.fixed`). So: **no layer of
+this project needs to restate another layer's laws and proofs.**
 
 **The mechanical check**, before concluding that anything is unimportable:
 
@@ -2077,9 +2085,13 @@ and proofs.**
 Every line it prints is a helper to rename. Empty output means the rule is
 satisfied.
 
-Still open, and not re-tested after the rename: earlier rounds reported that
-**import order is load-bearing** (laws files before proofs files). The probe
-above used that order and checked either way, so treat the claim as unverified
+**Import order**: the round that deleted the duplicate tested it, and it is
+*not* load-bearing here. `qrat_proofs.bend` lists the laws files first
+(`nat.bend`, `int.bend`, `rat.bend`, `qrat.bend`) and the proofs files after
+(`nat_proofs.bend`, `int_proofs.bend`, `rat_proofs.bend`), which is the order
+`int_proofs.bend` uses; a copy of the same file with `rat_proofs.bend` imported
+**first**, before `rat.bend`, checks just as green (`All terms check.`). So both
+orders work at this size, and the laws-first order is kept as the convention
 rather than as a rule.
 
 **The lesson worth keeping.** A symptom that is measured honestly can still be

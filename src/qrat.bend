@@ -1,6 +1,6 @@
 import Base
 import ./nat.bend as N
-import ./qrat_rat.bend as R
+import ./rat.bend as R
 
 # QExt over Rat: the quadratic extension Q(sqrt d) with rational coefficients
 # ==========================================================================
@@ -22,6 +22,17 @@ import ./qrat_rat.bend as R
 # the whole difficulty. Keeping them apart leaves qext.bend and its proof
 # untouched. The Int version is not superseded: it is the coefficient-free
 # half, and it fixes the shape the laws here are stated in.
+#
+# The coefficient layer is rat.bend, not a copy of it. This file imports
+# `./rat.bend as R` and is filled by qrat_proofs.bend, which imports
+# `./rat_proofs.bend` as well -- the same three-file arrangement int_proofs.bend
+# uses for nat.bend (laws file + proofs file, then the layer above calls the
+# proved laws through the laws file's alias). Every Rat law a QExt fill needs is
+# therefore called as `R.Rat.<law>` and not restated: an earlier round carried a
+# second copy of Rat's definitions and statements (`src/qrat_rat.bend`) because
+# importing rat_proofs.bend appeared impossible, and it was not -- the cause was
+# a naming rule, not a limitation (PROVING.md, "Cross-file proof helpers: the
+# naming rule, verified").
 #
 # Laws are stated here and left open; qrat_proofs.bend fills them via
 # `def Q.<name>(...)`.
