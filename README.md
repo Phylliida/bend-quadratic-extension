@@ -47,7 +47,9 @@ law of its sibling via `def <alias>.<name>(...)`:
 - `src/int.bend` — `Int` type, the ops (`Int.zero`, `Int.one`, `Int.add`,
   `Int.neg`, `Int.sub`, `Int.mul`), `Int.canon` (the canonical
   representative, which is what makes `==` decide integer equality), and
-  the Int laws.
+  the Int laws — including `Int.mul_scale`, the shape law that unfolds the raw
+  scaling spelling `Int.mul(x, Int{d, 0n})` into the coordinate pair
+  `(xp*d, xn*d)` the Rat value lemma is stated in.
 - `src/int_proofs.bend` — fills every int.bend law (Nat evidence via
   nat.bend, filled by the nat_proofs.bend import).
 - `src/qext.bend` — `QExt` type, `QExt.nat`/`add`/`mul`, and the two laws.
@@ -61,8 +63,8 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `*_proofs.bend` files and `scratch.bend` are the gates and print
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
-transitive over imports: nat.bend 122, int.bend 28, qext.bend 30 = 28 Int + 2
-QExt, rat.bend 168 = 122 Nat + 28 Int + 18 Rat.
+transitive over imports: nat.bend 122, int.bend 29, qext.bend 31 = 29 Int + 2
+QExt, rat.bend 169 = 122 Nat + 29 Int + 18 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.

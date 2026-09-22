@@ -148,6 +148,15 @@ def I.Int.mul_swap(a, b, c):
 # (a + c) + (b + d) on the left, (a + b) + (c + d) on the right, with
 # a = xp*yp, b = xn*yn, c = xp*zp, d = xn*zn (and the neg half with
 # e = xp*yn, f = xn*yp, g = xp*zn, h = xn*zp). Three rewrites walk each.
+# Int.mul_scale: unfold the product and take the two zero products off. Nat.mul
+# matches on its first argument, so mul(xn, 0) is stuck while the add(0, ..) its
+# sibling leaves behind reduces: one mul_zero and one add_zero per coordinate.
+def I.Int.mul_scale(xp, xn, d):
+  %Equal.sym(Nat, Nat.mul(xn, 0n), 0n, N.mul_zero(xn)) : {I.Int{Nat.add(Nat.mul(xp, d), _), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d))} == I.Int{Nat.mul(xp, d), Nat.mul(xn, d)} : I.Int}
+  %Equal.sym(Nat, Nat.add(Nat.mul(xp, d), 0n), Nat.mul(xp, d), N.add_zero(Nat.mul(xp, d))) : {I.Int{_, Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d))} == I.Int{Nat.mul(xp, d), Nat.mul(xn, d)} : I.Int}
+  %Equal.sym(Nat, Nat.mul(xp, 0n), 0n, N.mul_zero(xp)) : {I.Int{Nat.mul(xp, d), Nat.add(_, Nat.mul(xn, d))} == I.Int{Nat.mul(xp, d), Nat.mul(xn, d)} : I.Int}
+  {==}
+
 def I.Int.mul_distrib(x, y, z):
   match x y z:
     case I.Int{xp, xn} I.Int{yp, yn} I.Int{zp, zn}:
