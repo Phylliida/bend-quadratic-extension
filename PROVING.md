@@ -1656,3 +1656,99 @@ Next, on the same recipe: `Rat.add_exchange`, then `Rat.mul_distrib` and
 `Rat.mul_add_left`. Each is a mixed sum plus a cross sum; the shuffle
 inventory (`exch4`, `foldA`, `foldB`, `split`, `pad`) is reusable as it stands,
 and `flip2` is the only piece that is specific to which two inner sums meet.
+
+### `Rat.mul_distrib`: the route, and the two measurements that pin it
+
+Not landed -- this is the spelled-out plan for the next unit, plus two
+measurements that were *run*, and it is written down because the route is not
+the additive block's and the obstruction that decides its shape is easy to
+walk into.
+
+The law is true as stated. Measured with the checker's own normalizer, at
+`X = 1/2, Y = -1/3, Z = 1/5` (all three canonical presentations):
+
+    Rat.mul(X, Rat.add(Y, Z))                    = rat.Rat{int.Int{0n, 1n}, 15n}
+    Rat.add(Rat.mul(X, Y), Rat.mul(X, Z))        = rat.Rat{int.Int{0n, 1n}, 15n}
+
+both sides reduce to the same constructor, so `==` on Rat does decide this
+instance (the two sides are equal because `mk` is determined by the value, not
+by computation).
+
+**The obstruction: `Rat.mk.eqv.raw` cannot close it as written.** Same
+instance, printing the mk arguments and denominators *exactly as the two
+operations write them* (`B, b` the projection and reduced denominator of
+`M2 = add(Y,Z)`, `B1, b1` of `mul(X,Y)`, `B3, b3` of `mul(X,Z)`):
+
+    LHS  = mk(Int.mul(xn, B), mul(Xd, b))                 arg Int{0n, 2n}  den 30n
+    RHS  = mk(add(mul(B1, b3), mul(B3, b1)), mul(b1, b3)) arg Int{6n, 10n} den 60n
+
+    mk.eqv.raw's hypothesis, as the operations write it:
+      Int.mul(Int{0n,2n}, Int{60n,0n}) = Int{0n,120n}
+      Int.mul(Int{6n,10n}, Int{30n,0n}) = Int{180n,300n}      -- NOT equal
+
+so the raw cross product fails here for the same reason it failed in the
+additive block: the two numerators are different *representatives* of one
+value (the LHS's is a product with a projection, the RHS's is a sum of
+products of projections). Measured, and it is the one thing that has to be
+decided before writing any of the fill.
+
+**The route it leaves.** Re-spell the RHS's numerator with `Rat.mk.trunc`
+before comparing -- the RHS's raw numerator is a *sum of two difference pairs*
+(mk.trunc's own case), whose truncation pair is `(sub(nRp,nRn), sub(nRn,nRp))`
+-- and the same instance's cross product then *does* agree:
+
+    Int.mul(Int{0n,2n}, Int{60n,0n})       = Int{0n,120n}
+    Int.mul(Int{0n,4n}, Int{30n,0n})       = Int{0n,120n}      -- equal
+
+(the truncation pair of `Int{6n,10n}` is `Int{sub(6,10), sub(10,6)} =
+Int{0n,4n}`). Measured. So the closing step is `mk.eqv.raw` after one
+`mk.trunc` (plus `mk.rep`/`Int.mul_scale` for the spellings), not `mk.eqv.val`:
+the cross sum `mk.eqv.val` would want is in terms of the *projections*, which
+are opaque `div` terms, and every way of eliminating them from a Nat equation
+runs into a factor that cannot be cancelled.
+
+**The cross product itself** is then assembled the way `Rat.mul_assoc` and
+`Rat.add.value` assemble theirs: scale both sides of the equation by
+`d2 = Yd*Zd` (the inner sum's own denominator) and use the three value
+equations `Rat.mk.value` gives -- `B*d2 == R2*b`, `B1*(Xd*Yd) == R1*b1`,
+`B3*(Xd*Zd) == R3*b3`, with `R2 = Rat.num(U2,V2)` the inner sum's difference
+pair and `R1, R3` the two products' -- each read at its coordinate level
+(`Int.eq.pos`/`Int.eq.neg`). After the substitution both sides are
+
+    b*b1*b3 * [ (a1*P2 + b1*Q2) + Q1*Zd + Q3*Yd ]        (left)
+    b*b1*b3 * [ P1*Zd + P3*Yd + a1*Q2 + b1*P2 ]          (right)
+
+with `Pi = sub(Ui,Vi)`, `Qi = sub(Vi,Ui)` the truncation pairs of the three
+involved pairs, so what is left is the pure Nat identity
+
+    (a1*P2 + b1*Q2) + Q1*Zd + Q3*Yd  ==  P1*Zd + P3*Yd + a1*Q2 + b1*P2    (T)
+
+-- the common factor `b*b1*b3` is *not* cancelled: it sits on both sides, and
+the identity is multiplied by it. (T) is the distributivity fact at the Nat
+level: its two sides differ by `(a1-b1)*(U2-V2) - Zd*(U1'-V1') -
+Yd*(U3'-V3')`, which is zero because `U2-V2 = (a2-b2)*Zd + (a3-b3)*Yd`,
+`U1'-V1' = (a1-b1)(a2-b2)` and `U3'-V3' = (a1-b1)(a3-b3)` -- and, exactly as
+in the additive block, it is a `Nat.cross_add` combination: the two hypotheses
+are the padded equations
+
+    (a1*P2 + b1*Q2) + (b1*U2 + a1*V2)  ==  (a1*Q2 + b1*P2) + (b1*V2 + a1*U2)
+    (P1*Zd + P3*Yd) + (b1*U2 + a1*V2)  ==  (Q1*Zd + Q3*Yd) + (b1*V2 + a1*U2)
+
+whose paddings agree because both differences are `(a1-b1)*(U2-V2)`. The
+first is the `sub_cross` instance of the inner sum scaled by `a1` and by `b1`
+(a permutation of two four-term sums, one exchange), the second is the two
+product instances `[i]` and `[iii]` scaled by `Zd` and `Yd`, again one
+exchange.
+
+Finally `d2` comes off again to give mk.eqv.raw's unscaled hypothesis: it is
+`Yd*Zd`, a *product of two successors*, so `Int.scale.pair` splits the unit
+and `Int.scale.cancel` removes `Zd` (at `kp = dp3`) and then `Yd` (at
+`kp = dp2`). Nothing in the route needs a new law; what it needs is the
+shuffle inventory already in `rat_proofs.bend` (`exch4`, `foldA`/`foldB`,
+`split`) plus a Nat-level ring block for the projection-to-truncation
+identities. Estimated at the size of `Rat.add_assoc`'s Nat half, i.e. a few
+hundred lines -- it was not attempted in this round.
+
+`Rat.mul_add_left` is then free: `(x + y)*z = z*(x + y) = z*x + z*y =
+x*z + y*z` is `Rat.mul_comm`, `Rat.mul_distrib`, and two `Rat.mul_comm`s under
+a congruence, the same shape `Rat.add_exchange` has on the additive side.
