@@ -934,9 +934,49 @@ Three checker rules decided every shape above; none is in the language docs.
 
 ### What is left
 
-The laws that compose two *normalized* results -- `mul_assoc` (the cheapest),
-`add_assoc`, `add_exchange`, `mul_distrib`, `mul_add_left`, `neg_add`,
-`neg_neg`. Each is now: reduce both sides to raw fractions, identify them with
-the Int/Nat ring laws up to the cross product (`Rat.mk.value` supplies
-`mk.eqv`'s hypothesis, `Int.mul_scale` moves between the raw and the clean
-spelling of a scaled Int), and apply `mk.eqv`.
+`Rat.mul_assoc` is in, and it is the template for the rest. Four notes from
+doing it, all load-bearing for the siblings:
+
+- **The composing laws must be stated over `Rat{Rat.num(np,nn), 1n+dp}`** --
+  the difference pair -- with the comparison as a parameter. The obvious
+  alternative (inputs `Rat{n, 1n+dp}` with a fixed-point hypothesis `fx`) does
+  not survive contact with `Rat.mk.value`: that law's right side names the
+  numerator in `Rat.num` spelling, and `Rat.num(np,nn)` is a *different pair*
+  from `Int{np,nn}` (`Int{sub(np,nn), sub(nn,np)}`, one side zero). Relating
+  the two needs the sign, which `fx` does not hand over (`fx` only says
+  `numof(mk(n,d)) == n`, i.e. `n` is the div/gcd term, not a difference pair).
+- **The product of two difference pairs is one again, but that is a theorem.**
+  `Rat.num.mul` proves `Int.mul(Rat.num(np1,nn1), Rat.num(np2,nn2)) ==
+  Rat.num(U, V)` (U, V the product's own coordinates) by nine branches: which
+  side of the product vanishes is exactly the sign of the two factors, so the
+  two comparisons come in as parameters and each branch derives the zeros with
+  `sub_of_lt` at the flipped comparison and closes with `dp.eq.right` /
+  `dp.eq.left`. With it, a value equation's difference-pair numerator can be
+  replaced by the raw product and `Int.mul_assoc` applies. Without it the whole
+  route is stuck: `R1*zn == xn*R2` is simply *false* for raw pairs (take
+  `xn = Int{5,3}`, `yn = Int{1,0}`, `zn = Int{1,0}`: `R1*zn = Int{2,0}` but
+  `xn*R2 = Int{5,3}`).
+- **The assembly is a cancellation, not a substitution.** The denominators the
+  value equations carry are *normalized* (`a = div(d1,g1)`), so
+  `A*d1 == R1*a` and `B*d2 == R2*b` do not hand over the composed cross product
+  directly: both sides are scaled by the factor the two denominators share
+  (`yd`, since `d1 = xd*yd` and `d2 = yd*zd`), the two sides meet at the single
+  middle product, and `Int.scale.cancel` (with `Nat.mul_right_cancel` under it)
+  takes the factor off again. `Int.scale_cross` is that law; its fill is one
+  `%` step per rewrite -- split the scales with `Int.scale.pair` and walk them
+  past the factors they must sit next to with `mul_swap`/`mul_assoc`/`mul_comm`
+  -- which is affordable only because the statement is letters, not spelled-out
+  fractions.
+- **A constructor literal cannot head a `let`** ("an annotated term (cannot
+  infer)"), and `+x: T = v` does not parse, so a proof that wants to name a
+  scaled unit binds a def application instead: `def Int.unit(n) = Int{n, 0n}`
+  exists for exactly that. Likewise a comparison a law needs twice must be a
+  `+` binder (`for +c: Cmp`), or the fill is rejected with "consumed more than
+  once".
+
+Still open, in dependency order: the other composing laws (`add_assoc`,
+`add_exchange`, `mul_distrib`, `mul_add_left`, `neg_add`, `neg_neg`). They need
+one thing `mul_assoc` did not: an `Int.add` numerator is a *sum* of coordinates,
+so the `Rat.num`-of-a-sum facts (and the `Int.canon` projections under them)
+have to be stated before the same four-call fill can be written. Then `QExt`
+over `Rat`.
