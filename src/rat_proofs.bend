@@ -634,6 +634,41 @@ def R.Rat.mk.eqv(n1, dp1, n2, dp2, e):
           Nat.mul(1n+dp1, 1n+dp2), Nat.mul(1n+dp2, 1n+dp1), N.mul_comm(1n+dp1, 1n+dp2)),
         R.Rat.mk.scale(n2, dp2, dp1))))
 
+# Rat.mk.eqv.raw: both denominators go to the successor form pos_witness gives
+# (one cong each) and the cross product's two scales travel with them (a cong
+# over the second argument of Int.mul, whose evidence is a cong over the
+# constructor's Nat slot), which puts the goal in exactly the shape mk.eqv is
+# stated about.
+def R.Rat.mk.eqv.raw(n1, d1, n2, d2, p1, p2, e):
+  +a1 = Nat.sub(d1, 1n)
+  +a2 = Nat.sub(d2, 1n)
+  Equal.trans(R.Rat,
+    R.Rat.mk(n1, d1),
+    R.Rat.mk(n1, 1n+a1),
+    R.Rat.mk(n2, d2),
+    Equal.cong(Nat, R.Rat, w => R.Rat.mk(n1, w), d1, 1n+a1, N.pos_witness(d1, p1)),
+    Equal.trans(R.Rat,
+      R.Rat.mk(n1, 1n+a1),
+      R.Rat.mk(n2, 1n+a2),
+      R.Rat.mk(n2, d2),
+      R.Rat.mk.eqv(n1, a1, n2, a2,
+        Equal.trans(I.Int,
+          I.Int.mul(n1, I.Int{1n+a2, 0n}),
+          I.Int.mul(n1, I.Int{d2, 0n}),
+          I.Int.mul(n2, I.Int{1n+a1, 0n}),
+          Equal.cong(I.Int, I.Int, w => I.Int.mul(n1, w), I.Int{1n+a2, 0n}, I.Int{d2, 0n},
+            Equal.cong(Nat, I.Int, w => I.Int{w, 0n}, 1n+a2, d2,
+              Equal.sym(Nat, d2, 1n+a2, N.pos_witness(d2, p2)))),
+          Equal.trans(I.Int,
+            I.Int.mul(n1, I.Int{d2, 0n}),
+            I.Int.mul(n2, I.Int{d1, 0n}),
+            I.Int.mul(n2, I.Int{1n+a1, 0n}),
+            e,
+            Equal.cong(I.Int, I.Int, w => I.Int.mul(n2, w), I.Int{d1, 0n}, I.Int{1n+a1, 0n},
+              Equal.cong(Nat, I.Int, w => I.Int{w, 0n}, d1, 1n+a1, N.pos_witness(d1, p1)))))),
+      Equal.cong(Nat, R.Rat, w => R.Rat.mk(n2, w), 1n+a2, d2,
+        Equal.sym(Nat, d2, 1n+a2, N.pos_witness(d2, p2)))))
+
 # Rat.mk.den.pos: one call of div_pos_wit at the second half of the
 # divisibility witness gcd_divides returns for (mag, 1+dp) -- Pair.snd takes it
 # out of the pair.
