@@ -82,6 +82,15 @@ def QExt.neg(x: QExt) -> QExt:
 def QExt.sub(x: QExt, y: QExt) -> QExt:
   QExt.add(x, QExt.neg(y))
 
+# QExt.of(np, nn, dp, mq, mn, dq): a QExt value spelled the way the laws below
+# name their elements -- re = (np - nn)/(1 + dp), im = (mq - mn)/(1 + dq), each
+# coordinate in the canonical presentation the Rat laws are stated over. A plain
+# abbreviation (nothing is normalized here, and no match is taken on the
+# arguments), so it unfolds to the constructor wherever a law or a fill writes
+# it; it exists to keep the six-coordinate statements readable.
+def QExt.of(+np: Nat, +nn: Nat, +dp: Nat, +mq: Nat, +mn: Nat, +dq: Nat) -> QExt:
+  QExt{R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat{R.Rat.num(mq, mn), 1n+dq}}
+
 # QExt.mul(d, x, y) = (xa + xb*sqrt d)(ya + yb*sqrt d)
 #                   = (xa*ya + d*xb*yb) + (xa*yb + xb*ya)*sqrt d
 def QExt.mul(+d: Nat, x: QExt, y: QExt) -> QExt:
@@ -135,3 +144,54 @@ law QExt.neg_neg:
   {QExt.neg(QExt.neg(QExt{R.Rat{R.Rat.num(np, nn), 1n+dp},
                           R.Rat{R.Rat.num(mq, mn), 1n+dq}}))
    == QExt{R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat{R.Rat.num(mq, mn), 1n+dq}} : QExt}
+
+# QExt.add_assoc: (x + y) + z = x + (y + z) for the additive group.
+#
+# Addition is componentwise, so this is one Rat.add_assoc per coordinate and
+# nothing else: two calls into rat_proofs.bend's fill, with no hypothesis of any
+# kind -- Rat.add_assoc takes none.
+#
+# The elements are named in the canonical presentation (QExt.of above), exactly
+# as QExt.neg_neg names its own and as every *composing* law of rat.bend names
+# its arguments: a difference-pair numerator over a successor denominator. That
+# is the presentation Rat.add_assoc is stated over, so a law written this way can
+# call it as it stands.
+#
+# The form over *arbitrary* QExt values (`for +x: QExt, +y: QExt, +z: QExt`) is
+# not in this round, and the obstruction is measured rather than guessed. For
+# arbitrary coordinates the Rat-level goal's two sides are mk-headed terms whose
+# closing lemma is Rat.mk.eqv.val, and that lemma needs the *positivity* of the
+# two denominators it compares -- which an arbitrary Rat has not got: a zero
+# denominator is a legal argument (Rat{Int{1,0}, 0}), mk's behavior there is
+# junk, and the value lemmas (mk.value, mk_idem.raw, add.value.mixed) all carry a
+# positivity hypothesis for exactly that reason. Reaching the general form needs
+# either the mk-headed Rat.add_assoc at the positivity hypotheses those lemmas
+# take, or a proof of the zero-denominator cases on their own; neither is built.
+# The restriction is on the proof side, not the truth side: every witness of the
+# general law that was evaluated agrees (PROVING.md records them), so no
+# counterexample justifies it -- it is what the machinery can presently reach.
+law QExt.add_assoc:
+  for +np1: Nat
+  for +nn1: Nat
+  for +dp1: Nat
+  for +mq1: Nat
+  for +mn1: Nat
+  for +dq1: Nat
+  for +np2: Nat
+  for +nn2: Nat
+  for +dp2: Nat
+  for +mq2: Nat
+  for +mn2: Nat
+  for +dq2: Nat
+  for +np3: Nat
+  for +nn3: Nat
+  for +dp3: Nat
+  for +mq3: Nat
+  for +mn3: Nat
+  for +dq3: Nat
+  {QExt.add(QExt.add(QExt.of(np1, nn1, dp1, mq1, mn1, dq1),
+                     QExt.of(np2, nn2, dp2, mq2, mn2, dq2)),
+            QExt.of(np3, nn3, dp3, mq3, mn3, dq3))
+   == QExt.add(QExt.of(np1, nn1, dp1, mq1, mn1, dq1),
+               QExt.add(QExt.of(np2, nn2, dp2, mq2, mn2, dq2),
+                        QExt.of(np3, nn3, dp3, mq3, mn3, dq3))) : QExt}
