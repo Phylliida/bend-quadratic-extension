@@ -118,6 +118,50 @@ def Rat.mul(x: Rat, y: Rat) -> Rat:
   Rat{+yn, +yd} = y
   Rat.mk(I.Int.mul(xn, yn), Nat.mul(xd, yd))
 
+# Rat.inv
+# =======
+#
+# x^-1 for a fraction written in *raw* coordinates: given the difference pair
+# (np, nn) its numerator is the pair np - nn and the reciprocal is
+#
+#     ((np - nn)/d)^-1 = d/(np - nn)
+#
+# -- the difference moves into the denominator slot -- so the sign of np - nn
+# has to be known before the value can be written down at all. That is a
+# Nat.cmp case split, and a computed Nat.cmp is not a legal match scrutinee
+# ("scrutinees in binder order": a match takes parameters and pattern-bound
+# variables, never a computed value), so the comparison arrives as a parameter
+# with {c == Nat.cmp(np, nn)} evidence, exactly as Nat.gcd.go and Int.canon.go
+# take theirs. What the split buys is that np - nn is a *difference of Nats with
+# its sign settled*: on the GT branch the numerator coordinate np - nn is the
+# magnitude, on the LT branch nn - np is, and in both cases Rat.num's other
+# coordinate is div(0, ..) = 0, which is what makes the result canonical.
+#
+# The result is the raw constructor, not a call of Rat.mk: for a canonical
+# input the pair (d, |np - nn|) is already reduced -- d is positive by the
+# canonicality hypothesis and gcd(|np - nn|, d) is 1 by the coprimality one --
+# so Rat.mk would return this same constructor, and writing it directly is what
+# puts the following law's product in a shape that reduces. It also keeps the
+# EQ branch honest: there the denominator is 0 and the value is junk, exactly
+# the stance Rat.mk takes on d = 0 -- no law claims anything about either.
+#
+# Rat.div(a, b) = a * b^-1 is then a definition, like Rat.sub: with b handed to
+# Rat.inv at its own tree the comparison is a computation and the {==} evidence
+# is free.
+def Rat.inv(+np: Nat, +nn: Nat, +d: Nat, c: Cmp, +e: {c == Nat.cmp(np, nn) : Cmp}) -> Rat:
+  match c:
+    case LT{}:
+      Rat{Rat.num(nn, np), Nat.sub(nn, np)}
+    case EQ{}:
+      Rat{Rat.num(np, nn), Nat.sub(np, nn)}
+    case GT{}:
+      Rat{Rat.num(np, nn), Nat.sub(np, nn)}
+
+def Rat.div(a: Rat, b: Rat) -> Rat:
+  match b:
+    case Rat{I.Int{+bp, +bnn}, +bd}:
+      Rat.mul(a, Rat.inv(bp, bnn, bd, Nat.cmp(bp, bnn), {==}))
+
 # The congruence laws
 # ===================
 #
