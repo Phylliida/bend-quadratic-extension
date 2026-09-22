@@ -1218,3 +1218,24 @@ law divides_pos_wit:
   for w: Nat.divides(g, a)
   for +p: {Nat.cmp(0n, a) == LT{} : Cmp}
   {Nat.cmp(0n, g) == LT{} : Cmp}
+
+# mul_pos_right: from a positive product, the right factor is positive. Same
+# discrimination as divides_pos, on the other factor: mul(g, 0) = 0 leaves a
+# successor equal to zero.
+law mul_pos_right:
+  for +g: Nat
+  for +q: Nat
+  for +ap: Nat
+  for +e: {1n+ap == Nat.mul(g, q) : Nat}
+  {Nat.cmp(0n, q) == LT{} : Cmp}
+
+# div_pos_wit: a positive dividend divided by a divisor of it is positive --
+# the denominator of Rat.mk's output is never zero, which is the one
+# canonicality clause of mk that the normalization proves by itself (the
+# numerator is a difference pair by construction, and coprimality of the output
+# is the deep part this route deliberately avoids).
+law div_pos_wit:
+  for +g: Nat
+  for +ap: Nat
+  for w: Nat.divides(g, 1n+ap)
+  {Nat.cmp(0n, Nat.div(1n+ap, g)) == LT{} : Cmp}

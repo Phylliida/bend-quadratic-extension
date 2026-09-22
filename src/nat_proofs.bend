@@ -1445,3 +1445,29 @@ def NL.divides_pos_wit(g, a, w, p):
     Equal.trans(Nat, 1n+Nat.sub(a, 1n), a, Nat.mul(g, q),
       Equal.sym(Nat, a, 1n+Nat.sub(a, 1n), NL.pos_witness(a, p)),
       e))
+
+def NL.mul_pos_right(g, q, ap, e):
+  match q:
+    case 0n:
+      Empty.absurd({Nat.cmp(0n, 0n) == LT{} : Cmp},
+        Nat.pos_ne_zero(ap,
+          Equal.trans(Nat, 1n+ap, Nat.mul(g, 0n), 0n, e, NL.mul_zero(g))))
+    case 1n+qp:
+      {==}
+
+# div_pos_wit: the witness gives div(1+ap, g) = q (div_exact, once g is written
+# as the successor pos_witness provides), so the goal is cmp(0, q) = LT, which
+# is mul_pos_right at the same witness.
+def NL.div_pos_wit(g, ap, w):
+  NL.Div{q, e} = w
+  %Equal.sym(Nat, g, 1n+Nat.sub(g, 1n),
+    NL.pos_witness(g, NL.divides_pos_wit(g, 1n+ap, w, {==})))
+    : {Nat.cmp(0n, Nat.div(1n+ap, _)) == LT{} : Cmp}
+  %Equal.sym(Nat, Nat.div(1n+ap, 1n+Nat.sub(g, 1n)), q,
+    NL.div_exact(1n+ap, Nat.sub(g, 1n), q,
+      Equal.trans(Nat, 1n+ap, Nat.mul(g, q), Nat.mul(1n+Nat.sub(g, 1n), q),
+        e,
+        Equal.cong(Nat, Nat, u => Nat.mul(u, q), g, 1n+Nat.sub(g, 1n),
+          NL.pos_witness(g, NL.divides_pos_wit(g, 1n+ap, w, {==}))))))
+    : {Nat.cmp(0n, _) == LT{} : Cmp}
+  NL.mul_pos_right(g, q, ap, e)
