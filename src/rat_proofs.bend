@@ -747,3 +747,34 @@ def R.Rat.mk.value.go(c, np, nn, d, e, pd, wm, wd):
           N.div_cross(P, G, 0n, d, dr, pg, e1, dwe)),
         Equal.cong(Nat, I.Int, u => I.Int{Nat.mul(P, Rr), u}, Nat.mul(B, d), Nat.mul(Q, Rr),
           N.div_cross(Q, G, 0n, d, dr, pg, e1z, dwe)))
+
+# Rat.mk.value: the two raw products are Int.mul of a numerator with the scaled
+# unit (d, 0) -- which is how Rat.add/Rat.mul write a Nat scale -- so
+# Int.mul_scale unfolds them into the coordinate pair Rat.mk.value.go is stated
+# in. In between, the two witnesses go straight through as Pair.fst/Pair.snd of
+# the pair gcd_divides returns: .go takes them as binders precisely so that
+# nothing here has to destructure a computed value.
+def R.Rat.mk.value(c, np, nn, d, e, pd):
+  +G = R.Rat.g(np, nn, d)
+  +P = Nat.sub(np, nn)
+  +Q = Nat.sub(nn, np)
+  +A = Nat.div(P, G)
+  +B = Nat.div(Q, G)
+  +Rr = Nat.div(d, G)
+  +M = R.Rat.mag(np, nn)
+  Equal.trans(I.Int,
+    I.Int.mul(R.Rat.numof(R.Rat.mk(I.Int{np, nn}, d)), I.Int{d, 0n}),
+    I.Int{Nat.mul(A, d), Nat.mul(B, d)},
+    I.Int.mul(R.Rat.num(np, nn), I.Int{R.Rat.denof(R.Rat.mk(I.Int{np, nn}, d)), 0n}),
+    I.Int.mul_scale(A, B, d),
+    Equal.trans(I.Int,
+      I.Int{Nat.mul(A, d), Nat.mul(B, d)},
+      I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
+      I.Int.mul(R.Rat.num(np, nn), I.Int{R.Rat.denof(R.Rat.mk(I.Int{np, nn}, d)), 0n}),
+      R.Rat.mk.value.go(c, np, nn, d, e, pd,
+        Pair.fst(N.Nat.divides(G, M), N.Nat.divides(G, d), N.gcd_divides(M, d)),
+        Pair.snd(N.Nat.divides(G, M), N.Nat.divides(G, d), N.gcd_divides(M, d))),
+      Equal.sym(I.Int,
+        I.Int.mul(R.Rat.num(np, nn), I.Int{R.Rat.denof(R.Rat.mk(I.Int{np, nn}, d)), 0n}),
+        I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
+        I.Int.mul_scale(P, Q, Rr))))

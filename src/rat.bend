@@ -413,3 +413,22 @@ law Rat.mk.value.go:
          Nat.mul(Nat.div(Nat.sub(nn, np), Rat.g(np, nn, d)), d)}
    == I.Int{Nat.mul(Nat.sub(np, nn), Nat.div(d, Rat.g(np, nn, d))),
             Nat.mul(Nat.sub(nn, np), Nat.div(d, Rat.g(np, nn, d)))} : I.Int}
+
+# Rat.mk.value: mk preserves the value -- the cross product relating a
+# normalized fraction to the fraction it came from. The headline law of the
+# block above, stated about a Rat *value* (hence numof/denof) rather than about
+# mk.go's coordinates.
+#
+# Its fill is the two Int.mul_scale bridges around Rat.mk.value.go, which is
+# what the raw spelling buys: the untouched statement is the one a caller has in
+# hand after an operation, and the reduced one is the one division can be
+# reasoned about in.
+law Rat.mk.value:
+  for c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +d: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  for +pd: {Nat.cmp(0n, d) == LT{} : Cmp}
+  {I.Int.mul(Rat.numof(Rat.mk(I.Int{np, nn}, d)), I.Int{d, 0n})
+   == I.Int.mul(Rat.num(np, nn), I.Int{Rat.denof(Rat.mk(I.Int{np, nn}, d)), 0n}) : I.Int}
