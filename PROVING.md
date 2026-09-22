@@ -1873,3 +1873,155 @@ attempted in this round.
 `Rat.mul_add_left` is then free: `(x + y)*z = z*(x + y) = z*x + z*y =
 x*z + y*z` is `Rat.mul_comm`, `Rat.mul_distrib`, and two `Rat.mul_comm`s under
 a congruence, the same shape `Rat.add_exchange` has on the additive side.
+
+### `Rat.mul_distrib` landed: three comparisons, and (T) needs no case split
+
+Landed, and the last two Rat laws the field needs:
+
+- **`Rat.mul_distrib`** -- `x*(y+z) = x*y + x*z` over the canonical
+  presentation, no coprimality hypothesis and no comparison parameter (nothing
+  is cased on anywhere in the fill).
+- **`Rat.mul_add_left`** -- `(x+y)*z = x*z + y*z`, and the previous round's
+  prediction held exactly: `mul_comm`, `mul_distrib`, one congruence per
+  summand, three steps and no arithmetic. It was written after `mul_distrib`
+  landed and checked on its first run, so the "free" claim is now a measurement
+  rather than an expectation.
+
+Cost: `rat_proofs.bend` 2665 -> 3469 lines -- fourteen proof-only helpers
+(`R.Rat.nat.swap`, `add2`, `scale.eq`, `scale.eq.r`, `gather`, `distrib`,
+`pair.scale`, `cross1`, `dist4`, `align.zd`, `align.yd`, `tl.scaled`,
+`tr.scaled`, `cross2`; 554 lines with their comments) plus the 208-line
+`mul_distrib` fill and the 42-line `mul_add_left` fill; `rat.bend`
+945 -> 1023 (the two laws and their comments). All five gates green,
+`rat.bend` alone reports **197** TODOs (was 195, one per new law).
+
+#### The design fix: three `mk.eqv.val` comparisons, not one
+
+The previous round settled the *consumer* (`mk.eqv.val`, not `mk.eqv.raw`)
+but left one step unmeasured -- "spilling `numof(M2)`, a `div`/`gcd` term,
+into the inner sum's own value pair inside the cross sum" -- and that step is
+where the route looks hard. It is hard, and it does not have to be taken:
+comparing the two sides **directly** puts every quotient of both operations
+into *one* cross sum, which then needs the whole equation multiplied by
+`K = d1*d2*d3`, the six value equations substituted inside it, and `K`
+cancelled at the end (`Nat.mul_right_cancel`) -- the substitution is real
+work and it is bookkeeping for a single comparison.
+
+Comparing in three hops removes all of it, because each hop is at its own
+denominators:
+
+    mk(num(x)*numof(M2), xd*denof(M2))
+      == U_L = mk(num(x)*Rat.num(U2,V2), Xd*d2)        [the inner sum's value]
+      == U_R = mk(P1*d3 + P3*d1, Q1*d3 + Q3*d1 over d1*d3)
+      == Rat.add(M1, M3)                               [Rat.add.value, exactly]
+
+- the first hop needs only the **two coordinates of `Rat.mk.value` at the
+  inner sum**, scaled by `Xd` -- i.e. exactly the `Rat.value.scaled.pos`/`.neg`
+  pair the previous round landed, used for the first time here;
+- the second hop is `(T)` multiplied by `d1*d3` and nothing else -- no value
+  equation, no `div`, no `gcd`;
+- the third hop is `Rat.add.value`: `U_R` *is* that law's own conclusion, so
+  this step is two `Rat.mk.rep` rewrites (backwards), two `pos_witness`
+  rewrites to the successor denominators `Rat.add.value` is stated over, the
+  law, and `Int.mul_scale` on the sum's two products. No cross sum at all.
+
+That is the general lesson for the remaining Rat work: an identity that can be
+decomposed through the *value* of an intermediate result should be, because
+each hop is then a comparison the existing laws already state, and the one
+hard Nat identity stays small.
+
+#### (T) from the padded hypotheses -- the letters the previous round got wrong
+
+`R.Rat.nat.distrib` proves
+
+    (a1*P2 + b1*Q2) + Q1*Zd + Q3*Yd  ==  P1*Zd + P3*Yd + a1*Q2 + b1*P2
+
+with **no case analysis**. The route one reaches for first -- split on the sign
+of `x`'s numerator, where the identity collapses to the inner sum's cross sum
+scaled by `a1` (in the `b1 = 0` branch) or by `b1` (in the `a1 = 0` branch) --
+is not needed: the identity is uniform in the two coordinate pairs, and what
+proves it is the padded-hypotheses idea this file's earlier paragraph described
+with the wrong letters:
+
+    e1 : a1*P2 + b1*Q2   + (a1*V2 + b1*U2) == a1*Q2 + b1*P2   + (a1*U2 + b1*V2)
+    e2 : (P1*Zd + P3*Yd) + (V1*Zd + V3*Yd) == (Q1*Zd + Q3*Yd) + (U1*Zd + U3*Yd)
+
+Both carry the padding `(V1*Zd + V3*Yd, U1*Zd + U3*Yd)`, and `Nat.cross_add`
+at `(A, A2, B, B2, t, t2) := (a1*P2 + b1*Q2, a1*Q2 + b1*P2, P1*Zd + P3*Yd,
+Q1*Zd + Q3*Yd, V1*Zd + V3*Yd, U1*Zd + U3*Yd)` gives the goal after one
+re-association. Where the two facts come from:
+
+- `e1` is the inner sum's cross sum `P2 + V2 = Q2 + U2` scaled by `a1` and by
+  `b1` and added (`R.Rat.nat.scale.eq` twice, then `R.Rat.nat.add2`, whose
+  `swap` shuffle is the five-step association `(A+B)+(t+s) -> (A+t)+(B+s)`);
+  no truncation reasoning, so both scales are the *raw* coordinates.
+- `e2` is the same two-step construction on the two product pairs, scaled by
+  the other summand's denominator `Zd` and `Yd`.
+- The padding equality is where the two `R.Rat.nat.gather` facts enter: they
+  are the pure ring facts
+
+      a1*U2 + b1*V2 = U1*Zd + U3*Yd        a1*V2 + b1*U2 = V1*Zd + V3*Yd
+
+  i.e. distributing each multiplier over the inner pair's coordinates and
+  folding the products back into the product pairs' coordinates -- which is
+  also the sentence the whole identity *means*: `(a1-b1)(P2-Q2) =
+  Zd(P1-Q1) + Yd(P3-Q3)`.
+
+The previous round's restatement of `e1`/`e2` was wrong in the way this file
+recorded (its paddings were `b1*U2 + a1*V2` shapes, which are also swapped
+between the two hypotheses and so cannot both match `cross_add`'s single
+padding pair); the two written above do combine, and the fact that makes them
+combine is that the inner sum is scaled by `a1` on one side of `e1` and by
+`b1` on the other, so the *shared* piece is the pair `(V1*Zd + V3*Yd,
+U1*Zd + U3*Yd)` and not a middle summand.
+
+The two hops that do not feed `(T)` are ring bookkeeping with no arithmetic
+content, and they are the bulk of the helper block:
+
+- `R.Rat.nat.cross1` + `pair.scale`: the first hop's cross sum, four products
+  re-associated from the shape `(c1*x1 + c2*x2)*(d2*Xd)` to
+  `(c1*y1 + c2*y2)*(Xd*m2)` -- one commutation each because the left side's
+  own denominator is `Xd*m2` (written by `Rat.mul`) while the scaled value
+  equations come out of `Rat.value.scaled` in the `m2*Xd` order;
+- `R.Rat.nat.cross2` + `tl.scaled`/`tr.scaled`/`dist4`/`align.zd`/`align.yd`:
+  the second hop, `(T)` multiplied by `d1*d3` and re-associated into
+  `ULp*(d1*d3) + URn*(d2*Xd) = URp*(d2*Xd) + ULn*(d1*d3)`. Every alignment is
+  a commutation of the multiset `{Xd, Yd, Zd}` with its multiplicities -- four
+  or five steps each, and pure `mul_comm`/`mul_assoc` after that.
+
+Nothing in the block needs a new Nat law: three `Nat.sub_cross` instances, one
+`Nat.cross_add`, and `mul_comm`/`mul_assoc`/`mul_add_left`/`mul_distrib`.
+
+#### Four checker rules this round paid for
+
+- **`%`'s semantics, exactly.** `%E : {P}` takes the *current* goal `T`, solves
+  `P`'s hole against `T`, and rewrites the occurrence the hole marks -- which
+  must therefore be an occurrence of `E`'s **right** side -- into `E`'s left
+  side; the rest of the chain then proves the rewritten goal. So the annotation
+  is the goal *before* the step, not after, and it must place the hole at the
+  exact subterm being rewritten: **there is no automatic congruence.** An
+  annotation whose hole sits at a larger term (`{Nat.mul(x, Nat.mul(Yd, _))}`
+  when only `mul(Xd,Zd)` inside it is being rewritten) demands an evidence
+  about that larger term and fails. The rule is now measured rather than
+  guessed, and the two alignment helpers are written with it.
+- **A let-bound `Equal.cong` cannot be inferred** -- the earlier note is
+  confirmed, with the exact symptom: `+u3s = Equal.cong(Nat, I.Int, v =>
+  I.Int{v, 0n}, ds3, d3, e3s)` fails with `expected : an annotated term
+  (cannot infer)` and `observed : int.Int{...}` (the *substituted* argument),
+  which reads like a problem with the constructor literal and is not one; the
+  same cong inlined in a `Equal.trans` checks. Let-bound `Equal.trans` values
+  are fine, and so are let-bound *applications* of helper defs.
+- **A hypothesis can be made reusable with `+`.** `R.Rat.nat.distrib` needs
+  the same cross sum twice (once per scale), and the default linear hypothesis
+  gives `expected : e2 / observed : e2 (consumed more than once)`. `+e2: {...}`
+  in the telescope fixes it, which is the same quantity discipline the laws
+  use on their own fields.
+- **Constructor literals in argument positions**: `I.Int{ds, 0n}` as the `a`
+  or `b` argument of a `cong` goes through `I.Int.unit(ds)` in this codebase's
+  idiom; the failure above was *not* this, but the units are what the landed
+  fills spell and there is no reason to write the literal.
+
+Next, on the same recipe: **QExt over Rat** -- the field axioms, then the
+multiplicative inverse `1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`, whose
+denominator is a difference of two squares and so is the first place the two
+distributive laws meet a `Rat.sub`.

@@ -67,7 +67,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 126, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 195 = 126 Nat + 32 Int + 37 Rat.
+QExt, rat.bend 197 = 126 Nat + 32 Int + 39 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -211,19 +211,29 @@ Known gaps, in dependency order:
    at all: it is the three-step derivation from the two laws above it
    (`add_comm`, `add_assoc` read backwards, one congruence), so no new
    machinery.
-   Still open:
-   - `mul_distrib` and its mirror `mul_add_left` -- the two distributive laws,
-     where the mk-headed summand meets a *product* rather than a sum. The route
-     is spelled out in `PROVING.md` with its two measured steps: `Rat.mk.eqv.raw`
-     *cannot* close it as the operations write it (at `1/2, -1/3, 1/5` the raw
-     cross products are `Int{0,120}` against `Int{180,300}`), while one
-     `Rat.mk.trunc` on the sum-side numerator makes them agree (`Int{0,120}`
-     against `Int{0,120}`), so the closing step is `mk.eqv.raw` after mk.trunc
-     and not `mk.eqv.val`; the cross product then comes from `Rat.mk.value` on
-     the three pieces scaled by the inner sum's denominator, which leaves one
-     pure Nat identity -- a `Nat.cross_add` combination of the same
-     `Nat.sub_cross` instances -- for the shuffle inventory
-     `rat_proofs.bend` already carries.
+   `Rat.mul_distrib` is the newest, and it is the law whose closing step had to
+   be *remeasured*: `Rat.mk.eqv.raw` cannot close it, because the two mk
+   arguments are different representatives of one rational and that law's
+   hypothesis is a cross *product* between the pairs (the earlier
+   `mk.trunc`-on-the-sum-side route is refuted too -- both spellings fail at all
+   ten canonical instances tested). The consumer is `Rat.mk.eqv.val`, reached in
+   three comparisons: the left-hand side against a *value-cleared* `U_L`
+   (`num(x)*Rat.num(U2,V2)` over `xd*d2`, from the two `Rat.value.scaled`
+   readings of `Rat.mk.value` at the inner sum), `U_L` against the right-hand
+   side's own unreduced sum `U_R` (the pure Nat identity `(T)` PROVING.md
+   records, multiplied by the common denominator `d1*d3`), and `U_R` against
+   the right-hand side, which is exactly `Rat.add.value` plus two `Rat.mk.rep`
+   steps and `Int.mul_scale`. `(T)` itself is proved by the padded-hypotheses
+   route -- the inner sum's cross sum scaled by `x`'s two numerator coordinates
+   and the two products' cross sums scaled by `Zd`/`Yd` share a padding, so
+   `Nat.cross_add` combines them criss-cross -- with **no case analysis and no
+   new Nat law**: the whole Nat block is fourteen proof-only helpers in
+   `rat_proofs.bend` (`R.Rat.nat.distrib` and the shuffles it is built from).
+   `Rat.mul_add_left` follows for free, exactly as PROVING.md predicted: three
+   steps (`mul_comm`, `mul_distrib`, two `mul_comm`s under a congruence) and no
+   arithmetic at all.
+   Still open: the `QExt` block below -- both distributive laws are now in, so
+   the remaining Rat-side work is the field axioms and the inverse.
 2. `QExt` over `Rat`: field axioms plus the multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`).
 3. Binary nats for performance (unary `Nat` is O(value)).
