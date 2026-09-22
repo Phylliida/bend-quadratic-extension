@@ -1707,6 +1707,25 @@ the cross sum `mk.eqv.val` would want is in terms of the *projections*, which
 are opaque `div` terms, and every way of eliminating them from a Nat equation
 runs into a factor that cannot be cancelled.
 
+**A warning about the two measurements above.** Both were reproduced (the
+cross products `Int{0,120}` against `Int{180,300}` before `mk.trunc` and
+`Int{0,120}` against `Int{0,120}` after), but `mk.trunc` on the RHS numerator
+alone is *not* enough in general: checked at nine further instances of the
+canonical presentation (including `X=1/2, Y=-1/3, Z=1/5` itself, and one with
+two-sided coordinates) the cross product with the RHS truncated and the LHS as
+`Int.mul(xn, numof(M2))` is equal at exactly one of them
+(`X=1/4, Y=-5/3, Z=5/5`). So the closing step is *not* "`mk.eqv.raw` after one
+`mk.trunc`" as the text below says; either both numerators have to be
+canonicalized first, or the comparison has to be made between the coordinate
+*pairs* rather than the raw numerators. Whoever takes this next should measure
+the closing step before writing the fill -- the two sides of the identity the
+fill actually proves are unambiguous (the coordinate equations give
+
+    A*C + D2*E2 == G1*C + q2*dd        (A, G1, q2, D2E2 as below)
+
+at every one of the ten instances checked), but which `Rat.mk` lemma consumes
+it is not settled by the two measurements recorded here.
+
 **The cross product itself** is then assembled the way `Rat.mul_assoc` and
 `Rat.add.value` assemble theirs: scale both sides of the equation by
 `d2 = Yd*Zd` (the inner sum's own denominator) and use the three value
