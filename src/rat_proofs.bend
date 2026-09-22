@@ -2536,14 +2536,130 @@ def R.Rat.value.scaled(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Nat,
     I.Int{Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d))},
     I.Int{Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b))}, v)
 
-# nat.coord.first: the first coordinate's surviving term, normalised from
-# `mul(add(mul(p,d), mul(q,0)), 0)`-free form to the scale-first product
-# `mul(p, mul(d, C))`. The zero addend collapses with mul_zero through the
-# commutativity of 0, and the two scales merge with mul_assoc.
-# nat.coord.term: the surviving first term of a coordinate, with its zero
-# addend off -- the one rewrite every coordinate needs before the scale can be
-# pushed inside, kept separate because it is a plain instantiation of
-# Nat.add_zero and because spelling it here keeps the callers short.
+# nat.coord.term: the surviving term of a coordinate, with its zero addend off
+# -- the one rewrite both coordinates need first, kept separate because it is a
+# plain instantiation of Nat.add_zero and because spelling it here keeps the
+# two coordinate laws short.
 def R.Rat.nat.coord.term(+x: Nat)
   -> {Nat.add(x, 0n) == x : Nat}:
   N.add_zero(x)
+
+# nat.zero.add: 0 + x = x, read *backwards* from add_zero. `Nat.add` matches on
+# its first argument, so `Nat.add(0n, x)` is stuck and `add_zero` (stated over
+# the *other* order) does not reach it; the two steps are add_comm and
+# add_zero. The value is a plain equation, so the lands are just their
+# orientations: `Equal.sym` is handed the evidence in *its* order (`(a, b)` with
+# `e : {a == b}`) and yields `{b == a}`, which is what running the chain
+# backwards needs.
+def R.Rat.nat.zero.add(+x: Nat)
+  -> {Nat.add(0n, x) == x : Nat}:
+  Equal.trans(Nat, Nat.add(0n, x), Nat.add(x, 0n), x,
+    N.add_comm(0n, x), N.add_zero(x))
+
+# nat.coord.first: the first coordinate of a *scaled* difference pair, with its
+# zero product and zero addend off: mul(xp, mul(d, C)).
+#
+# Why `Equal.trans` and `Equal.cong` rather than `%`: the collapse of the
+# surviving term's own zero product is the documented `%`-hole trap. `%` with
+# the evidence `{mul(xp, 0n) == 0n}` demands the goal WITH that zero still in it
+# as the annotation's endpoint, while the goal `Equal.trans` is being handed is
+# already the collapsed `mul(xp, mul(d,C))` -- so the check fails with
+# `expected : <goal>` against `observed : <the same goal, zero removed>`. The
+# collapse is reached here through a `cong` on the product's *right* factor (a
+# lambda body, so no annotation is involved) and only then collapsed; a bare
+# `%` over the product context cannot express it. The lambda's type arguments
+# are written out (`Nat, I.Int`, not `I.Int, I.Int`) as everywhere else.
+#
+# The zero products do not reduce (`Nat.mul` matches on its first argument, a
+# variable), so they are laws; the first coordinate's stuck one is the *right*
+# factor of the surviving product and its collapse is a `cong` on `u => mul(A,u)`
+# -- `mul_zero` is stated `mul(x,0n) == 0n`, i.e. already in the orientation the
+# goal wants, so no `Equal.sym` is needed there.
+def R.Rat.nat.coord.first(+xp: Nat, +xn: Nat, +d: Nat, +C: Nat)
+  -> {Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), C) == Nat.mul(xp, Nat.mul(d, C)) : Nat}:
+  Equal.trans(Nat,
+    Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), C),
+    Nat.mul(Nat.add(Nat.mul(xp, d), 0n), C),
+    Nat.mul(xp, Nat.mul(d, C)),
+    Equal.cong(Nat, Nat, u => Nat.mul(u, C), Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)),
+      Nat.add(Nat.mul(xp, d), 0n),
+      Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(xp, d), u), Nat.mul(xn, 0n), 0n,
+        N.mul_zero(xn))),
+    Equal.trans(Nat,
+      Nat.mul(Nat.add(Nat.mul(xp, d), 0n), C),
+      Nat.mul(Nat.mul(xp, d), C),
+      Nat.mul(xp, Nat.mul(d, C)),
+      Equal.cong(Nat, Nat, u => Nat.mul(u, C), Nat.add(Nat.mul(xp, d), 0n),
+        Nat.mul(xp, d), R.Rat.nat.coord.term(Nat.mul(xp, d))),
+      N.mul_assoc(xp, d, C)))
+
+# nat.coord.second: the second coordinate of a scaled difference pair, with the
+# zero product of the *first* addend and its zero addend off: mul(xn, mul(d, C)).
+# The stuck zero is now the left factor of `mul(mul(xp,0n), C)`, so it comes off
+# with `muL_zero` written in the evidence's own orientation (`0n == mul(xp,0n)`,
+# via `Equal.sym`) under a `cong` on that product -- the mirror of
+# nat.coord.first's `mul`-right hole, and the same reason (`%` would leave the
+# zero in the endpoint it compares against).
+def R.Rat.nat.coord.second(+xp: Nat, +xn: Nat, +d: Nat, +C: Nat)
+  -> {Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), C) == Nat.mul(xn, Nat.mul(d, C)) : Nat}:
+  Equal.trans(Nat,
+    Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), C),
+    Nat.mul(Nat.mul(xn, d), C),
+    Nat.mul(xn, Nat.mul(d, C)),
+    Equal.cong(Nat, Nat, u => Nat.mul(u, C), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)),
+      Nat.mul(xn, d),
+      Equal.trans(Nat, Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), Nat.add(0n, Nat.mul(xn, d)),
+        Nat.mul(xn, d),
+        Equal.cong(Nat, Nat, u => Nat.add(u, Nat.mul(xn, d)), Nat.mul(xp, 0n), 0n,
+          N.mul_zero(xp)),
+        R.Rat.nat.zero.add(Nat.mul(xn, d)))),
+    N.mul_assoc(xn, d, C))
+
+# value.scaled.pos / .neg: the scaled value equation read at one of its two Nat
+# coordinates, with the coordinate normalised to the scale-first product both
+# sides of the composing laws are written in. The Int equation `v` reduces to
+# the coordinate equation by Int.eq.pos / Int.eq.neg, and the normalisation is
+# the two Nat laws above -- one per side, so four calls and three `cong`s: the
+# three congs carry the rewrite under the *other* coordinate of the constructor
+# (which the normalisation does not touch) and under the outer `Int` equality.
+# Nothing here is specific to mul_distrib; a law whose value equation is scaled
+# and then read coordinate-wise needs exactly this pair.
+def R.Rat.value.scaled.pos(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Nat, +C: Nat,
+            v: {I.Int{Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d))}
+                == I.Int{Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b))} : I.Int})
+  -> {Nat.mul(xp, Nat.mul(d, C)) == Nat.mul(yp, Nat.mul(b, C)) : Nat}:
+  Equal.trans(Nat,
+    Nat.mul(xp, Nat.mul(d, C)),
+    Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), C),
+    Nat.mul(yp, Nat.mul(b, C)),
+    Equal.sym(Nat, Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), C),
+      Nat.mul(xp, Nat.mul(d, C)), R.Rat.nat.coord.first(xp, xn, d, C)),
+    Equal.trans(Nat,
+      Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), C),
+      Nat.mul(Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), C),
+      Nat.mul(yp, Nat.mul(b, C)),
+      Equal.cong(Nat, Nat, u => Nat.mul(u, C),
+        Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)),
+        I.Int.eq.pos(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)),
+          Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)), v)),
+      R.Rat.nat.coord.first(yp, yn, b, C)))
+
+def R.Rat.value.scaled.neg(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Nat, +C: Nat,
+            v: {I.Int{Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d))}
+                == I.Int{Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b))} : I.Int})
+  -> {Nat.mul(xn, Nat.mul(d, C)) == Nat.mul(yn, Nat.mul(b, C)) : Nat}:
+  Equal.trans(Nat,
+    Nat.mul(xn, Nat.mul(d, C)),
+    Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), C),
+    Nat.mul(yn, Nat.mul(b, C)),
+    Equal.sym(Nat, Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), C),
+      Nat.mul(xn, Nat.mul(d, C)), R.Rat.nat.coord.second(xp, xn, d, C)),
+    Equal.trans(Nat,
+      Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), C),
+      Nat.mul(Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)), C),
+      Nat.mul(yn, Nat.mul(b, C)),
+      Equal.cong(Nat, Nat, u => Nat.mul(u, C),
+        Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)),
+        I.Int.eq.neg(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)),
+          Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)), v)),
+      R.Rat.nat.coord.second(yp, yn, b, C)))
