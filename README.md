@@ -81,9 +81,9 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The five
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 127, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 208 = 127 Nat + 32 Int + 49 Rat, qrat.bend 215 = 127 Nat +
-32 Int + 49 Rat + 7 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own seven laws).
+QExt, rat.bend 208 = 127 Nat + 32 Int + 49 Rat, qrat.bend 216 = 127 Nat +
+32 Int + 49 Rat + 8 QExt (it imports rat.bend itself, so its count is
+rat.bend's plus its own eight laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -365,7 +365,13 @@ Known gaps, in dependency order:
    in hand no coprimality is needed at all. PROVING.md's last section records
    the measurements.
    What is left on the Rat side of the inverse is the field axioms minus the
-   multiplicative inverse itself; on the QExt side the next unit is
-   `QExt.conj`/`QExt.norm` and the division-free rationalization
-   `x * conj(x) = a^2 - b^2 d`, which is what the three laws above were for.
+   multiplicative inverse itself. On the QExt side the division-free
+   rationalization is **in**: `QExt.conj` and `QExt.norm` are two cheap defs
+   (`conj(x) = (re, -im)`, `norm(d,x) = a^2 - b^2 d` as a `Rat`), and
+   `QExt.mul_conj` states `x * conj(x) = norm(d,x) + 0*sqrt d`, filled by two
+   Rat chains over the coefficients -- `Rat.mul_neg` twice in the real
+   coordinate, once in the imaginary one, then `Rat.mul_comm`/`Rat.add_comm`
+   and `Rat.add_neg` to reach zero. The literal division form
+   `1/(a + b*sqrt d) = conj(x)/norm(d,x)` is one Rat division away, and that
+   operation with its field laws is the unit after this one.
 3. Binary nats for performance (unary `Nat` is O(value)).

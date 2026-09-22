@@ -824,3 +824,94 @@ def Q.QExt.mul_distrib(d, x, y, z, gx, hx, gy, hy, gz, hz):
           QExt.mul_distrib.re(d, xa, xb, ya, yb, za, zb, gx, hx, gy, hy, gz, hz)),
         qext.im(Rr, Li, Ri,
           QExt.mul_distrib.im(d, xa, xb, ya, yb, za, zb, gx, hx, gy, hy, gz, hz)))
+
+# QExt.mul_conj
+# =============
+#
+# The rationalization, division-free: the two coordinates of x*conj(x) are now
+# ordinary Rat chains over the two coefficients, and every step in them is a law
+# that landed with the negation block.
+#
+# The real coordinate starts at xa*xa + D*(xb*(-xb)) and ends at
+# Rat.sub(xa*xa, D*(xb*xb)) = xa*xa + (-(D*(xb*xb))): Rat.mul_neg at (xb,xb)
+# under the radicand cong, then Rat.mul_neg at (D, xb*xb) to pull the negation
+# out of the product, and the last step is `{==}`, since Rat.sub *is*
+# Rat.add with a negated second summand.
+#
+# The imaginary coordinate is xa*(-xb) + xb*xa: Rat.mul_neg at (xa,xb) makes the
+# first summand -(xa*xb), Rat.mul_comm makes the second one xa*xb, Rat.add_comm
+# puts the sum in the order Rat.add_neg wants, and Rat.add_neg closes it at
+# zero.
+#
+# The positivity the three Rat laws ask for is the two hypotheses plus the two
+# derived facts: Rat.mul.den.pos for xb*xb (the radicand product's second
+# factor) and for xa*xb (the value the additive law is applied to).
+
+def QExt.mul_conj.re(+d: Nat, +xa: R.Rat, +xb: R.Rat,
+                     +hx: {Nat.cmp(0n, R.Rat.denof(xb)) == LT{} : Cmp})
+  -> {R.Rat.add(R.Rat.mul(xa, xa),
+                R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(xb, R.Rat.neg(xb))))
+      == R.Rat.sub(R.Rat.mul(xa, xa),
+                   R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(xb, xb))) : R.Rat}:
+  +D = Q.QExt.nat(d)
+  +E = R.Rat.mul(xb, xb)
+  +e1 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.mul(xa, xa), R.Rat.mul(D, u)),
+    R.Rat.mul(xb, R.Rat.neg(xb)), R.Rat.neg(R.Rat.mul(xb, xb)),
+    R.Rat.mul_neg(xb, xb, hx, hx))
+  +e2 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.mul(xa, xa), u),
+    R.Rat.mul(D, R.Rat.neg(E)), R.Rat.neg(R.Rat.mul(D, E)),
+    R.Rat.mul_neg(D, E, {==}, R.Rat.mul.den.pos(xb, xb, hx, hx)))
+  Equal.trans(R.Rat,
+    R.Rat.add(R.Rat.mul(xa, xa), R.Rat.mul(D, R.Rat.mul(xb, R.Rat.neg(xb)))),
+    R.Rat.add(R.Rat.mul(xa, xa), R.Rat.mul(D, R.Rat.neg(E))),
+    R.Rat.sub(R.Rat.mul(xa, xa), R.Rat.mul(D, E)),
+    e1,
+    Equal.trans(R.Rat,
+      R.Rat.add(R.Rat.mul(xa, xa), R.Rat.mul(D, R.Rat.neg(E))),
+      R.Rat.add(R.Rat.mul(xa, xa), R.Rat.neg(R.Rat.mul(D, E))),
+      R.Rat.sub(R.Rat.mul(xa, xa), R.Rat.mul(D, E)),
+      e2,
+      {==}))
+
+def QExt.mul_conj.im(+xa: R.Rat, +xb: R.Rat,
+                     +gx: {Nat.cmp(0n, R.Rat.denof(xa)) == LT{} : Cmp},
+                     +hx: {Nat.cmp(0n, R.Rat.denof(xb)) == LT{} : Cmp})
+  -> {R.Rat.add(R.Rat.mul(xa, R.Rat.neg(xb)), R.Rat.mul(xb, xa))
+      == R.Rat.zero() : R.Rat}:
+  +U = R.Rat.mul(xa, xb)
+  +e1 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(u, R.Rat.mul(xb, xa)),
+    R.Rat.mul(xa, R.Rat.neg(xb)), R.Rat.neg(R.Rat.mul(xa, xb)),
+    R.Rat.mul_neg(xa, xb, gx, hx))
+  +e2 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.neg(U), u),
+    R.Rat.mul(xb, xa), R.Rat.mul(xa, xb), R.Rat.mul_comm(xb, xa))
+  +e3 = R.Rat.add_comm(R.Rat.neg(U), U)
+  Equal.trans(R.Rat,
+    R.Rat.add(R.Rat.mul(xa, R.Rat.neg(xb)), R.Rat.mul(xb, xa)),
+    R.Rat.add(R.Rat.neg(U), U),
+    R.Rat.zero(),
+    Equal.trans(R.Rat,
+      R.Rat.add(R.Rat.mul(xa, R.Rat.neg(xb)), R.Rat.mul(xb, xa)),
+      R.Rat.add(R.Rat.neg(U), R.Rat.mul(xb, xa)),
+      R.Rat.add(R.Rat.neg(U), U),
+      e1, e2),
+    Equal.trans(R.Rat,
+      R.Rat.add(R.Rat.neg(U), U),
+      R.Rat.add(U, R.Rat.neg(U)),
+      R.Rat.zero(),
+      e3,
+      R.Rat.add_neg(U, R.Rat.mul.den.pos(xa, xb, gx, hx))))
+
+def Q.QExt.mul_conj(d, x, gx, hx):
+  match x:
+    case Q.QExt{xa, xb}:
+      +D = Q.QExt.nat(d)
+      +Lr = R.Rat.add(R.Rat.mul(xa, xa),
+                      R.Rat.mul(D, R.Rat.mul(xb, R.Rat.neg(xb))))
+      +Li = R.Rat.add(R.Rat.mul(xa, R.Rat.neg(xb)), R.Rat.mul(xb, xa))
+      +Rr = R.Rat.sub(R.Rat.mul(xa, xa), R.Rat.mul(D, R.Rat.mul(xb, xb)))
+      Equal.trans(Q.QExt,
+        Q.QExt{Lr, Li},
+        Q.QExt{Rr, Li},
+        Q.QExt{Rr, R.Rat.zero()},
+        qext.re(Li, Lr, Rr, QExt.mul_conj.re(d, xa, xb, hx)),
+        qext.im(Rr, Li, R.Rat.zero(), QExt.mul_conj.im(xa, xb, gx, hx)))
