@@ -303,6 +303,29 @@ def NL.cmp_add_right(a, b, k):
     case 1n+ap 1n+bp:
       NL.cmp_add_right(ap, bp, k)
 
+def NL.cmp_add_left(k, a, b):
+  match k:
+    case 0n:
+      {==}
+    case 1n+kp:
+      NL.cmp_add_left(kp, a, b)
+
+def NL.cmp_mul_right(a, b, k):
+  match a:
+    case 0n:
+      match b:
+        case 0n:
+          {==}
+        case 1n+bp:
+          {==}
+    case 1n+ap:
+      match b:
+        case 0n:
+          {==}
+        case 1n+bp:
+          %Equal.sym(Cmp, Nat.cmp(Nat.add(k, Nat.mul(ap, 1n+k)), Nat.add(k, Nat.mul(bp, 1n+k))), Nat.cmp(Nat.mul(ap, 1n+k), Nat.mul(bp, 1n+k)), NL.cmp_add_left(k, Nat.mul(ap, 1n+k), Nat.mul(bp, 1n+k))) : {_ == Nat.cmp(ap, bp) : Cmp}
+          NL.cmp_mul_right(ap, bp, k)
+
 def NL.cmp_gt_succ(a, b, e):
   match a b:
     case 0n 0n:
@@ -673,3 +696,23 @@ def NL.cmp_sub_flip_of(d, a, b, c, ed, ea, eb):
     Equal.trans(Cmp, NL.Cmp.flip(Nat.cmp(Nat.sub(c, a), b)), NL.Cmp.flip(NL.Cmp.flip(Nat.cmp(a, Nat.sub(c, b)))), Nat.cmp(a, Nat.sub(c, b)),
       Equal.cong(Cmp, Cmp, NL.Cmp.flip, Nat.cmp(Nat.sub(c, a), b), NL.Cmp.flip(Nat.cmp(a, Nat.sub(c, b))), NL.cmp_sub_flip(a, b, c, ea, eb)),
       NL.flip_flip(Nat.cmp(a, Nat.sub(c, b)))))
+
+def NL.sub_of_add(u, v, w, e):
+  %e : {Nat.sub(_, v) == u : Nat}
+  NL.add_sub_cancel(u, v)
+
+def NL.mul_sub_add(a, b, c, e):
+  Equal.trans(Nat,
+    Nat.add(Nat.mul(c, Nat.sub(a, b)), Nat.mul(c, b)),
+    Nat.mul(c, Nat.add(Nat.sub(a, b), b)),
+    Nat.mul(c, a),
+    NL.mul_distrib(c, Nat.sub(a, b), b),
+    Equal.cong(Nat, Nat, t => Nat.mul(c, t),
+      Nat.add(Nat.sub(a, b), b), a, NL.cmp_gt_sub_add(a, b, e)))
+
+def NL.mul_sub(a, b, c, e):
+  Equal.sym(Nat,
+    Nat.sub(Nat.mul(c, a), Nat.mul(c, b)),
+    Nat.mul(c, Nat.sub(a, b)),
+    NL.sub_of_add(Nat.mul(c, Nat.sub(a, b)), Nat.mul(c, b), Nat.mul(c, a),
+      NL.mul_sub_add(a, b, c, e)))

@@ -188,6 +188,31 @@ law sub_sub_swap:
   for +c: Nat
   {Nat.sub(Nat.sub(c, a), b) == Nat.sub(Nat.sub(c, b), a) : Nat}
 
+# sub_of_add: u + v = w -> w - v = u
+law sub_of_add:
+  for +u: Nat
+  for +v: Nat
+  for +w: Nat
+  for e: {Nat.add(u, v) == w : Nat}
+  {Nat.sub(w, v) == u : Nat}
+
+# mul_sub_add: a >= b -> c*(a - b) + c*b = c*a  (multiplication distributes
+# over truncated subtraction, stated in the form sub-cancellation consumes)
+law mul_sub_add:
+  for +a: Nat
+  for +b: Nat
+  for +c: Nat
+  for e: {Nat.cmp(a, b) == GT{} : Cmp}
+  {Nat.add(Nat.mul(c, Nat.sub(a, b)), Nat.mul(c, b)) == Nat.mul(c, a) : Nat}
+
+# mul_sub: a >= b -> c*(a - b) = c*a - c*b
+law mul_sub:
+  for +a: Nat
+  for +b: Nat
+  for +c: Nat
+  for e: {Nat.cmp(a, b) == GT{} : Cmp}
+  {Nat.mul(c, Nat.sub(a, b)) == Nat.sub(Nat.mul(c, a), Nat.mul(c, b)) : Nat}
+
 # eq_ne_lt / gt_ne_lt: remaining Cmp discriminations
 law eq_ne_lt:
   for e: {EQ{} == LT{} : Cmp}
@@ -220,6 +245,20 @@ law cmp_add_right:
   for +b: Nat
   for +k: Nat
   {Nat.cmp(Nat.add(a, k), Nat.add(b, k)) == Nat.cmp(a, b) : Cmp}
+
+# cmp_add_left: adding the same k on the left preserves cmp
+law cmp_add_left:
+  for +k: Nat
+  for +a: Nat
+  for +b: Nat
+  {Nat.cmp(Nat.add(k, a), Nat.add(k, b)) == Nat.cmp(a, b) : Cmp}
+
+# cmp_mul_right: scaling both sides by a positive k preserves cmp
+law cmp_mul_right:
+  for +a: Nat
+  for +b: Nat
+  for +k: Nat
+  {Nat.cmp(Nat.mul(a, 1n+k), Nat.mul(b, 1n+k)) == Nat.cmp(a, b) : Cmp}
 
 # cmp_gt_succ: a > b -> 1+a > b
 law cmp_gt_succ:

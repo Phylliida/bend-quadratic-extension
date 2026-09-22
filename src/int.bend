@@ -185,3 +185,50 @@ law Int.mul_one:
 law Int.one_mul:
   for +x: Int
   {Int.mul(Int.one(), x) == x : Int}
+
+# Int.canon: the canonical representative
+# =======================================
+#
+# Int{pos, neg} is a presentation: Int{1,0} and Int{2,1} are both 1 and are
+# not ==. Int.canon collapses a value to the representative with one side
+# zero, which is what makes == decide integer equality and what Rat
+# normalization divides out of a numerator.
+#
+# The comparison is threaded in as a Cmp parameter rather than written inline,
+# for two reasons: a `match` scrutinee must be a parameter or a pattern-bound
+# variable, never a computed value; and a def whose body matches on a stuck
+# Nat.cmp cannot reduce, which would make every downstream term stuck. Callers
+# that have no comparison in hand pass c := Nat.cmp(xp, xn) with evidence
+# {==}, exactly as the Int.add_assoc helpers did.
+def Int.canon.go(c: Cmp, xp: Nat, xn: Nat) -> Int:
+  match c:
+    case LT{}:
+      Int{0n, Nat.sub(xn, xp)}
+    case EQ{}:
+      Int{0n, 0n}
+    case GT{}:
+      Int{Nat.sub(xp, xn), 0n}
+
+def Int.canon(x: Int) -> Int:
+  Int{+xp, +xn} = x
+  Int.canon.go(Nat.cmp(xp, xn), xp, xn)
+
+# Int.canon.pos: a non-negative value is already canonical
+law Int.canon.pos:
+  for +a: Nat
+  for e: {Nat.cmp(a, 0n) == GT{} : Cmp}
+  {Int.canon(Int{a, 0n}) == Int{a, 0n} : Int}
+
+# Int.canon.neg: a non-positive value is already canonical
+law Int.canon.neg:
+  for +a: Nat
+  for e: {Nat.cmp(0n, a) == LT{} : Cmp}
+  {Int.canon(Int{0n, a}) == Int{0n, a} : Int}
+
+# Int.canon.idem: canon is idempotent
+law Int.canon.idem:
+  for c: Cmp
+  for +xp: Nat
+  for +xn: Nat
+  for e: {c == Nat.cmp(xp, xn) : Cmp}
+  {Int.canon(Int.canon.go(c, xp, xn)) == Int.canon.go(c, xp, xn) : Int}
