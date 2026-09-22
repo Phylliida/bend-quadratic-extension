@@ -37,13 +37,15 @@ case analysis, and that case analysis is what the switch removed. See
 Laws and proofs live in separate files; each `*_proofs.bend` fills every
 law of its sibling via `def <alias>.<name>(...)`:
 
-- `src/nat.bend` — the 126 Nat/Cmp laws (including the `Nat.divmod` and
+- `src/nat.bend` — the 127 Nat/Cmp laws (including the `Nat.divmod` and
   `Nat.gcd` blocks, the exact-division block, the difference-pair helpers, the
   scaling/divisibility bridges, `div_cross` -- the exact-division cross
   product the Rat value lemma is built from -- the cross-sum lemmas the Int
-  quotient lemma rests on, and the two additive-block helpers `sub_cross` (the
-  cross sum of a truncation pair, `(a-b) + b = (b-a) + a`) and `cross_add` (two
-  equations with a common padding combine criss-cross)),
+  quotient lemma rests on, and the three additive-block helpers `sub_cross` (the
+  cross sum of a truncation pair, `(a-b) + b = (b-a) + a`), `cross_add` (two
+  equations with a common padding combine criss-cross) and `sub_diag_rev` (the
+  flipped twin of `sub_diag`, so a rewrite under a division's dividend can take
+  its evidence directly)),
   plus `Cmp.flip`, the gcd defs and the `Nat.Div` witness type. No proofs.
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
@@ -78,8 +80,8 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The five
 `*_proofs.bend` files and `scratch.bend` are the gates and print
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
-transitive over imports: nat.bend 126, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 197 = 126 Nat + 32 Int + 39 Rat, qrat.bend 202 = 126 Nat +
+transitive over imports: nat.bend 127, int.bend 32, qext.bend 34 = 32 Int + 2
+QExt, rat.bend 198 = 127 Nat + 32 Int + 39 Rat, qrat.bend 203 = 127 Nat +
 32 Int + 39 Rat + 5 QExt (it imports rat.bend itself, so its count is
 rat.bend's plus its own five laws).
 
