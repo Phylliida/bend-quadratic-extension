@@ -55,8 +55,8 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The three
 `*_proofs.bend` files and `scratch.bend` are the gates and print
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
-transitive over imports: nat.bend 101, int.bend 22 (it imports only `Base`),
-qext.bend 24 = 22 Int + 2 QExt.
+transitive over imports: nat.bend 101, int.bend 24, qext.bend 26 = 24 Int +
+2 QExt.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -71,9 +71,9 @@ in the PROVING.md sketch were found and fixed there (see that file).
 Known gaps, in dependency order:
 
 1. `Int.canon.eqv` — the quotient lemma (`canon x == canon y` iff
-   `xp + yn == yp + xn`) — and `Int.canon.scale`
-   (`canon(x*k) == canon(x)*k`, `k >= 1`), which is what Rat normalization
-   uses.
+   `xp + yn == yp + xn`). `Int.canon.scale`
+   (`canon(x*k) == canon(x)*k`, `k >= 1`) — what Rat normalization uses — *is*
+   proved (`Int.canon.scale`, `Int.canon.scale.go`).
 2. `Rat{num: Int, den: Nat}` with `Rat.mk` normalizing via `Int.canon` +
    gcd, then the field axioms. Canonicality is proved by the scaling route
    (`norm(n*k, d*k) == norm(n,d)`), which needs only the *forward*
