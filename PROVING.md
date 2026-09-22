@@ -158,10 +158,13 @@ verified empirically on this checkout:
   `nat.bend` is `N.Cmp.flip` after `import ./nat.bend as N`. Consider
   prefix-free names per file.
 - **`match` scrutinees must be parameters or pattern-bound variables**,
-  never computed values. Pass `Nat.cmp(xm, ym)` to a helper and match on
-  the helper's parameter. This is why `Int.add.opp` takes `c: Cmp` as its
-  first argument — and it makes the op *proof-friendly* for free (proofs
-  can then call the helper with a literal `Cmp`).
+  never computed values -- and never *let-bound* values either. Pass
+  `Nat.cmp(xm, ym)` to a helper and match on the helper's parameter. This
+  is why `Int.add.opp` takes `c: Cmp` as its first argument — and it makes
+  the op *proof-friendly* for free (proofs can then call the helper with a
+  literal `Cmp`). See the Rat section for the pending-binder rule behind
+  it, and for what it costs when the thing to destructure comes out of a
+  function call.
 - **No `if`**: a branch is a `match` on `True{}`/`False{}`, and there is
   no `Bool` short-circuit sugar in proofs.
 - **Termination is structural, left-to-right by argument**: the recursive
@@ -745,8 +748,9 @@ operations (`add`, `neg`, `sub`, `mul`, `zero`, `one`), the normalization lemmas
 and the identity laws. `Rat.mk.scale` (`mk(n*(1+kp), d*(1+kp)) == mk(n, d)`) and
 `Rat.mk.eqv` (`n1*d2 == n2*d1` implies `mk(n1,d1) == mk(n2,d2)`) are the point
 of the whole exercise -- `==` on canonical Rats decides rational equality -- and
-both are proved. Notes from doing it; the first three are what the next law
-will hit.
+both are proved, and so is the value keystone `Rat.mk.value`
+(`num(mk(n,d))*d == n*den(mk(n,d))`) that the composing laws need. Notes from
+doing it; the first three are what the value lemma hit.
 
 ### Rat.mk is match-free on purpose, and that is what makes it provable
 
@@ -876,16 +880,63 @@ Two corollaries for the value lemma, both hit and confirmed this session:
 Verified by listing the loader's export keys (import the `.bend` file under
 `node` with `bend2/main.ts` registered and read `Object.keys(m.default)`).
 
+### The value keystone, and the three checker rules it had to satisfy
+
+`Rat.mk.value` is landed: `num(mk(n,d))*d == n*den(mk(n,d))`, the cross product
+`Rat.mk.eqv` consumes and therefore the one bridge every law that composes two
+normalized results crosses. The stack under it, bottom to top:
+
+- `Nat.div_cross`: `div(p,g)*d == p*div(d,g)` given `p = g*q` and `d = g*r` --
+  the quotients are binders and the divisor is a *variable* with a positivity
+  hypothesis, so a caller whose divisor is a computed gcd does not have to
+  re-spell its goal as a successor first. Its fill does that rewrite once
+  (`pos_witness`) and then both divisions collapse with `div_exact`.
+- `Int.mul_scale`: `Int.mul(Int{xp,xn}, Int{d,0}) == Int{xp*d, xn*d}`. A shape
+  law, not a ring law -- it is what turns the raw scaling spelling (the one
+  `Rat.add`/`Rat.mul` write) into the coordinate pair the value equation is
+  provable coordinate-wise in.
+- `Rat.mk.value.go`: the value equation in mk.go's coordinate spelling, two
+  `div_cross` calls per branch. The two coordinates are not the same proof: the
+  gcd's dividend is `mag = P + Q` (the difference pair's own sides, one always
+  0), so `g | P` is only in hand once the comparison says which side is zero.
+- `Rat.mk.value`: two `Int.mul_scale` bridges around `.go`, with the witnesses
+  handed in as `Pair.fst`/`Pair.snd`.
+
+Three checker rules decided every shape above; none is in the language docs.
+
+- **A match must head its body, and its scrutinee must still be *pending*.**
+  `body_flatten` resets the pending list at every `let` to that let's own names,
+  and `match_flatten` errors -- "match scrutinees in binder order (this variable
+  is unbound, consumed, or out of order: reorder the match)" -- once the list
+  runs out. So the scrutinee must be a parameter or a field bound by an earlier
+  case/destructure *of the same body*, and the match cannot be preceded by
+  unrelated `let`s. This is why the case split is the first thing in
+  `Rat.mk.value.go`'s fill.
+- **A `let`-bound value can never be destructured**: `w = Pair.snd(..)` followed
+  by `Div{q, e} = w` is rejected with "a match cannot scrutinize a local binder
+  (give it its own def)". A witness that comes out of a *call* therefore has to
+  reach its destructure as a **parameter** -- that is the whole reason
+  `Rat.mk.value.go` takes `wm`/`wd` as binders (and `div_scale`,
+  `divides_pos_wit`, `div_pos_wit` take theirs the same way), and the caller
+  hands in `Pair.fst`/`Pair.snd` of the pair `gcd_divides` returns.
+- **A family application is not `Data`, so it cannot be a `+` binder.** A
+  copyable binder of type `Nat.divides(g, a)` is rejected with `expected : Data /
+  observed : Type`: a parameterized family never unfolds to its ADT node (the
+  angle-bracket `Nat.Div<g, a>` spelling is the one that does). Witnesses are
+  linear binders -- and that is fine, because the *fields* of `Nat.Div` are
+  `+fields` (Many), so what a proof reads twice is the quotient and the
+  equation, and a witness it needs again is rebuilt from them: `N.Div{dr, dwe}`.
+- On `div_cross`, confirmed once more: the `%` hole marks an occurrence of the
+  evidence's **right** side, so the evidence has to be written `{new == old}`.
+  `Equal.sym(A, a, b, e)` with `e : {a == b}` yields `{b == a}`, and getting the
+  two endpoints the wrong way round is reported with the two orientations side
+  by side (`expected : {d == ..}` / `observed : {.. == d}`).
+
 ### What is left
 
-The laws that compose two *normalized* results: `mul_assoc`, `add_assoc`,
-`add_exchange`, `mul_distrib`, `mul_add_left`, `neg_add`, `neg_neg`. Congruence
-does not reach them (the inner `Rat.mk` has cancelled a gcd before the outer one
-sees its arguments) and neither does `Rat.mk.eqv` alone: what they need on top is
-that an operation's value *is* the value of its raw fraction -- "mk preserves the
-value", `num(mk(n,d))*d == n*den(mk(n,d))` as a cross product -- which is the
-reverse direction of the same quotient argument and needs the two gcd witnesses
-(`g | mag` and `g | d`) with `div_exact`, not `div_scale`. With that in hand each
-law is: reduce both sides to raw fractions, identify them with the Int/Nat ring
-laws, apply `mk.eqv`. `Rat.mul_comm` and `Rat.add_comm` need none of this and
-`Rat.mul_assoc` is the cheapest of the rest to try first.
+The laws that compose two *normalized* results -- `mul_assoc` (the cheapest),
+`add_assoc`, `add_exchange`, `mul_distrib`, `mul_add_left`, `neg_add`,
+`neg_neg`. Each is now: reduce both sides to raw fractions, identify them with
+the Int/Nat ring laws up to the cross product (`Rat.mk.value` supplies
+`mk.eqv`'s hypothesis, `Int.mul_scale` moves between the raw and the clean
+spelling of a scaled Int), and apply `mk.eqv`.

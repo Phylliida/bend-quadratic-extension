@@ -65,7 +65,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 122, int.bend 29, qext.bend 31 = 29 Int + 2
-QExt, rat.bend 170 = 122 Nat + 29 Int + 19 Rat.
+QExt, rat.bend 171 = 122 Nat + 29 Int + 20 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -94,17 +94,23 @@ Known gaps, in dependency order:
    `Rat.mk.canon`, `Rat.mk.zero`, `Rat.mk.fixed` and `Rat.mk.den.pos` (the
    denominator of a normalized fraction is positive -- one of the three
    canonicality clauses; the numerator is a difference pair by construction,
-   and coprimality of the output is the part this route avoids). Proved field
+   and coprimality of the output is the part this route avoids). The value
+   keystone is in as well: `Rat.mk.value` --
+   `num(mk(n,d))*d == n*den(mk(n,d))`, the cross product relating a normalized
+   fraction to its input, resting on `Rat.mk.value.go`, the exact-division
+   cross product `Nat.div_cross` and the shape law `Int.mul_scale`. It is the
+   hypothesis `Rat.mk.eqv` consumes, so it is what the composing laws below
+   were waiting for. Proved field
    laws:
    `add_comm`, `mul_comm`, `sub_eq_add_neg`, and the identity laws
    (`add_zero`, `zero_add`, `mul_one`, `one_mul`, `mul_zero`) for canonical
    values. Still open:
    - the laws that compose two *normalized* results — `mul_assoc`, `add_assoc`,
      `add_exchange`, `mul_distrib`, `mul_add_left`, `neg_add`, `neg_neg`. Each
-     needs `Rat.mk.eqv` plus the fact that an operation's value is the value of
-     its raw fraction ("mk preserves the value", the reverse of the same
-     quotient argument); the machinery for them is now in place, but the
-     proofs are not written.
+     is now one `Rat.mk.eqv` application away: reduce both sides to raw
+     fractions, identify them with the Int/Nat ring laws up to the cross product
+     (`Rat.mk.value` supplies its hypothesis), and apply `mk.eqv`. The proofs
+     are not written yet; `Rat.mul_assoc` is the cheapest of them to try first.
 2. `QExt` over `Rat`: field axioms plus the multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`).
 3. Binary nats for performance (unary `Nat` is O(value)).
