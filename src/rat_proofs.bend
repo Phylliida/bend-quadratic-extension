@@ -1821,14 +1821,14 @@ def Rat.add.mixed.cross(+A: I.Int, +R: I.Int, +C: I.Int, +d: Nat, +Yd: Nat, +k1:
               I.Int.mul_add_left(RY, Cd, Kuu)))))))))
 
 # Rat.add.value.mixed: the goal's two sides are
-#   add(mk(Rat.num(np1,nn1), d), Rat{Rat.num(np2,nn2), 1+dp2})   and   mk(T, dT)
-# with Yd = 1+dp2, P1 = sub(np1,nn1), Q1 = sub(nn1,np1), (P2, Q2) likewise for the
-# second summand, dT = d*Yd and T the raw sum of the two scaled pairs. Both
-# arguments of the add are constructors once unfolded, so the left side is
-# mk(nL, dL) with nL the two projections scaled by the *other* denominator
-# (k1 = denof(M1) for the mk summand, Yd for the constructor) and dL = k1*Yd --
-# two normal forms compared by exactly the cross product Rat.add.mixed.cross
-# assembles from the value equation v. The three facts it is built from:
+#   add(mk(Rat.num(np1,nn1), d), Rat{Int{Zp,Zn}, D})   and   mk(T, dT)
+# with P1 = sub(np1,nn1), Q1 = sub(nn1,np1), C = Int{Zp,Zn}, dT = d*D and T the
+# raw sum of the two scaled pairs. Both arguments of the add are constructors
+# once unfolded, so the left side is mk(nL, dL) with nL the two projections
+# scaled by the *other* denominator (k1 = denof(M1) for the mk summand, D for the
+# constructor) and dL = k1*D -- two normal forms compared by exactly the cross
+# product Rat.add.mixed.cross assembles from the value equation v. The three
+# facts it is built from:
 #
 #   v   mk.value on the mk summand: numof(M1)*d == Rat.num(P1,Q1)*k1, which is
 #       already the difference-pair spelling the goal's T uses -- one sub_diag
@@ -1838,22 +1838,22 @@ def Rat.add.mixed.cross(+A: I.Int, +R: I.Int, +C: I.Int, +d: Nat, +Yd: Nat, +k1:
 #       and pos_witness-style derivation is not available for a general d (the
 #       witness type would have to be re-spelled), exactly as Rat.mk_idem.raw
 #       documents.
+#   pD  and the third: the *second* summand's denominator is now a general D, so
+#       its positivity is a hypothesis too (it used to be 1+dp2, positive by
+#       computation).
 #
 # The mk.eqv.raw call is the whole fill: no coprimality, no case split on the
 # gcds, and no scale of the goal itself.
-def R.Rat.add.value.mixed(np1, nn1, d, pd, pq, np2, nn2, dp2):
-  +Yd = Nat.add(1n, dp2)
+def R.Rat.add.value.mixed(np1, nn1, d, pd, pq, Zp, Zn, D, pD):
   +P1 = Nat.sub(np1, nn1)
   +Q1 = Nat.sub(nn1, np1)
-  +P2 = Nat.sub(np2, nn2)
-  +Q2 = Nat.sub(nn2, np2)
   +M1 = R.Rat.mk(I.Int{P1, Q1}, d)
   +A = R.Rat.numof(M1)
   +k1 = R.Rat.denof(M1)
-  +nL = I.Int.add(I.Int.mul(A, I.Int.unit(Yd)), I.Int.mul(I.Int{P2, Q2}, I.Int.unit(k1)))
-  +dL = Nat.mul(k1, Yd)
-  +T = I.Int.add(I.Int.mul(I.Int{P1, Q1}, I.Int.unit(Yd)), I.Int.mul(I.Int{P2, Q2}, I.Int.unit(d)))
-  +dT = Nat.mul(d, Yd)
+  +nL = I.Int.add(I.Int.mul(A, I.Int.unit(D)), I.Int.mul(I.Int{Zp, Zn}, I.Int.unit(k1)))
+  +dL = Nat.mul(k1, D)
+  +T = I.Int.add(I.Int.mul(I.Int{P1, Q1}, I.Int.unit(D)), I.Int.mul(I.Int{Zp, Zn}, I.Int.unit(d)))
+  +dT = Nat.mul(d, D)
   +ev = Equal.trans(I.Int,
     R.Rat.num(P1, Q1),
     I.Int{P1, Nat.sub(Q1, P1)},
@@ -1874,9 +1874,9 @@ def R.Rat.add.value.mixed(np1, nn1, d, pd, pq, np2, nn2, dp2):
     R.Rat.mk.value(Nat.cmp(P1, Q1), P1, Q1, d, {==}, pd),
     Equal.cong(I.Int, I.Int, u => I.Int.mul(u, I.Int.unit(k1)), R.Rat.num(P1, Q1), I.Int{P1, Q1}, ev))
   R.Rat.mk.eqv.raw(nL, dL, T, dT,
-    N.mul_pos(k1, Yd, pq, {==}),
-    N.mul_pos(d, Yd, pd, {==}),
-    Rat.add.mixed.cross(A, I.Int{P1, Q1}, I.Int{P2, Q2}, d, Yd, k1, v))
+    N.mul_pos(k1, D, pq, pD),
+    N.mul_pos(d, D, pd, pD),
+    Rat.add.mixed.cross(A, I.Int{P1, Q1}, I.Int{Zp, Zn}, d, D, k1, v))
 # probe: Rat.neg_add -- -(x + y) = -x + -y for the canonical presentation.
 # Rat.neg_add: the goal is
 #   neg(add(Rat{Rat.num(np1,nn1), xd}, Rat{Rat.num(np2,nn2), yd}))   against
@@ -2345,7 +2345,8 @@ def R.Rat.add_assoc(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
   +L1 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(u, R.Rat{zn, Zd}),
     R.Rat.add(R.Rat{xn, Xd}, R.Rat{yn, Yd}), M1, eXY)
   +L2 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(u, R.Rat{zn, Zd}), M1, N1, R.Rat.mk.trunc(U1, V1, d1))
-  +L3 = R.Rat.add.value.mixed(P1, Q1, d1, pd1, pq1, np3, nn3, dp3)
+  +L3 = R.Rat.add.value.mixed(P1, Q1, d1, pd1, pq1,
+    Nat.sub(np3, nn3), Nat.sub(nn3, np3), Zd, {==})
   +ePi = Equal.trans(I.Int,
     R.Rat.num(P1, Q1),
     I.Int{P1, Nat.sub(Q1, P1)},
@@ -2395,7 +2396,8 @@ def R.Rat.add_assoc(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
   +R1 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(u, R.Rat{xn, Xd}),
     R.Rat.add(R.Rat{yn, Yd}, R.Rat{zn, Zd}), M2, eYZ)
   +R2 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(u, R.Rat{xn, Xd}), M2, N2, R.Rat.mk.trunc(U2, V2, d2))
-  +R3 = R.Rat.add.value.mixed(P2, Q2, d2, pd2, pq2, np1, nn1, dp1)
+  +R3 = R.Rat.add.value.mixed(P2, Q2, d2, pd2, pq2,
+    Nat.sub(np1, nn1), Nat.sub(nn1, np1), Xd, {==})
   +eQi = Equal.trans(I.Int,
     R.Rat.num(P2, Q2),
     I.Int{P2, Nat.sub(Q2, P2)},
