@@ -58,11 +58,14 @@ law of its sibling via `def <alias>.<name>(...)`:
 - `src/qext.bend` — `QExt` type, `QExt.nat`/`add`/`mul`, and the two laws.
 - `src/qext_proofs.bend` — fills both qext.bend laws.
 - `src/qrat_rat.bend` — `Rat` core: rat.bend's definitions (`Rat{num, den}`,
-  `Rat.mk`/`num`/`mag`/`g`/`mk.go`, `add`/`neg`/`sub`/`mul`) plus the five Rat
-  laws the layer above consumes (`add_comm`, `mul_comm`, `mk.canon`, `mk.fixed`,
-  `neg_neg`). A second copy of rat.bend's *definitions*, because
-  rat_proofs.bend (which fills rat.bend's own laws) cannot be imported — see
-  PROVING.md.
+  `Rat.mk`/`num`/`mag`/`g`/`mk.go`, `add`/`neg`/`sub`/`mul`) plus the Rat laws
+  the layer above consumes (`add_comm`, `mul_comm`, `mk.canon`, `mk.fixed`,
+  `neg_neg`, and the whole value machinery `Rat.add_assoc` needs: the
+  `mk.scale` block, `mk.value`, `mk.rep`, `mk.trunc`, `mk.eqv.val` and the
+  mixed value law). All twenty statements are transcription-identical to
+  rat.bend's (checked verbatim, key by key). A second copy of rat.bend's
+  *definitions* and *statements*, because rat_proofs.bend (which fills
+  rat.bend's own laws) cannot be imported — see PROVING.md.
 - `src/qrat.bend` — `QExt` over `Rat`: the type, `QExt.nat`/`zero`/`one`/
   `add`/`neg`/`sub`/`mul`, and the four laws.
 - `src/qrat_proofs.bend` — fills every qrat.bend law and the five Rat facts
@@ -78,8 +81,8 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The five
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 126, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 197 = 126 Nat + 32 Int + 39 Rat, qrat_rat.bend 163 = 126 Nat +
-32 Int + 5 Rat core, qrat.bend 167 = 163 + 4 QExt.
+QExt, rat.bend 197 = 126 Nat + 32 Int + 39 Rat, qrat_rat.bend 178 = 126 Nat +
+32 Int + 20 Rat core, qrat.bend 182 = 178 + 4 QExt.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
