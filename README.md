@@ -65,7 +65,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 124, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 189 = 124 Nat + 32 Int + 33 Rat.
+QExt, rat.bend 190 = 124 Nat + 32 Int + 34 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -164,7 +164,19 @@ Known gaps, in dependency order:
    `Int.neg_mul` has moved the negation inside it, and `Rat.mk.rep` plus four
    `Nat.add` commutations join the two raw spellings. No coprimality, no case
    split, and no scaling at all — negation never touches a denominator.
-   `Rat.add.value.mixed` is the newest, and it is the shape the additive block
+   `Rat.mk.eqv.val` is the general quotient lemma the additive block needs, and
+   the payoff of `Rat.mk.canon.go`: `mk` is *determined by the value* when the
+   two fractions' cross **sums** agree (`xp*d2 + yn*d1 == yp*d1 + xn*d2`), with
+   no coprimality and only the two denominators' positivity. That hypothesis is
+   the one thing `Rat.mk.eqv.raw` cannot accept, and the reason is measured:
+   `==` on `Rat` is structural, so two representatives of the same integer give
+   different cross *products* (`6/24` against `-14/24`: `(6,20)` scaled against
+   `(0,14)`), and no cross product will ever equate them. Its fill runs two
+   forward chains, one per side — pos_witness to a successor denominator,
+   `Rat.mk.scale` backwards over the common denominator `d1*d2`, `Int.mul_scale`
+   to the raw pair, `Rat.mk.canon.go` — and meets them with
+   `Int.canon.eqv.bwd` plus one congruence.
+   `Rat.add.value.mixed` is also new, and it is the shape the additive block
    actually needs: `Rat.add.value` requires *both* summands mk-spelled, while
    add_assoc's outer add has one mk summand and one constructor summand. The
    mixed law is that law's twin with the second summand still a constructor and

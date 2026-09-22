@@ -366,6 +366,42 @@ law Rat.mk.eqv.raw:
   for e: {I.Int.mul(n1, I.Int{d2, 0n}) == I.Int.mul(n2, I.Int{d1, 0n}) : I.Int}
   {Rat.mk(n1, d1) == Rat.mk(n2, d2) : Rat}
 
+# Rat.mk.eqv.val: mk is *determined by the value* -- two fractions whose cross
+# sums agree normalize to the same Rat, whatever representative of the numerator
+# each one carries.
+#
+# This is the general quotient lemma, and it is what Rat.mk.eqv.raw cannot say.
+# mk.eqv.raw's hypothesis is a cross *product* of the two numerators as pairs
+# (mul(n1, unit d2) == mul(n2, unit d1)), and that equation is simply false for
+# two different representatives of the same integer: 6/24 and -14/24 have equal
+# value, but their numerators (6,20) and (0,14) give different products (144,480)
+# against (0,336). The hypothesis here is the value equation read as Nats:
+#
+#     xp*d2 + yn*d1 == yp*d1 + xn*d2
+#
+# -- (xp - xn)/d1 = (yp - yn)/d2 cleared of denominators -- which is
+# Int.canon.eqv's own cross-sum shape and is what every composing law can
+# actually produce.
+#
+# Its fill is Rat.mk.canon.go doing the representative work: pos_witness turns
+# each denominator into a successor, Rat.mk.scale re-spells each side over the
+# common denominator d1*d2, mk.canon.go canonicalizes both numerators (with the
+# comparisons of the *scaled* pairs threaded in), Int.canon.eqv.bwd turns the
+# cross sum into the equality of the two canonical forms, and one congruence
+# carries that through mk. No coprimality anywhere; the two denominators are
+# positive by hypothesis, exactly as mk.eqv.raw's are.
+law Rat.mk.eqv.val:
+  for +xp: Nat
+  for +xn: Nat
+  for +d1: Nat
+  for +p1: {Nat.cmp(0n, d1) == LT{} : Cmp}
+  for +yp: Nat
+  for +yn: Nat
+  for +d2: Nat
+  for +p2: {Nat.cmp(0n, d2) == LT{} : Cmp}
+  for +e: {Nat.add(Nat.mul(xp, d2), Nat.mul(yn, d1)) == Nat.add(Nat.mul(yp, d1), Nat.mul(xn, d2)) : Nat}
+  {Rat.mk(I.Int{xp, xn}, d1) == Rat.mk(I.Int{yp, yn}, d2) : Rat}
+
 # Rat.mk.den.pos: the denominator of a normalized fraction is positive. This is
 # the one canonicality clause of Rat.mk's output the normalization proves by
 # itself -- the numerator is a difference pair by construction, and coprimality
