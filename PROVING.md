@@ -420,8 +420,11 @@ i.e. more division correctness.
 ### Order to work in
 
 1. `Nat.divmod` correctness (loop invariant) and the `div`/`mod` laws it
-   gives. This blocks everything else.
+   gives. This blocks everything else. **Done** (`divmod.go.spec`,
+   `divmod.go.mod_lt`, `div_add_mod`, `mod_lt`).
 2. `Nat.gcd` + `gcd` divides both arguments + `gcd(m*k, d*k) == k*gcd(m,d)`.
+   **Scaling done** (`gcd.go.scale`, `gcd.go.fuel`, `gcd_scale`); the
+   "divides both" half is open, see the section below.
 3. `Int.canon.scale`, and `Int.canon.eqv` (the quotient lemma,
    `canon x == canon y` iff `xp + yn == yp + xn`) if it fits.
 4. `Rat`: the type, `Rat.mk`, canonicality by the scaling route, then the
@@ -439,3 +442,112 @@ unfilled, since that turns every dependent gate into `N TODOs found.`
 formalization lags the checker and the theory rests partly on invariants
 outside the kernel. Treat the proofs as strong evidence, not bedrock, and
 re-check after any compiler upgrade.
+
+## Nat divmod and gcd: what the work actually cost
+
+Steps 1 and half of 2 above are done; `src/nat.bend` carries the laws and
+`src/nat_proofs.bend` the fills. Notes for the next attempt.
+
+### Two bugs in the gcd sketch above
+
+The `Nat.gcd.go` sketch in "Nat gcd" does not compute the gcd as written.
+
+- **The GT step.** `Nat.gcd.go(sp, Nat.sub(x, y), Nat.cmp(Nat.sub(x, y), y),
+  Nat.sub(x, y))` puts the difference in the *y* slot as well as the x slot,
+  so the state collapses to `(x-y, x-y)` and the loop answers `x-y` or 0.
+  Run on literals (a `main` returning `G.gcd(...)` prints the value; write it
+  down *before* proving anything): the sketch gives `gcd(10, 4) = 0` and
+  `gcd(7, 5) = 2`, and the one-token fix -- the GT step leaves y alone,
+  `Nat.gcd.go(sp, y, Nat.cmp(Nat.sub(x, y), y), Nat.sub(x, y))` -- gives
+  `2` and `1`. A wrong loop is cheap to find this way and expensive to find
+  through a failing proof: the scaled-gcd proof below fails on the sketch's
+  version, which is how it surfaced here.
+- **`a = 0.`** `Nat.gcd(0, b)` with the sketch's fuel `a + b` runs the LT
+  step `(0, y) -> (0, y - 0) = (0, y)`, which never progresses: it burns the
+  whole fuel and returns 0, but `gcd(0, b)` is `b`. `src/nat.bend` matches on
+  `a` first (`case 0n: b`) so the loop only ever sees `x >= 1` -- which is
+  also what makes the fuel `a + b` *provably* enough, since every step then
+  strictly shrinks `x + y`.
+
+### The gcd scaling proof, restated
+
+`gcd_scale` needs two loop lemmas, and the shapes are not free choices:
+
+- `gcd.go.scale`: `go(s, y*k, cmp(x*k,y*k), x*k) = k * go(s, y, c, x)`, for
+  *every* fuel (both sides run out together), no hypothesis beyond
+  `c = cmp(x,y)`. Each step is two rewrites: `cmp_mul_right` to collapse the
+  scaled comparison to the branch constructor, `mul_sub` to collapse the
+  scaled difference. The multiplier must sit on the right of each product
+  (`Nat.mul(y, 1n+kp)`), because that is the shape `cmp_mul_right` and
+  `mul_sub` are stated in; the k-on-the-left spelling has no counterpart for
+  `cmp` (`cmp_add_left` does not apply to a product).
+- `gcd.go.fuel`: fuel above the state's own measure is harmless. State it over
+  a fuel `s1` *and* the slack `t` with `(x + y) + t = s1`, and induct on
+  `s1`, **not** on the slack: one loop step takes `s1 = 1 + sp` to `sp` on
+  both sides while the *difference* between the two fuels rides along
+  untouched, so an induction on the difference never closes.
+- `Nat.gcd(m*k, d*k)` runs the loop with fuel `m*k + d*k` while
+  `Nat.gcd(m, d)` runs it with `m + d`, so the two loops cannot be matched
+  directly at all: `gcd_scale` is `gcd.go.scale` at the big fuel, then
+  `add_mul_slack` to see that fuel as `m + d` plus a slack, then `gcd.go.fuel`
+  to throw the slack away, then one `Nat.mul_comm` for the product order.
+- The state's x slot has to be written `1n + xp` in `gcd.go.fuel` (and in any
+  law that reuses it), because the canonical fuel `x + y` must start with a
+  *constructor* or the right-hand loop is stuck on its fuel match. The cost is
+  that every law of this family needs `sub_pos` to undo the loop's own
+  `Nat.sub` in the GT branch before the induction hypothesis applies.
+
+### Why "gcd divides both arguments" is still open
+
+The per-step arithmetic is done and proved: `Nat.divides` /
+`Nat.divides_both` (a witness pair), `divides_add` (a multiple plus a multiple
+is a multiple, quotients added), `Nat.succ_add_ne_zero` (the fuel hypothesis
+at `s = 0` is contradictory), and the branch assembly for both LT and GT.
+What does not close is the loop-level induction, and the obstacle is the
+checker's affinity rules rather than arithmetic:
+
+- The induction hypothesis returns a *pair* of divisibility witnesses, and the
+  step needs the quotients from both halves plus the original pair back. But
+  `match` only scrutinizes a parameter or a pattern-bound field ("a match
+  cannot scrutinize a computed value"), so the returned pair cannot be taken
+  apart in place -- the step has to run inside a helper `def` whose binder is
+  the pair.
+- Inside that helper the two quotients are each needed twice (once in the
+  rebuilt witness, once in `divides_add`). Fields of a `Sigma` are linear --
+  `Sigma<&2, &2, ..>` does *not* make them copyable, the *field* quantities
+  are what count, and `Tuple{fst, snd}` defaults them to `&1` -- so each needs
+  a `+q = q` re-bind first. Those re-binds typecheck on their own (a minimal
+  `def` with a nested destructure, a `+` re-bind and a rebuilt pair passes),
+  but inside the real fill the checker rejects the whole def with
+  `expected : an annotated term (cannot infer) / observed : q => {a ==
+  Nat.mul(g, q) : Nat}` -- i.e. it wants the existential's family annotated at
+  a point where the source has no lambda at all. That is a checker behaviour
+  worth understanding before another attempt; the arithmetic is not the
+  problem.
+- A `+` re-bind of the *pair* itself is not available either: `Nat.divides_both`
+  is a `Sigma<&1,&1,..>`, whose kind is `Type`, and `+` forms only at `Data`.
+  The plausible repair -- give the witnesses a `Data` pair type of your own --
+  is untried.
+
+Do not weaken the statement to dodge this (`Ex`, `Nat.div`-shaped or
+"divides one argument"): the Rat step below consumes the *witness* of
+`g | n.pos + n.neg`.
+
+### Small harness facts that cost time
+
+- A law may conclude a pair type (`{A} & {B}`), but *inside braces* the parser
+  reads `&` as the exists binder and fails on the missing `:`: a pair type
+  must be written bare (`Empty.absurd(A & B, e)`) or, better, behind a `def`
+  (`Nat.divides_both`), which also keeps `%` motives to a single application.
+- A proof-only helper `def` must be named *bare* (`Nat.pred`,
+  `Nat.succ_add_ne_zero`), not `NL.`-prefixed: an `NL.`-prefixed name lives in
+  nat.bend's namespace, resolves while nat_proofs.bend is the main file, and
+  becomes "a defined name is expected" as soon as another file imports it.
+- `%e : P` replaces the *right* side of `e` with its *left* side. Restated as
+  a rule to write code by: **to replace a goal subterm X with Y, the evidence
+  must be `{Y == X}`.** Every orientation mistake in this work was forgetting
+  that and reaching for `Equal.sym` in the wrong place (and `Equal.sym(A, a,
+  b, e)` itself takes `e : {a == b}` and gives `{b == a}`).
+- A `%` motive may mention the hole more than once, and that is how two
+  occurrences of the same stuck subterm get rewritten together (`sub_pos` on
+  the GT branch touches four positions in one step).

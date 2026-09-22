@@ -677,3 +677,202 @@ law mod_lt:
   for +a: Nat
   for +b: Nat
   {Nat.cmp(Nat.mod(a, 1n+b), 1n+b) == LT{} : Cmp}
+
+# Nat.gcd
+# =======
+#
+# Subtractive Euclid. Nothing about the descent is structural -- each step
+# replaces the larger argument by a difference, and Nat.sub of two variables
+# is a computed value -- so, exactly like Nat.divmod.go, the loop counts an
+# explicit fuel down from the front of its telescope. The fuel is the state's
+# own measure x + y, which every step strictly reduces (both arguments stay
+# positive inside the loop), so the fuel Nat.add(a, b) that Nat.gcd hands the
+# loop is enough to reach a terminal state.
+#
+# cmp(x, y) is threaded in as a parameter for the usual reason (evidence as a
+# parameter): a match scrutinee must be a parameter or a pattern-bound
+# variable, never a computed value, and a body that matches a *stuck* Nat.cmp
+# cannot reduce -- which would make every downstream term stuck. The proofs
+# case on it, which is what puts x < y / x = y / x > y in scope as arithmetic
+# evidence (cmp_gt_of_lt, cmp_lt_sub_add, ...).
+
+# Nat.divides(g, a): g divides a, with the quotient as an existentially
+# quantified witness. A def, not a law, because law *statements* below
+# conclude about it; proofs inhabit it by returning the pair (quotient,
+# equation).
+def Nat.divides(g: Nat, a: Nat) -> Type:
+  Exists(Nat, q => {a == Nat.mul(g, q) : Nat})
+
+# Nat.divides_both(g, a, b): g divides both a and b. A named pair so that the
+# law statements below (and the motives that rewrite over them) stay single
+# applications: "A & B" is the exists sugar wherever it follows a name, so a
+# bare pair type is not writable in every position.
+def Nat.divides_both(g: Nat, a: Nat, b: Nat) -> Type:
+  Nat.divides(g, a) & Nat.divides(g, b)
+
+def Nat.gcd.go(+s: Nat, +y: Nat, +c: Cmp, +x: Nat) -> Nat:
+  match s:
+    case 0n:
+      0n
+    case 1n+sp:
+      match y:
+        case 0n:
+          x
+        case 1n+yp:
+          match c:
+            case EQ{}:
+              x
+            case LT{}:
+              Nat.gcd.go(sp, Nat.sub(y, x), Nat.cmp(x, Nat.sub(y, x)), x)
+            case GT{}:
+              Nat.gcd.go(sp, y, Nat.cmp(Nat.sub(x, y), y), Nat.sub(x, y))
+
+# Two deviations from the sketch in PROVING.md, both found by proving:
+#   - the GT step must leave the y slot alone and put the difference in the x
+#     slot (the sketch has sub(x, y) in both). With the sketch's version the
+#     state collapses to (x-y, x-y) and gcd(10, 4) answers 0 -- checked by
+#     running both loops on literals before writing any proof.
+#   - the a = 0 case (below).
+#
+# Nat.gcd(a, b): the loop started at x = a, y = b with fuel a + b.
+#
+# The a = 0 case is split out rather than left to the loop. With x = 0 and
+# y > 0 the loop's LT step is a no-op (Nat.sub(y, 0) = y), so it would spin
+# until the fuel ran out and then answer 0 -- but gcd(0, b) is b. Matching on
+# a is the whole fix: from x >= 1 on, every step really does shrink x + y, and
+# the LT step's new x is the old x.
+def Nat.gcd(+a: Nat, +b: Nat) -> Nat:
+  match a:
+    case 0n:
+      b
+    case 1n+ap:
+      Nat.gcd.go(Nat.add(a, b), b, Nat.cmp(a, b), a)
+
+# cmp_mul_right_of: transport a comparison result to the *scaled* comparison.
+#
+# Oriented for %: `%e` replaces occurrences of e's right side, and the goal at
+# a scaled gcd call holds the scaled comparison, so the scaled term has to be
+# on the right. d is a parameter so that the caller can pass the constructor
+# it just matched (LT{} etc.) and have the whole match reduce.
+law cmp_mul_right_of:
+  for +a: Nat
+  for +b: Nat
+  for +k: Nat
+  for d: Cmp
+  for e: {d == Nat.cmp(a, b) : Cmp}
+  {d == Nat.cmp(Nat.mul(a, 1n+k), Nat.mul(b, 1n+k)) : Cmp}
+
+# mul_sub_right: the right-scaled twin of mul_sub -- k multiplies the
+# difference on the left of the equation and the minuend/subtrahend on the
+# right, which is the orientation the scaled gcd branch needs (there the
+# state's y slot holds sub(y*k, x*k) and the goal wants sub(y,x)*k).
+law mul_sub_right:
+  for +a: Nat
+  for +b: Nat
+  for +c: Nat
+  for e: {Nat.cmp(a, b) == GT{} : Cmp}
+  {Nat.mul(Nat.sub(a, b), c) == Nat.sub(Nat.mul(a, c), Nat.mul(b, c)) : Nat}
+
+# gcd.go.scale: the loop is natural in its state under scaling by k = 1 + kp.
+#
+# This is the lemma that makes gcd scaling cheap: no gcd-specific reasoning,
+# only the loop's own step-by-step equivariance (Nat.sub scales by mul_sub,
+# Nat.cmp by cmp_mul_right). It holds for *every* fuel, including too little
+# fuel, because both sides then run out together -- so there is no sufficiency
+# hypothesis here.
+law gcd.go.scale:
+  for +s: Nat
+  for +y: Nat
+  for c: Cmp
+  for +x: Nat
+  for +kp: Nat
+  for +e: {c == Nat.cmp(x, y) : Cmp}
+  {Nat.gcd.go(s, Nat.mul(y, 1n+kp), Nat.cmp(Nat.mul(x, 1n+kp), Nat.mul(y, 1n+kp)), Nat.mul(x, 1n+kp)) == Nat.mul(1n+kp, Nat.gcd.go(s, y, c, x)) : Nat}
+
+# add_mul_slack: (x + y) + (x*k + y*k) = x*(1+k) + y*(1+k).
+#
+# This is the "the scaled state's fuel is the unscaled fuel plus a slack"
+# identity: Nat.gcd(m, d) runs the loop with fuel m + d, Nat.gcd(m*k, d*k)
+# with fuel m*k + d*k, and gcd.go.fuel below trades that extra fuel for the
+# scaling. Pure Nat shuffle, no hypotheses.
+law add_mul_slack:
+  for +x: Nat
+  for +y: Nat
+  for +k: Nat
+  {Nat.add(Nat.add(x, y), Nat.add(Nat.mul(x, k), Nat.mul(y, k))) == Nat.add(Nat.mul(x, 1n+k), Nat.mul(y, 1n+k)) : Nat}
+
+# gcd.slack_lt / gcd.slack_gt: the two slack identities gcd.go.fuel's step
+# needs, one per branch of the loop.
+#
+# At each step both sides of gcd.go.fuel land on the same state, but their
+# fuels are that state's "canonical" fuel plus the *same* slack u only if the
+# new slack is chosen right: after a step the state measures x + y and x (for
+# the LT and GT branches), so the old slack t has to be topped up with xp and
+# yp respectively. These two lemmas are exactly those top-ups, stated over the
+# terms that actually occur. They take the branch's comparison as evidence
+# (rather than, say, a subtraction equation) because that is what the call
+# sites have in hand, and because the subtraction facts then follow from
+# cmp_lt_sub_add / cmp_gt_sub_add inside.
+law gcd.slack_lt:
+  for +xp: Nat
+  for +yp: Nat
+  for +t: Nat
+  for +e: {Nat.cmp(1n+xp, 1n+yp) == LT{} : Cmp}
+  {Nat.add(Nat.add(1n+xp, Nat.sub(yp, xp)), Nat.add(xp, t)) == Nat.add(Nat.add(xp, 1n+yp), t) : Nat}
+
+law gcd.slack_gt:
+  for +xp: Nat
+  for +yp: Nat
+  for +t: Nat
+  for +e: {Nat.cmp(1n+xp, 1n+yp) == GT{} : Cmp}
+  {Nat.add(Nat.add(1n+Nat.sub(xp, 1n+yp), 1n+yp), Nat.add(yp, t)) == Nat.add(Nat.add(xp, 1n+yp), t) : Nat}
+
+# gcd.go.fuel: more fuel than the canonical x + y does not change the result.
+#
+# e2 says s1 is the canonical fuel plus a slack t and the conclusion compares
+# the loop at s1 and at s1 + u, so the induction is on s1 (structural): one
+# step of the loop takes s1 = 1 + sp to sp on both sides, and the *difference*
+# u rides along untouched -- which is the whole point, since it is the slack
+# that has to survive, not shrink.
+#
+# x is written 1 + xp (not x) for exactly one reason: the canonical fuel x + y
+# must start with a constructor, otherwise the right-hand loop is stuck on its
+# fuel match and the induction cannot start. The cost is that gcd.go.divides
+# and Nat.gcd must carry the same spelling, and that the GT step has to undo
+# the loop's own subtraction with sub_pos.
+law gcd.go.fuel:
+  for +s1: Nat
+  for +y: Nat
+  for c: Cmp
+  for +xp: Nat
+  for +t: Nat
+  for +u: Nat
+  for +e1: {c == Nat.cmp(1n+xp, y) : Cmp}
+  for +e2: {Nat.add(Nat.add(1n+xp, y), t) == s1 : Nat}
+  {Nat.gcd.go(Nat.add(s1, u), y, c, 1n+xp) == Nat.gcd.go(s1, y, c, 1n+xp) : Nat}
+
+# divides_add: a multiple of g plus a multiple of g is a multiple of g, with
+# the quotients added. This is the only arithmetic gcd.go.divides needs: the
+# loop's two steps replace (x, y) by (x, y - x) or (x - y, y), and in both
+# cases the original argument is the sum of the new pair.
+law divides_add:
+  for +g: Nat
+  for +q1: Nat
+  for +q2: Nat
+  for +a: Nat
+  for +b: Nat
+  for +p1: {a == Nat.mul(g, q1) : Nat}
+  for +p2: {b == Nat.mul(g, q2) : Nat}
+  {Nat.add(a, b) == Nat.mul(g, Nat.add(q1, q2)) : Nat}
+
+# gcd_scale: gcd(m*k, d*k) = k * gcd(m, d) for k = 1 + kp.
+#
+# The two loops are related by gcd.go.scale at one and the same fuel, and the
+# leftover fuel difference (m*k + d*k against m + d) is exactly what
+# gcd.go.fuel absorbs.
+law gcd_scale:
+  for +m: Nat
+  for +d: Nat
+  for +kp: Nat
+  {Nat.gcd(Nat.mul(m, 1n+kp), Nat.mul(d, 1n+kp)) == Nat.mul(Nat.gcd(m, d), 1n+kp) : Nat}
+

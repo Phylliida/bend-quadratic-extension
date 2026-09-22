@@ -795,3 +795,192 @@ def NL.div_add_mod(a, b):
 
 def NL.mod_lt(a, b):
   NL.divmod.go.mod_lt(a, b, 0n, 0n, 1n+b, {==})
+
+# Nat.gcd
+# =======
+#
+# Fills the gcd block of nat.bend. The proofs are, in order of size:
+#   - the two Nat shuffles callers need (add_mul_slack, and the slack
+#     identities inside gcd.go.fuel) -- pure reassociation;
+#   - gcd.go.scale, an induction on the fuel whose step is one cmp transport
+#     plus one Nat.sub scaling;
+#   - gcd.go.fuel and gcd.go.divides, inductions on the fuel slack u (which is
+#     what keeps the two fuel spellings in step) and on the fuel itself.
+
+# d is a parameter, so the caller passes the constructor it matched and the
+# scaled comparison collapses to that constructor outright.
+def NL.cmp_mul_right_of(a, b, k, d, e):
+  Equal.trans(Cmp, d, Nat.cmp(a, b), Nat.cmp(Nat.mul(a, 1n+k), Nat.mul(b, 1n+k)),
+    e, Equal.sym(Cmp, Nat.cmp(Nat.mul(a, 1n+k), Nat.mul(b, 1n+k)), Nat.cmp(a, b), NL.cmp_mul_right(a, b, k)))
+
+# mul_sub_right = mul_sub conjugated by Nat.mul_comm on both sides; the goal's
+# products are written the other way round, so the two product rewrites come
+# first and the lemma application last.
+def NL.mul_sub_right(a, b, c, e):
+  %NL.mul_comm(c, a) : {Nat.mul(Nat.sub(a, b), c) == Nat.sub(_, Nat.mul(b, c)) : Nat}
+  %NL.mul_comm(c, b) : {Nat.mul(Nat.sub(a, b), c) == Nat.sub(Nat.mul(c, a), _) : Nat}
+  %NL.mul_sub(a, b, c, e) : {Nat.mul(Nat.sub(a, b), c) == _ : Nat}
+  NL.mul_comm(Nat.sub(a, b), c)
+
+def NL.add_mul_slack(x, y, k):
+  %NL.mul_succ(x, k) : {Nat.add(Nat.add(x, y), Nat.add(Nat.mul(x, k), Nat.mul(y, k))) == Nat.add(_, Nat.mul(y, 1n+k)) : Nat}
+  %NL.mul_succ(y, k) : {Nat.add(Nat.add(x, y), Nat.add(Nat.mul(x, k), Nat.mul(y, k))) == Nat.add(Nat.add(x, Nat.mul(x, k)), _) : Nat}
+  %NL.add_assoc_rev(x, y, Nat.add(Nat.mul(x, k), Nat.mul(y, k))) : {_ == Nat.add(Nat.add(x, Nat.mul(x, k)), Nat.add(y, Nat.mul(y, k))) : Nat}
+  %NL.add_exchange(Nat.mul(x, k), y, Nat.mul(y, k)) : {Nat.add(x, _) == Nat.add(Nat.add(x, Nat.mul(x, k)), Nat.add(y, Nat.mul(y, k))) : Nat}
+  %NL.add_assoc(x, Nat.mul(x, k), Nat.add(y, Nat.mul(y, k))) : {_ == Nat.add(Nat.add(x, Nat.mul(x, k)), Nat.add(y, Nat.mul(y, k))) : Nat}
+  {==}
+
+# gcd.go.scale: induction on the fuel. Each step is the loop's own equivariance
+# -- the scaled comparison collapses to the branch constructor
+# (cmp_mul_right_of), the scaled difference collapses to the scaled difference
+# (mul_sub_right) -- after which the recursive call is literally the induction
+# hypothesis at the new state. The fuel is not touched, which is why the law
+# needs no hypothesis: the two sides run out of fuel together.
+def NL.gcd.go.scale(s, y, c, x, kp, e):
+  match s:
+    case 0n:
+      %NL.mul_zero(1n+kp) : {_ == Nat.mul(1n+kp, 0n) : Nat}
+      {==}
+    case 1n+sp:
+      match y:
+        case 0n:
+          %NL.mul_comm(x, 1n+kp) : {Nat.mul(x, 1n+kp) == _ : Nat}
+          {==}
+        case 1n+yp:
+          match c:
+            case EQ{}:
+              %NL.cmp_mul_right_of(x, 1n+yp, kp, EQ{}, e) : {NL.Nat.gcd.go(1n+sp, Nat.mul(1n+yp, 1n+kp), _, Nat.mul(x, 1n+kp)) == Nat.mul(1n+kp, x) : Nat}
+              %NL.mul_comm(x, 1n+kp) : {Nat.mul(x, 1n+kp) == _ : Nat}
+              {==}
+            case LT{}:
+              %NL.cmp_mul_right_of(x, 1n+yp, kp, LT{}, e) : {NL.Nat.gcd.go(1n+sp, Nat.mul(1n+yp, 1n+kp), _, Nat.mul(x, 1n+kp)) == Nat.mul(1n+kp, NL.Nat.gcd.go(sp, Nat.sub(1n+yp, x), Nat.cmp(x, Nat.sub(1n+yp, x)), x)) : Nat}
+              %NL.mul_sub_right(1n+yp, x, 1n+kp, NL.cmp_gt_of_lt(x, 1n+yp, Equal.sym(Cmp, LT{}, Nat.cmp(x, 1n+yp), e))) : {NL.Nat.gcd.go(sp, _, Nat.cmp(Nat.mul(x, 1n+kp), _), Nat.mul(x, 1n+kp)) == Nat.mul(1n+kp, NL.Nat.gcd.go(sp, Nat.sub(1n+yp, x), Nat.cmp(x, Nat.sub(1n+yp, x)), x)) : Nat}
+              NL.gcd.go.scale(sp, Nat.sub(1n+yp, x), Nat.cmp(x, Nat.sub(1n+yp, x)), x, kp, {==})
+            case GT{}:
+              %NL.cmp_mul_right_of(x, 1n+yp, kp, GT{}, e) : {NL.Nat.gcd.go(1n+sp, Nat.mul(1n+yp, 1n+kp), _, Nat.mul(x, 1n+kp)) == Nat.mul(1n+kp, NL.Nat.gcd.go(sp, 1n+yp, Nat.cmp(Nat.sub(x, 1n+yp), 1n+yp), Nat.sub(x, 1n+yp))) : Nat}
+              %NL.mul_sub_right(x, 1n+yp, 1n+kp, Equal.sym(Cmp, GT{}, Nat.cmp(x, 1n+yp), e)) : {NL.Nat.gcd.go(sp, Nat.mul(1n+yp, 1n+kp), Nat.cmp(_, Nat.mul(1n+yp, 1n+kp)), _) == Nat.mul(1n+kp, NL.Nat.gcd.go(sp, 1n+yp, Nat.cmp(Nat.sub(x, 1n+yp), 1n+yp), Nat.sub(x, 1n+yp))) : Nat}
+              NL.gcd.go.scale(sp, 1n+yp, Nat.cmp(Nat.sub(x, 1n+yp), 1n+yp), Nat.sub(x, 1n+yp), kp, {==})
+
+# gcd.slack_lt: from cmp(1+xp, 1+yp) = LT, cmp_lt_sub_add gives
+# (yp - xp) + (1+xp) = 1+yp; peeling the successor off both sides (add_succ,
+# then succ_inj) turns that into (yp - xp) + xp = yp, which is what the
+# shuffle needs. The shuffle then reassociates
+#   (1+xp + S) + (xp+t) -> 1+xp + (S + (xp+t)) -> 1+xp + ((S+xp) + t)
+#                       -> 1+xp + (yp + t) -> ((1+xp) + yp) + t
+# with S = yp - xp; the last step reads add_succ (1 + (xp+yp) = xp + (1+yp))
+# backwards, since xp + (1+yp) is how the loop spells the state's y slot.
+def NL.gcd.slack_lt(xp, yp, t, e):
+  %NL.add_assoc_rev(1n+xp, Nat.sub(yp, xp), Nat.add(xp, t)) : {_ == Nat.add(Nat.add(xp, 1n+yp), t) : Nat}
+  %NL.add_assoc(Nat.sub(yp, xp), xp, t) : {Nat.add(1n+xp, _) == Nat.add(Nat.add(xp, 1n+yp), t) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.sub(yp, xp), xp), yp,
+    NL.succ_inj(Nat.add(Nat.sub(yp, xp), xp), yp,
+      Equal.trans(Nat,
+        Nat.add(1n, Nat.add(Nat.sub(yp, xp), xp)),
+        Nat.add(Nat.sub(yp, xp), 1n+xp),
+        Nat.add(1n, yp),
+        NL.add_succ(Nat.sub(yp, xp), xp),
+        NL.cmp_lt_sub_add(1n+xp, 1n+yp, e))))
+    : {Nat.add(1n+xp, Nat.add(_, t)) == Nat.add(Nat.add(xp, 1n+yp), t) : Nat}
+  %NL.add_succ(xp, yp) : {Nat.add(1n+xp, Nat.add(yp, t)) == Nat.add(_, t) : Nat}
+  %NL.add_assoc(1n+xp, yp, t) : {_ == Nat.add(Nat.add(1n+xp, yp), t) : Nat}
+  {==}
+
+# gcd.slack_gt: the mirror. cmp_gt_sub_add gives (xp - yp) + (1+yp) = 1+xp and
+# sub_pos rewrites xp - yp as 1 + (xp - (1+yp)), so after succ_inj
+# (xp - (1+yp)) + (1+yp) = xp -- exactly the fact that collapses the state's
+# x slot (1 + (xp - (1+yp))) back to xp. The rest is the same shuffle as
+# slack_lt, ending with add_succ and add_assoc.
+def NL.gcd.slack_gt(xp, yp, t, e):
+  %Equal.sym(Nat, Nat.add(Nat.sub(xp, 1n+yp), 1n+yp), xp,
+    NL.succ_inj(Nat.add(Nat.sub(xp, 1n+yp), 1n+yp), xp,
+      Equal.trans(Nat,
+        Nat.add(1n, Nat.add(Nat.sub(xp, 1n+yp), 1n+yp)),
+        Nat.add(Nat.sub(xp, yp), 1n+yp),
+        Nat.add(1n, xp),
+        Equal.sym(Nat, Nat.add(Nat.sub(xp, yp), 1n+yp), Nat.add(1n+Nat.sub(xp, 1n+yp), 1n+yp),
+          Equal.cong(Nat, Nat, u => Nat.add(u, 1n+yp), Nat.sub(xp, yp), 1n+Nat.sub(xp, 1n+yp), NL.sub_pos(xp, yp, e))),
+        NL.cmp_gt_sub_add(1n+xp, 1n+yp, e))))
+    : {Nat.add(1n, Nat.add(_, Nat.add(yp, t))) == Nat.add(Nat.add(xp, 1n+yp), t) : Nat}
+  %NL.add_succ(xp, yp) : {Nat.add(1n+xp, Nat.add(yp, t)) == Nat.add(_, t) : Nat}
+  %NL.add_assoc(1n+xp, yp, t) : {_ == Nat.add(Nat.add(1n+xp, yp), t) : Nat}
+  {==}
+
+# A successor-headed Nat is never 0; proof machinery only (no law statement
+# mentions it), so it lives here with NatIsPos -- and, like Nat.pred, bare
+# rather than NL-prefixed: an NL-prefixed name belongs to nat.bend's namespace
+# and only the *fills* of its laws resolve from there.
+def Nat.succ_add_ne_zero(xp: Nat, y: Nat, t: Nat, e: {Nat.add(Nat.add(1n+xp, y), t) == 0n : Nat}) -> Empty:
+  %e : NatIsPos(_)
+  Unit{}
+
+# gcd.go.fuel: induction on s1. The s1 = 0 branch is impossible -- e2 would
+# make a successor-headed Nat 0 -- and every other branch is the loop's own
+# step, after which the induction hypothesis applies at the new state with the
+# slack identity (gcd.slack_lt / gcd.slack_gt) as its fuel hypothesis and the
+# same u. The two fuel rewrites never appear because the loop peels one
+# successor off s1 = 1 + sp on both sides at once.
+def NL.gcd.go.fuel(s1, y, c, xp, t, u, e1, e2):
+  match s1:
+    case 0n:
+      Empty.absurd({NL.Nat.gcd.go(Nat.add(0n, u), y, c, 1n+xp) == NL.Nat.gcd.go(0n, y, c, 1n+xp) : Nat},
+        Nat.succ_add_ne_zero(xp, y, t, e2))
+    case 1n+sp:
+      match y:
+        case 0n:
+          {==}
+        case 1n+yp:
+          match c:
+            case EQ{}:
+              {==}
+            case LT{}:
+              NL.gcd.go.fuel(sp, Nat.sub(1n+yp, 1n+xp), Nat.cmp(1n+xp, Nat.sub(1n+yp, 1n+xp)), xp, Nat.add(xp, t), u, {==},
+                Equal.trans(Nat,
+                  Nat.add(Nat.add(1n+xp, Nat.sub(1n+yp, 1n+xp)), Nat.add(xp, t)),
+                  Nat.add(Nat.add(xp, 1n+yp), t),
+                  sp,
+                  NL.gcd.slack_lt(xp, yp, t, Equal.sym(Cmp, LT{}, Nat.cmp(1n+xp, 1n+yp), e1)),
+                  NL.succ_inj(Nat.add(Nat.add(xp, 1n+yp), t), sp, e2)))
+            case GT{}:
+              %Equal.sym(Nat, Nat.sub(xp, yp), 1n+Nat.sub(xp, 1n+yp), NL.sub_pos(xp, yp, Equal.sym(Cmp, GT{}, Nat.cmp(1n+xp, 1n+yp), e1))) : {NL.Nat.gcd.go(Nat.add(sp, u), 1n+yp, Nat.cmp(_, 1n+yp), _) == NL.Nat.gcd.go(sp, 1n+yp, Nat.cmp(_, 1n+yp), _) : Nat}
+              NL.gcd.go.fuel(sp, 1n+yp, Nat.cmp(1n+Nat.sub(xp, 1n+yp), 1n+yp), Nat.sub(xp, 1n+yp), Nat.add(yp, t), u, {==},
+                Equal.trans(Nat,
+                  Nat.add(Nat.add(1n+Nat.sub(xp, 1n+yp), 1n+yp), Nat.add(yp, t)),
+                  Nat.add(Nat.add(xp, 1n+yp), t),
+                  sp,
+                  NL.gcd.slack_gt(xp, yp, t, Equal.sym(Cmp, GT{}, Nat.cmp(1n+xp, 1n+yp), e1)),
+                  NL.succ_inj(Nat.add(Nat.add(xp, 1n+yp), t), sp, e2)))
+
+# gcd_scale: the top level, and the reason gcd.go.scale and gcd.go.fuel both
+# exist. Nat.gcd(m*k, d*k) runs the loop with fuel m*k + d*k and Nat.gcd(m, d)
+# with fuel m + d, so the two loops cannot be matched directly; the sequence is
+#   1. gcd.go.scale at the scaled fuel, which relates the scaled state to the
+#      unscaled one at that same (over-large) fuel;
+#   2. add_mul_slack, which says that fuel is m + d plus a slack;
+#   3. gcd.go.fuel, which throws the slack away;
+#   4. Nat.mul_comm, because the loop scaling puts k on the left of the
+#      product and the statement has it on the right.
+def NL.gcd_scale(m, d, kp):
+  match m:
+    case 0n:
+      {==}
+    case 1n+mp:
+      %Equal.sym(Nat,
+        NL.Nat.gcd.go(Nat.add(Nat.mul(1n+mp, 1n+kp), Nat.mul(d, 1n+kp)), Nat.mul(d, 1n+kp), Nat.cmp(Nat.mul(1n+mp, 1n+kp), Nat.mul(d, 1n+kp)), Nat.mul(1n+mp, 1n+kp)),
+        Nat.mul(1n+kp, NL.Nat.gcd.go(Nat.add(Nat.mul(1n+mp, 1n+kp), Nat.mul(d, 1n+kp)), d, Nat.cmp(1n+mp, d), 1n+mp)),
+        NL.gcd.go.scale(Nat.add(Nat.mul(1n+mp, 1n+kp), Nat.mul(d, 1n+kp)), d, Nat.cmp(1n+mp, d), 1n+mp, kp, {==}))
+        : {_ == Nat.mul(NL.Nat.gcd.go(Nat.add(1n+mp, d), d, Nat.cmp(1n+mp, d), 1n+mp), 1n+kp) : Nat}
+      %NL.add_mul_slack(1n+mp, d, kp) : {Nat.mul(1n+kp, NL.Nat.gcd.go(_, d, Nat.cmp(1n+mp, d), 1n+mp)) == Nat.mul(NL.Nat.gcd.go(Nat.add(1n+mp, d), d, Nat.cmp(1n+mp, d), 1n+mp), 1n+kp) : Nat}
+      %Equal.sym(Nat,
+        NL.Nat.gcd.go(Nat.add(Nat.add(1n+mp, d), Nat.add(Nat.mul(1n+mp, kp), Nat.mul(d, kp))), d, Nat.cmp(1n+mp, d), 1n+mp),
+        NL.Nat.gcd.go(Nat.add(1n+mp, d), d, Nat.cmp(1n+mp, d), 1n+mp),
+        NL.gcd.go.fuel(Nat.add(1n+mp, d), d, Nat.cmp(1n+mp, d), mp, 0n, Nat.add(Nat.mul(1n+mp, kp), Nat.mul(d, kp)), {==}, NL.add_zero(Nat.add(1n+mp, d))))
+        : {Nat.mul(1n+kp, _) == Nat.mul(NL.Nat.gcd.go(Nat.add(1n+mp, d), d, Nat.cmp(1n+mp, d), 1n+mp), 1n+kp) : Nat}
+      %NL.mul_comm(1n+kp, NL.Nat.gcd.go(Nat.add(1n+mp, d), d, Nat.cmp(1n+mp, d), 1n+mp)) : {Nat.mul(1n+kp, NL.Nat.gcd.go(Nat.add(1n+mp, d), d, Nat.cmp(1n+mp, d), 1n+mp)) == _ : Nat}
+      {==}
+
+def NL.divides_add(g, q1, q2, a, b, p1, p2):
+  Equal.trans(Nat, Nat.add(a, b), Nat.add(Nat.mul(g, q1), b), Nat.mul(g, Nat.add(q1, q2)),
+    Equal.cong(Nat, Nat, u => Nat.add(u, b), a, Nat.mul(g, q1), p1),
+    Equal.trans(Nat, Nat.add(Nat.mul(g, q1), b), Nat.add(Nat.mul(g, q1), Nat.mul(g, q2)), Nat.mul(g, Nat.add(q1, q2)),
+      Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(g, q1), u), b, Nat.mul(g, q2), p2),
+      NL.mul_distrib(g, q1, q2)))
