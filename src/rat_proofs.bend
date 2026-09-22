@@ -1002,6 +1002,143 @@ def R.Rat.mk.canon.go(c, xp, xn, d, e):
           Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(xn, xp)}, Nat.sub(xp, xn), 0n,
             N.sub_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e)))))
 
+# Rat.mk.eqv.val: two forward chains, one per side, meeting at the canonical
+# forms. The left one runs
+#
+#   mk(Int{xp,xn}, d1)
+#     -> mk(Int{xp,xn}, da)                        pos_witness (a = sub(d1,1))
+#     -> mk(mul(Int{xp,xn}, db), D)                mk.scale by db = 1+b, backwards
+#     -> mk(Int{xp*db, xn*db}, D)                  Int.mul_scale (the raw spelling)
+#     -> mk(canon.go(cx, xp*db, xn*db), D)         mk.canon.go
+#
+# and the right one is the same four steps for (yp, yn, d2) with the two
+# denominators exchanged, ending at mk(canon.go(cy, ...), D). The two canonical
+# forms are equated by Int.canon.eqv.bwd from the cross sum, one cong carries
+# that through mk, and the right chain is read backwards to close the goal.
+#
+# D = da*db with da = 1+a, db = 1+b; cx/cy are the comparisons of the *scaled*
+# pairs, threaded in so that nothing cases on a computed Nat.cmp; and the cross
+# sum bwd consumes is e re-spelled from (d1, d2) to (da, db) -- e mentions each
+# denominator twice, so that re-spelling is two congs per side.
+#
+# The Int.mul_scale steps are not optional: Nat.mul matches on its *first*
+# argument, so Int.mul(Int{xp,xn}, Int{db,0n}) is stuck at
+# Int{add(xp*db, xn*0), add(xp*0, xn*db)} and does *not* convert to the raw pair
+# the canonical laws are stated over -- that law is the only bridge, exactly as
+# its own comment says.
+#
+# Every cong is written inline: a let-bound Equal.cong has no determined type
+# (the motive's codomain is the cong's own second type argument and nothing fixes
+# it), while the same term in an argument position of Equal.trans/Equal.sym is
+# checked against the endpoints spelled there. The comparison arguments of
+# mk.canon.go are Nat.cmp of the scaled coordinates with {==} evidence, the only
+# spelling available inside a fill.
+def R.Rat.mk.eqv.val(xp, xn, d1, p1, yp, yn, d2, p2, e):
+  +a = Nat.sub(d1, 1n)
+  +b = Nat.sub(d2, 1n)
+  +da = Nat.add(1n, a)
+  +db = Nat.add(1n, b)
+  +D = Nat.mul(da, db)
+  +D2 = Nat.mul(db, da)
+  +cx = Nat.cmp(Nat.mul(xp, db), Nat.mul(xn, db))
+  +cy = Nat.cmp(Nat.mul(yp, da), Nat.mul(yn, da))
+  +eL = Nat.add(Nat.mul(xp, d2), Nat.mul(yn, d1))
+  +mL = Nat.add(Nat.mul(xp, db), Nat.mul(yn, d1))
+  +mL2 = Nat.add(Nat.mul(xp, db), Nat.mul(yn, da))
+  +eR = Nat.add(Nat.mul(yp, d1), Nat.mul(xn, d2))
+  +mR = Nat.add(Nat.mul(yp, da), Nat.mul(xn, d2))
+  +mR2 = Nat.add(Nat.mul(yp, da), Nat.mul(xn, db))
+  +sL = Equal.trans(Nat, eL, mL, mL2,
+    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(xp, u), Nat.mul(yn, d1)), d2, db, N.pos_witness(d2, p2)),
+    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(xp, db), Nat.mul(yn, u)), d1, da, N.pos_witness(d1, p1)))
+  +sR = Equal.trans(Nat, eR, mR, mR2,
+    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(yp, u), Nat.mul(xn, d2)), d1, da, N.pos_witness(d1, p1)),
+    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(yp, da), Nat.mul(xn, u)), d2, db, N.pos_witness(d2, p2)))
+  +ecross = Equal.trans(Nat, mL2, eL, mR2,
+    Equal.sym(Nat, eL, mL2, sL),
+    Equal.trans(Nat, eL, eR, mR2, e, sR))
+  +ecan = I.Int.canon.eqv.bwd(cx, Nat.mul(xp, db), Nat.mul(xn, db), cy, Nat.mul(yp, da), Nat.mul(yn, da),
+    {==}, {==}, ecross)
+  +chainL = Equal.trans(R.Rat,
+    R.Rat.mk(I.Int{xp, xn}, d1),
+    R.Rat.mk(I.Int{xp, xn}, da),
+    R.Rat.mk(I.Int.canon.go(cx, Nat.mul(xp, db), Nat.mul(xn, db)), D),
+    Equal.cong(Nat, R.Rat, u => R.Rat.mk(I.Int{xp, xn}, u), d1, da, N.pos_witness(d1, p1)),
+    Equal.trans(R.Rat,
+      R.Rat.mk(I.Int{xp, xn}, da),
+      R.Rat.mk(I.Int.mul(I.Int{xp, xn}, I.Int.unit(db)), D),
+      R.Rat.mk(I.Int.canon.go(cx, Nat.mul(xp, db), Nat.mul(xn, db)), D),
+      Equal.sym(R.Rat, R.Rat.mk(I.Int.mul(I.Int{xp, xn}, I.Int.unit(db)), D),
+        R.Rat.mk(I.Int{xp, xn}, da), R.Rat.mk.scale(I.Int{xp, xn}, a, b)),
+      Equal.trans(R.Rat,
+        R.Rat.mk(I.Int.mul(I.Int{xp, xn}, I.Int.unit(db)), D),
+        R.Rat.mk(I.Int{Nat.mul(xp, db), Nat.mul(xn, db)}, D),
+        R.Rat.mk(I.Int.canon.go(cx, Nat.mul(xp, db), Nat.mul(xn, db)), D),
+        Equal.cong(I.Int, R.Rat, u => R.Rat.mk(u, D),
+          I.Int.mul(I.Int{xp, xn}, I.Int.unit(db)), I.Int{Nat.mul(xp, db), Nat.mul(xn, db)},
+          I.Int.mul_scale(xp, xn, db)),
+        R.Rat.mk.canon.go(cx, Nat.mul(xp, db), Nat.mul(xn, db), D, {==}))))
+  +chainR = Equal.trans(R.Rat,
+    R.Rat.mk(I.Int{yp, yn}, d2),
+    R.Rat.mk(I.Int{yp, yn}, db),
+    R.Rat.mk(I.Int.canon.go(cy, Nat.mul(yp, da), Nat.mul(yn, da)), D),
+    Equal.cong(Nat, R.Rat, u => R.Rat.mk(I.Int{yp, yn}, u), d2, db, N.pos_witness(d2, p2)),
+    Equal.trans(R.Rat,
+      R.Rat.mk(I.Int{yp, yn}, db),
+      R.Rat.mk(I.Int.mul(I.Int{yp, yn}, I.Int.unit(da)), D2),
+      R.Rat.mk(I.Int.canon.go(cy, Nat.mul(yp, da), Nat.mul(yn, da)), D),
+      Equal.sym(R.Rat, R.Rat.mk(I.Int.mul(I.Int{yp, yn}, I.Int.unit(da)), D2),
+        R.Rat.mk(I.Int{yp, yn}, db), R.Rat.mk.scale(I.Int{yp, yn}, b, a)),
+      Equal.trans(R.Rat,
+        R.Rat.mk(I.Int.mul(I.Int{yp, yn}, I.Int.unit(da)), D2),
+        R.Rat.mk(I.Int{Nat.mul(yp, da), Nat.mul(yn, da)}, D2),
+        R.Rat.mk(I.Int.canon.go(cy, Nat.mul(yp, da), Nat.mul(yn, da)), D),
+        Equal.cong(I.Int, R.Rat, u => R.Rat.mk(u, D2),
+          I.Int.mul(I.Int{yp, yn}, I.Int.unit(da)), I.Int{Nat.mul(yp, da), Nat.mul(yn, da)},
+          I.Int.mul_scale(yp, yn, da)),
+        Equal.trans(R.Rat,
+          R.Rat.mk(I.Int{Nat.mul(yp, da), Nat.mul(yn, da)}, D2),
+          R.Rat.mk(I.Int{Nat.mul(yp, da), Nat.mul(yn, da)}, D),
+          R.Rat.mk(I.Int.canon.go(cy, Nat.mul(yp, da), Nat.mul(yn, da)), D),
+          Equal.cong(Nat, R.Rat, u => R.Rat.mk(I.Int{Nat.mul(yp, da), Nat.mul(yn, da)}, u),
+            D2, D, N.mul_comm(db, da)),
+          R.Rat.mk.canon.go(cy, Nat.mul(yp, da), Nat.mul(yn, da), D, {==})))))
+  Equal.trans(R.Rat,
+    R.Rat.mk(I.Int{xp, xn}, d1),
+    R.Rat.mk(I.Int.canon.go(cx, Nat.mul(xp, db), Nat.mul(xn, db)), D),
+    R.Rat.mk(I.Int{yp, yn}, d2),
+    chainL,
+    Equal.trans(R.Rat,
+      R.Rat.mk(I.Int.canon.go(cx, Nat.mul(xp, db), Nat.mul(xn, db)), D),
+      R.Rat.mk(I.Int.canon.go(cy, Nat.mul(yp, da), Nat.mul(yn, da)), D),
+      R.Rat.mk(I.Int{yp, yn}, d2),
+      Equal.cong(I.Int, R.Rat, u => R.Rat.mk(u, D),
+        I.Int.canon.go(cx, Nat.mul(xp, db), Nat.mul(xn, db)),
+        I.Int.canon.go(cy, Nat.mul(yp, da), Nat.mul(yn, da)), ecan),
+      Equal.sym(R.Rat, R.Rat.mk(I.Int{yp, yn}, d2),
+        R.Rat.mk(I.Int.canon.go(cy, Nat.mul(yp, da), Nat.mul(yn, da)), D), chainR)))
+
+# The product shape
+# =================
+#
+# The composing laws (mul_assoc and its siblings) have to relate two
+# *normalized* results, and the only tool for that is Rat.mk.eqv, whose
+# hypothesis is a cross product of the raw numerators. Rat.mk.value supplies
+# each factor's cross product, but it names its numerator in Rat.num spelling
+# (the difference pair), while the products the operations write are raw
+# coordinates -- and those two are not the same Int: Rat.num(np,nn) is the
+# one-sided pair sub(np,nn), sub(nn,np), which is a different *pair* from
+# Int{np,nn}. Closing that gap is what the two helpers below do.
+#
+# Rat.num.mul: the product of two difference pairs is Rat.num of the product's
+# own coordinates -- i.e. that product is one-sided again. Which side is zero is
+# exactly the sign of the two factors, so the two comparisons arrive as
+# parameters and the fill splits on them; each branch derives the zeros
+# (sub_of_lt at the flipped comparison) and finishes with dp.eq.right /
+# dp.eq.left, which need nothing but "one side is zero". In between, a zero
+# factor kills its product: mul_zero for a zero on the right, computation for a
+# zero on the left.
+
 def R.Rat.dp.eq.right(U, V, z):
   %Equal.sym(Nat, V, 0n, z) : {I.Int{U, _} == R.Rat.num(U, _) : I.Int}
   %Equal.sym(Nat, Nat.sub(U, 0n), U, N.sub_zero(U)) : {I.Int{U, 0n} == I.Int{_, Nat.sub(0n, U)} : I.Int}

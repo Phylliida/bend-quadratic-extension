@@ -1428,3 +1428,60 @@ makes, and legal because they sit under the constructor, not under a `Nat.div`).
 
 Measured: it lands with no truncation case split, no coprimality and no scale of
 the goal itself; the rat gate is green, `rat.bend` alone reports 189 TODOs.
+
+### `Rat.mk.eqv.val`: "mk is determined by the value", and why a cross sum
+
+Landed: **`Rat.mk.eqv.val`** -- for positive `d1`, `d2`,
+
+    Rat.mk(Int{xp,xn}, d1) == Rat.mk(Int{yp,yn}, d2)
+      whenever   xp*d2 + yn*d1 == yp*d1 + xn*d2
+
+This is the general quotient lemma, and it is the item the additive block was
+actually blocked on: `Rat.mk.eqv.raw`'s hypothesis is a cross *product* of the
+two numerators as pairs, and that equation is simply **false** for two different
+representatives of one value. Measured: `6/24` and `-14/24` (the two sides of
+`add_assoc` at `2/3, -3/5, 5/4`) have equal value, and their numerators `(6,20)`
+and `(0,14)` give `(144,480)` against `(0,336)` -- equal as integers, different
+as pairs. So no rearrangement of cross products can close the additive laws; the
+hypothesis has to be the value equation read as Nats, which is
+`Int.canon.eqv`'s own cross-sum shape and what the value equations of the
+composing laws can actually produce. (The forward direction of
+`Int.canon.eqv` is the one whose *conclusion* is that cross sum, but the
+direction consumed here is `bwd`, from the cross sum to the equality of the
+canonical forms; both were needed in the end, which retires the note in
+`int.bend` that "nothing downstream needs the reverse direction".)
+
+The fill is five steps per side and they are all spelled in `rat_proofs.bend`:
+
+    mk(Int{xp,xn}, d1)
+      -> mk(Int{xp,xn}, da)                    pos_witness (da = 1 + (d1-1))
+      -> mk(mul(Int{xp,xn}, db), D)            Rat.mk.scale by db, read backwards
+      -> mk(Int{xp*db, xn*db}, D)              Int.mul_scale (the raw spelling)
+      -> mk(canon.go(cx, xp*db, xn*db), D)     Rat.mk.canon.go
+      -> mk(canon.go(cy, yp*da, yn*da), D)     Int.canon.eqv.bwd, one cong
+
+with `D = da*db`, and the right side the same chain with the denominators
+exchanged; the right chain is then read backwards by one `Equal.sym`. Two
+checker facts the fill paid for:
+
+- **the `Int.mul_scale` step is not optional.** `Nat.mul` matches on its *first*
+  argument, so `Int.mul(Int{xp,xn}, Int{db,0n})` is stuck at
+  `Int{add(xp*db, xn*0), add(xp*0, xn*db)}` -- `mul(a, 0)` is not definitional,
+  `mul_zero` is a law -- and the term therefore does *not* convert to the raw
+  pair the canonical laws are stated over. `Int.mul_scale` is the only bridge,
+  exactly as its own comment says.
+- **a let-bound `Equal.cong` has no determined type** (the motive's codomain is
+  the cong's own second type argument and nothing fixes it: `+e = Equal.cong(...)`
+  is rejected with `expected : an annotated term (cannot infer)`), while the same
+  cong inline in an argument position of `Equal.trans`/`Equal.sym` is checked
+  against the endpoints spelled there. So the fills write their congs inline and
+  bind only the `trans` chains. A related trap: a **bare constructor literal**
+  cannot be let-bound either (`+R = I.Int{P1, Q1}` is rejected the same way, and
+  `+R: I.Int = ...` is a syntax error), so literal pairs are written where they
+  are needed, or bound as an application (`Int.mul(Int{..}, Int.unit(..))`).
+
+Measured: rat gate green, `rat.bend` alone reports 190 TODOs. With `mk.eqv.val`
+and `Rat.add.value.mixed` in, `add_assoc` has all of its pieces except the cross
+sum itself -- the (★) equation below -- which needs one Nat law for the
+truncation cross sum (`sub(a,b) + b == sub(b,a) + a`) and the criss-cross
+combination of two of them.
