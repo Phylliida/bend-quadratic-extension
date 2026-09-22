@@ -696,12 +696,32 @@ law mod_lt:
 # case on it, which is what puts x < y / x = y / x > y in scope as arithmetic
 # evidence (cmp_gt_of_lt, cmp_lt_sub_add, ...).
 
-# Nat.divides(g, a): g divides a, with the quotient as an existentially
-# quantified witness. A def, not a law, because law *statements* below
-# conclude about it; proofs inhabit it by returning the pair (quotient,
-# equation).
+# Nat.Div<g, a>: g divides a, with the quotient as a witness -- and with both
+# the quotient and the equation *copyable*.
+#
+# This was `Exists(Nat, q => {a == Nat.mul(g, q)})` first, and the shape is not
+# a style choice: it is what makes the proof writable at all. The loop step
+# needs each field twice -- once to rebuild the witness for the old argument,
+# once to feed divides_add -- and a Sigma's fields are linear. `Sigma<&2, &2,
+# ..>` does not help (a field's *own* quantity is what counts, and Tuple's
+# default is &1). The copy spelling for a live binder is a `+` re-bind, and
+# there the checker stops: `+e = e` makes it re-check the field's type, a
+# Sigma's dependent field type B(fst) reaches it as `App(<shared cell holding
+# the lambda>, fst)` -- infer sees a cell, not a lambda -- and the whole def is
+# rejected with "an annotated term (cannot infer)".
+#
+# Two properties of a +field make that obstacle disappear:
+#   - a +field is Many at the declaration, so a plain pattern already yields it
+#     Many and no re-bind is ever written;
+#   - a constructor's field types mention its own earlier fields *directly*, so
+#     no dependent field type is ever rebuilt as an application.
+type Nat.Div<+g: Nat, +a: Nat> is Data:
+  Div{+q: Nat, +e: {a == Nat.mul(g, q) : Nat}}
+
+# Nat.divides(g, a): g divides a. A named alias so the law statements and the
+# motives that rewrite over them spell the predicate once.
 def Nat.divides(g: Nat, a: Nat) -> Type:
-  Exists(Nat, q => {a == Nat.mul(g, q) : Nat})
+  Nat.Div<g, a>
 
 # Nat.divides_both(g, a, b): g divides both a and b. A named pair so that the
 # law statements below (and the motives that rewrite over them) stay single
@@ -875,4 +895,83 @@ law gcd_scale:
   for +d: Nat
   for +kp: Nat
   {Nat.gcd(Nat.mul(m, 1n+kp), Nat.mul(d, 1n+kp)) == Nat.mul(Nat.gcd(m, d), 1n+kp) : Nat}
+
+# gcd divides both arguments
+# ==========================
+#
+# The loop's two steps replace the state (x, y) -- x in the fourth slot of
+# Nat.gcd.go, y in the second -- by (x, y - x) when c = LT and by (x - y, y)
+# when c = GT. In both cases the *old* argument is the sum of the new pair
+# (y = x + (y - x), x = (x - y) + y), so one induction yields both divisibility
+# facts and divides_add adds the quotients.
+#
+# gcd.divides_lt / gcd.divides_gt are the assembly for one step each: a common
+# multiple of the new pair is a multiple of the old argument. They are laws
+# rather than inline steps because the induction hypothesis's witness pair
+# cannot be taken apart where it is produced -- `match` scrutinizes a parameter
+# or a pattern-bound field, never a computed value ("give it its own def") --
+# so the pair has to arrive as a helper's parameter, where the destructure is
+# legal. The helper then rebuilds the old half of the pair from the fields it
+# destructured, which is exactly why Nat.Div's fields have to be copyable.
+#
+# gcd.divides_lt states the equation as {s + x == y}: s is the new y slot, so
+# the old larger argument y is s + x.
+law gcd.divides_lt:
+  for +g: Nat
+  for +x: Nat
+  for +s: Nat
+  for +y: Nat
+  for d: Nat.divides_both(g, x, s)
+  for +e: {Nat.add(s, x) == y : Nat}
+  Nat.divides_both(g, x, y)
+
+# gcd.divides_gt is the mirror: here the pair covers (x, y) with x the *new*
+# x slot of the loop -- the difference -- and the old larger argument is
+# s + x.  The x slot is spelled 1 + xp rather than s for one reason: the loop's
+# recursive call has that slot as 1 + xp' (gcd.go.divides states the state's x
+# slot as a successor so its own fuel x + y reduces), so this helper's d
+# parameter is only ever fed a pair whose first dividend is a successor. The
+# caller rewrites the loop's stuck Nat.sub into that spelling with sub_pos.
+law gcd.divides_gt:
+  for +g: Nat
+  for +xp: Nat
+  for +y: Nat
+  for +x: Nat
+  for d: Nat.divides_both(g, 1n+xp, y)
+  for +e: {Nat.add(1n+xp, y) == x : Nat}
+  Nat.divides_both(g, x, y)
+
+# gcd.go.divides: the loop invariant. The conclusion is stated about the *loop
+# value* (`Nat.divides_both` of `Nat.gcd.go(..)` applied to the state), not
+# about a dividend, because that is what the recursive step hands back: the
+# induction hypothesis's pair flows straight into gcd.divides_lt/gt as the
+# helper parameter d.
+#
+# e2 says the fuel s is the state's own measure (x + y) plus a slack t -- the
+# same hypothesis gcd.go.fuel carries, and the reason both laws spell the x
+# slot 1 + xp: the step's new x slot has to start with a constructor for the
+# recursive call's fuel to be a constructor, and 1 + xp is the spelling that
+# makes x + y reduce.
+law gcd.go.divides:
+  for +s: Nat
+  for +y: Nat
+  for c: Cmp
+  for +xp: Nat
+  for +t: Nat
+  for +e1: {c == Nat.cmp(1n+xp, y) : Cmp}
+  for +e2: {Nat.add(Nat.add(1n+xp, y), t) == s : Nat}
+  Nat.divides_both(Nat.gcd.go(s, y, c, 1n+xp), 1n+xp, y)
+
+# gcd_divides: gcd(a, b) divides both a and b -- the obligation the Rat step
+# downstream consumes, since the quotient witness of g | (num.pos + num.neg)
+# is what cancels in the normalization.
+#
+# a = 0 is split out exactly as in Nat.gcd itself: the loop only ever sees
+# x >= 1, and the divisor is then b (with quotient 0) and the dividend 0 (with
+# quotient 1). For a = 1 + ap the loop starts at x = a, y = b with fuel a + b,
+# which is gcd.go.divides at t = 0 with e2 = a + b = (a + b) + 0.
+law gcd_divides:
+  for +a: Nat
+  for +b: Nat
+  Nat.divides_both(Nat.gcd(a, b), a, b)
 
