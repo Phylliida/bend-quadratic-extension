@@ -2493,3 +2493,26 @@ def R.Rat.add_exchange(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
         R.Rat.add(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np1, nn1), Xd}),
         R.Rat.add(R.Rat{R.Rat.num(np1, nn1), Xd}, R.Rat{R.Rat.num(np3, nn3), Zd}),
         R.Rat.add_comm(R.Rat{R.Rat.num(np3, nn3), Zd}, R.Rat{R.Rat.num(np1, nn1), Xd}))))
+
+
+# --- work in progress: mul_distrib ---
+
+# value.coords.pos / .neg: the value equation of a scaled difference pair, read
+# at its two Nat coordinates.
+def R.Rat.value.coords.pos(+ap: Nat, +an: Nat, +rp: Nat, +rn: Nat, +d: Nat, +b: Nat,
+            v: {I.Int{Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)),
+                      Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d))}
+                == I.Int{Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)),
+                         Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b))} : I.Int})
+  -> {Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)) == Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)) : Nat}:
+  I.Int.eq.pos(Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)), Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d)),
+    Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)), Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b)), v)
+
+def R.Rat.value.coords.neg(+ap: Nat, +an: Nat, +rp: Nat, +rn: Nat, +d: Nat, +b: Nat,
+            v: {I.Int{Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)),
+                      Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d))}
+                == I.Int{Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)),
+                         Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b))} : I.Int})
+  -> {Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d)) == Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b)) : Nat}:
+  I.Int.eq.neg(Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)), Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d)),
+    Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)), Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b)), v)
