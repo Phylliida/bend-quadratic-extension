@@ -36,9 +36,10 @@ case analysis, and that case analysis is what the switch removed. See
 Laws and proofs live in separate files; each `*_proofs.bend` fills every
 law of its sibling via `def <alias>.<name>(...)`:
 
-- `src/nat.bend` — the 114 Nat/Cmp laws (including the `Nat.divmod` and
-  `Nat.gcd` blocks, the exact-division block, the difference-pair helpers, and
-  the cross-sum lemmas the Int quotient lemma rests on),
+- `src/nat.bend` — the 118 Nat/Cmp laws (including the `Nat.divmod` and
+  `Nat.gcd` blocks, the exact-division block, the difference-pair helpers, the
+  scaling/divisibility bridges, and the cross-sum lemmas the Int quotient lemma
+  rests on),
   plus `Cmp.flip`, the gcd defs and the `Nat.Div` witness type. No proofs.
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
@@ -59,8 +60,8 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `*_proofs.bend` files and `scratch.bend` are the gates and print
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
-transitive over imports: nat.bend 114, int.bend 28, qext.bend 30 = 28 Int + 2
-QExt, rat.bend 153 = 114 Nat + 28 Int + 11 Rat.
+transitive over imports: nat.bend 118, int.bend 28, qext.bend 30 = 28 Int + 2
+QExt, rat.bend 163 = 118 Nat + 28 Int + 17 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -82,23 +83,20 @@ decides equality" means.
 
 Known gaps, in dependency order:
 
-1. `Rat`: the type, `Rat.mk` and the operations are in (`src/rat.bend`), with
-   the commutation laws (`add_comm`, `mul_comm`), the definitional
-   `sub_eq_add_neg`, and the identity laws (`add_zero`, `zero_add`, `mul_one`,
-   `one_mul`, `mul_zero`) proved on canonical values — the last of those on top
-   of `Rat.mk.canon` ("mk is the identity on a reduced fraction"),
-   `Rat.mk.zero` and `Rat.mk.fixed` (a reduced difference pair is a fixed point
-   of mk), which is what `canonical` means here. Still open, in dependency
-   order:
-   - `Rat.mk.canon` (mk is the identity on a reduced fraction) and
-     `Rat.mk.scale` (`mk(n*k, d*k) == mk(n,d)`), which need the Nat exact
-     division block already in place, then
-   - `Rat.mk.eqv` (`n1*d2 == n2*d1` implies `mk(n1,d1) == mk(n2,d2)`, i.e.
-     `==` decides rational equality), and
-   - the laws that compose two normalized results — `add_zero`, `mul_one`,
-     `mul_zero`, `neg_neg`, `mul_assoc`, `add_assoc`, `mul_distrib`: each of
-     those needs `mk.scale`/`mk.eqv` because the inner `Rat.mk` has already
-     cancelled a gcd before the outer one looks at its arguments.
+1. `Rat`: the type, `Rat.mk`, the operations and the normalization lemmas are
+   in, and `==` on canonical values decides rational equality:
+   `Rat.mk.scale` (normalization is natural under scaling) and `Rat.mk.eqv`
+   (equal cross products give equal normal forms) are both proved, on top of
+   `Rat.mk.canon`, `Rat.mk.zero` and `Rat.mk.fixed`. Proved field laws:
+   `add_comm`, `mul_comm`, `sub_eq_add_neg`, and the identity laws
+   (`add_zero`, `zero_add`, `mul_one`, `one_mul`, `mul_zero`) for canonical
+   values. Still open:
+   - the laws that compose two *normalized* results — `mul_assoc`, `add_assoc`,
+     `add_exchange`, `mul_distrib`, `mul_add_left`, `neg_add`, `neg_neg`. Each
+     needs `Rat.mk.eqv` plus the fact that an operation's value is the value of
+     its raw fraction ("mk preserves the value", the reverse of the same
+     quotient argument); the machinery for them is now in place, but the
+     proofs are not written.
 2. `QExt` over `Rat`: field axioms plus the multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`).
 3. Binary nats for performance (unary `Nat` is O(value)).

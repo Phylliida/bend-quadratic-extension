@@ -1042,6 +1042,25 @@ def NL.sub_of_lt(a, b, e):
     case 1n+ap 1n+bp:
       NL.sub_of_lt(ap, bp, e)
 
+# Nat.pos_ne_zero: a successor is not zero -- the discrimination halves of
+# divides_pos. Bare rather than NL-prefixed (it is proof machinery, no law
+# statement mentions it), like Nat.pred and Nat.succ_add_ne_zero.
+def Nat.pos_ne_zero(n: Nat, e: {1n+n == 0n : Nat}) -> Empty:
+  %e : NatIsPos(_)
+  Unit{}
+
+def NL.pos_witness(n, e):
+  Equal.trans(Nat, n, Nat.sub(n, 0n), 1n+Nat.sub(n, 1n),
+    Equal.sym(Nat, Nat.sub(n, 0n), n, NL.sub_zero(n)),
+    NL.sub_pos(n, 0n, NL.cmp_gt_of_lt(0n, n, e)))
+
+def NL.divides_pos(g, q, ap, e):
+  match g:
+    case 0n:
+      Empty.absurd({Nat.cmp(0n, 0n) == LT{} : Cmp}, Nat.pos_ne_zero(ap, e))
+    case 1n+gp:
+      {==}
+
 # sub_diag: GT and LT rewrite the side that is zero and then collapse the outer
 # truncation (sub_zero, sub_zero_left); EQ turns the comparison into np == nn
 # and derives both sides are 0 from sub_self.
@@ -1396,3 +1415,33 @@ def NL.gcd_divides(a, b):
        NL.Div{1n, NL.mul_one(b)})
     case 1n+ap:
       NL.gcd.go.divides(Nat.add(1n+ap, b), b, Nat.cmp(1n+ap, b), ap, 0n, {==}, NL.add_zero(Nat.add(1n+ap, b)))
+
+# div_scale: write g as 1 + (g - 1) (pos_witness, from the positivity
+# hypothesis), then the two sides of the goal are div_exact_mul and div_exact at
+# the same q -- both take the same re-spelled witness.
+def NL.div_scale(mag, g, kp, w, p):
+  NL.Div{q, em} = w
+  %Equal.sym(Nat, g, 1n+Nat.sub(g, 1n), NL.pos_witness(g, p))
+    : {Nat.div(Nat.mul(mag, 1n+kp), Nat.mul(_, 1n+kp)) == Nat.div(mag, _) : Nat}
+  Equal.trans(Nat,
+    Nat.div(Nat.mul(mag, 1n+kp), Nat.mul(1n+Nat.sub(g, 1n), 1n+kp)),
+    q,
+    Nat.div(mag, 1n+Nat.sub(g, 1n)),
+    NL.div_exact_mul(mag, Nat.sub(g, 1n), q, kp,
+      Equal.trans(Nat, mag, Nat.mul(g, q), Nat.mul(1n+Nat.sub(g, 1n), q),
+        em,
+        Equal.cong(Nat, Nat, u => Nat.mul(u, q), g, 1n+Nat.sub(g, 1n), NL.pos_witness(g, p)))),
+    Equal.sym(Nat, Nat.div(mag, 1n+Nat.sub(g, 1n)), q,
+      NL.div_exact(mag, Nat.sub(g, 1n), q,
+        Equal.trans(Nat, mag, Nat.mul(g, q), Nat.mul(1n+Nat.sub(g, 1n), q),
+          em,
+          Equal.cong(Nat, Nat, u => Nat.mul(u, q), g, 1n+Nat.sub(g, 1n), NL.pos_witness(g, p))))))
+
+# divides_pos_wit: take the witness apart, spell the dividend as 1 + ap with
+# pos_witness, and hand the two to divides_pos.
+def NL.divides_pos_wit(g, a, w, p):
+  NL.Div{q, e} = w
+  NL.divides_pos(g, q, Nat.sub(a, 1n),
+    Equal.trans(Nat, 1n+Nat.sub(a, 1n), a, Nat.mul(g, q),
+      Equal.sym(Nat, a, 1n+Nat.sub(a, 1n), NL.pos_witness(a, p)),
+      e))
