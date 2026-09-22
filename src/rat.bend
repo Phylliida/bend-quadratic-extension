@@ -505,3 +505,46 @@ law Rat.num.mul:
                       Nat.mul(Nat.sub(nn1, np1), Nat.sub(nn2, np2))),
               Nat.add(Nat.mul(Nat.sub(np1, nn1), Nat.sub(nn2, np2)),
                       Nat.mul(Nat.sub(nn1, np1), Nat.sub(np2, nn2)))) : I.Int}
+
+# Rat.mul_assoc
+# =============
+#
+# (x*y)*z = x*(y*z) for canonical values -- the first law that composes two
+# *normalized* results, and the one every other composing law is a variation
+# of.
+#
+# The canonical value is spelled the way Rat.mk.fixed and the value lemma spell
+# it: numerator Rat.num(np,nn) (the difference pair), denominator 1n+dp, with
+# its comparison threaded in as a parameter. That presentation is what makes the
+# fill work at all -- Rat.mk.value's right side names a *difference pair*, so a
+# numerator that is a raw pair would not meet it (see Rat.num.mul, which is
+# exactly that bridge). No coprimality hypothesis is needed: the law holds for
+# every Rat of this shape.
+#
+# The fill is four calls and nothing else: mk.value on each product (the two
+# value equations), num.mul on each product (their shapes), Int.scale_cross (the
+# cross product of the composed fraction, which is the two value equations)
+# scaled by the shared denominator and cancelled with Int.scale_cancel), and
+# mk.eqv.raw to turn that cross product into the equality of the two normal
+# forms. Every intermediate term is one of those laws' own conclusions, which is
+# why nothing here needs a motive.
+law Rat.mul_assoc:
+  for +c1: Cmp
+  for +np1: Nat
+  for +nn1: Nat
+  for +e1: {c1 == Nat.cmp(np1, nn1) : Cmp}
+  for +dp1: Nat
+  for +c2: Cmp
+  for +np2: Nat
+  for +nn2: Nat
+  for +e2: {c2 == Nat.cmp(np2, nn2) : Cmp}
+  for +dp2: Nat
+  for +c3: Cmp
+  for +np3: Nat
+  for +nn3: Nat
+  for +e3: {c3 == Nat.cmp(np3, nn3) : Cmp}
+  for +dp3: Nat
+  {Rat.mul(Rat.mul(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np2, nn2), 1n+dp2}),
+            Rat{Rat.num(np3, nn3), 1n+dp3})
+   == Rat.mul(Rat{Rat.num(np1, nn1), 1n+dp1},
+              Rat.mul(Rat{Rat.num(np2, nn2), 1n+dp2}, Rat{Rat.num(np3, nn3), 1n+dp3})) : Rat}

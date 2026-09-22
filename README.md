@@ -65,7 +65,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 124, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 180 = 124 Nat + 32 Int + 24 Rat.
+QExt, rat.bend 181 = 124 Nat + 32 Int + 25 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -104,13 +104,19 @@ Known gaps, in dependency order:
    laws:
    `add_comm`, `mul_comm`, `sub_eq_add_neg`, and the identity laws
    (`add_zero`, `zero_add`, `mul_one`, `one_mul`, `mul_zero`) for canonical
-   values. Still open:
-   - the laws that compose two *normalized* results — `mul_assoc`, `add_assoc`,
-     `add_exchange`, `mul_distrib`, `mul_add_left`, `neg_add`, `neg_neg`. Each
-     is now one `Rat.mk.eqv` application away: reduce both sides to raw
-     fractions, identify them with the Int/Nat ring laws up to the cross product
-     (`Rat.mk.value` supplies its hypothesis), and apply `mk.eqv`. The proofs
-     are not written yet; `Rat.mul_assoc` is the cheapest of them to try first.
+   values. `Rat.mul_assoc` is now proved as well — the first law that
+   composes two *normalized* results, and the template for the rest. Its
+   statement is over `Rat{Rat.num(np,nn), 1n+dp}` (the difference-pair
+   presentation `Rat.mk.fixed` and the value lemma use, comparison as a
+   parameter, no coprimality hypothesis), and its fill is four calls:
+   `Rat.mk.value` on each product, `Rat.num.mul` on each product (the shape
+   bridge: the product of two difference pairs is a difference pair again, by
+   sign case analysis), `Int.scale_cross` (the cross product of the composed
+   fraction from the two value equations, scaled by the shared denominator and
+   cancelled with `Int.scale.cancel`), and `Rat.mk.eqv.raw`. Still open:
+   - `add_assoc`, `add_exchange`, `mul_distrib`, `mul_add_left`, `neg_add`,
+     `neg_neg`, the same recipe with the additive value equations (which also
+     need the two `Int.canon`-level facts an `Int.add` numerator forces).
 2. `QExt` over `Rat`: field axioms plus the multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`).
 3. Binary nats for performance (unary `Nat` is O(value)).
