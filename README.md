@@ -54,7 +54,8 @@ law of its sibling via `def <alias>.<name>(...)`:
   nat.bend, filled by the nat_proofs.bend import).
 - `src/qext.bend` — `QExt` type, `QExt.nat`/`add`/`mul`, and the two laws.
 - `src/qext_proofs.bend` — fills both qext.bend laws.
-- `src/rat.bend` — `Rat{num, den}`, `Rat.mk` (gcd normalization, match-free),
+- `src/rat.bend` — `Rat{num, den}` with the field projections `Rat.numof` /
+  `Rat.denof`, `Rat.mk` (gcd normalization, match-free),
   `Rat.add`/`neg`/`sub`/`mul`/`zero`/`one`, and the laws.
 - `src/rat_proofs.bend` — fills every rat.bend law.
 - `scratch.bend` — smoke test with a `main`.
@@ -64,7 +65,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 122, int.bend 29, qext.bend 31 = 29 Int + 2
-QExt, rat.bend 169 = 122 Nat + 29 Int + 18 Rat.
+QExt, rat.bend 170 = 122 Nat + 29 Int + 19 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.

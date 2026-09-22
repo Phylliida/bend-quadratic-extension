@@ -34,6 +34,21 @@ import ./int.bend as I
 type Rat is Data:
   Rat{num: I.Int, den: Nat}
 
+# Rat.numof(r) / Rat.denof(r): the two fields of a Rat as functions.
+#
+# The value lemma below is about a Rat *value* -- mk's output, or the result of
+# an operation -- and such a numerator is a field of a constructor the statement
+# cannot destructure (a statement has no body to put a match in). So the
+# projection has to be a def, exactly as Rat.num is the numerator of a *raw*
+# coordinate pair. Both are marked (+n, +d) so a caller can read a field twice.
+def Rat.numof(r: Rat) -> I.Int:
+  Rat{+n, +d} = r
+  n
+
+def Rat.denof(r: Rat) -> Nat:
+  Rat{+n, +d} = r
+  d
+
 # the additive and multiplicative identities: 0/1 and 1/1, already canonical
 def Rat.zero() -> Rat:
   Rat{I.Int.zero(), 1n}
@@ -341,3 +356,60 @@ law Rat.mk.den.pos:
   for +nn: Nat
   for +dp: Nat
   {Nat.cmp(0n, Nat.div(1n+dp, Rat.g(np, nn, 1n+dp))) == LT{} : Cmp}
+
+# The value lemma
+# ===============
+#
+# Everything above makes normalization *disappear* on values that are already
+# normalized; these two say what normalization *does* to an arbitrary fraction:
+#
+#     num(mk(n, d)) * d == n * den(mk(n, d))
+#
+# -- the cross product of mk's output with its input, which is the hypothesis
+# Rat.mk.eqv consumes and therefore the one bridge every law that composes two
+# normalized results crosses (`mul_assoc`, `add_assoc`, ...). Read as
+# "mk(n,d) = n/d", it is the statement that mk preserves the value.
+#
+# Why it is not free: Rat.mk cancels gcd(|n|, d), so its numerator is div of the
+# input's difference coordinate by a gcd, and the cross product is a statement
+# about division. What discharges it is div_cross, one call per coordinate, with
+# the two divisibility witnesses gcd_divides hands over. What makes the two
+# coordinates *different* cases is that the gcd's dividend is |n| = P + Q (P and
+# Q the difference pair's own sides, one of them always 0), so `g | P` is only
+# available once the comparison says which side is zero -- which is why the
+# comparison is a parameter here, exactly as it is in mk.scale.
+#
+# The denominator is a general d with a positivity hypothesis rather than the
+# 1 + dp spelling the rest of the file uses. Two reasons, both load-bearing:
+# callers hold products of positive denominators (Rat.mul's xd*yd), and
+# rewriting those into successors at every call site would cost an Equal.cong
+# over the goal each time; and the positivity hypothesis is what keeps the law
+# silent about d = 0, the deliberate junk case. div_cross is stated the same
+# way, for the same first reason (its divisor is the computed gcd).
+
+# Rat.mk.value.go: the value equation in mk.go's own coordinate spelling -- both
+# Int products already reduced to their coordinate pairs, which is the shape
+# Int.mul_scale produces and the shape both halves of the cross product are
+# provable in. Rat.mk.value is the wrapper that gets the *raw* products into
+# this spelling.
+#
+# The two divisibility witnesses are binders rather than calls to gcd_divides,
+# for the reason div_scale and divides_pos_wit take theirs as binders: the
+# caller's witnesses are fields of the pair gcd_divides returns, and a pair that
+# arrives as a computed value cannot be destructured where it is produced. As
+# parameters they can be taken apart, which is what the fill does first (and
+# they are linear, so each is read once and the fields -- which are +fields, so
+# Many -- are what gets reused).
+law Rat.mk.value.go:
+  for c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +d: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  for +pd: {Nat.cmp(0n, d) == LT{} : Cmp}
+  for wm: N.Nat.divides(Rat.g(np, nn, d), Rat.mag(np, nn))
+  for wd: N.Nat.divides(Rat.g(np, nn, d), d)
+  {I.Int{Nat.mul(Nat.div(Nat.sub(np, nn), Rat.g(np, nn, d)), d),
+         Nat.mul(Nat.div(Nat.sub(nn, np), Rat.g(np, nn, d)), d)}
+   == I.Int{Nat.mul(Nat.sub(np, nn), Nat.div(d, Rat.g(np, nn, d))),
+            Nat.mul(Nat.sub(nn, np), Nat.div(d, Rat.g(np, nn, d)))} : I.Int}
