@@ -155,54 +155,28 @@ def Q.QExt.mul_comm(d, x, y):
 def Q.QExt.sub_eq_add_neg(x, y):
   {==}
 
-# QExt.add_assoc: addition is componentwise, so this is one Rat.add_assoc per
-# coordinate -- one qext.re step and one qext.im step, with no hypothesis and no
-# arithmetic of its own. The coordinates the law is stated over are already the
-# canonical presentation Rat.add_assoc's nine Nat parameters spell, so each call
-# is that law verbatim. Nothing here cases on anything, and nothing is rewritten
-# but a whole coordinate.
+# QExt.add_assoc: addition is componentwise, so this is one Rat.add_assoc.arb
+# per coordinate -- one qext.re step and one qext.im step, with no arithmetic of
+# its own. The two matches are what makes the operations reduce and what puts the
+# law's hypotheses at the coefficient spelling the Rat-level law wants: both
+# `QExt.re(x)` and `Rat.denof(xa)` are the same term once x is the constructor.
+# The six hypotheses are spent as they are (the re step takes the three real
+# ones, the im step the three imaginary ones), and nothing is rewritten but a
+# whole coordinate.
 
-def Q.QExt.add_assoc(np1, nn1, dp1, mq1, mn1, dq1, np2, nn2, dp2, mq2, mn2, dq2,
-                     np3, nn3, dp3, mq3, mn3, dq3):
-  Equal.trans(Q.QExt,
-    Q.QExt{R.Rat.add(R.Rat.add(R.Rat{R.Rat.num(np1, nn1), 1n+dp1},
-                               R.Rat{R.Rat.num(np2, nn2), 1n+dp2}),
-                     R.Rat{R.Rat.num(np3, nn3), 1n+dp3}),
-           R.Rat.add(R.Rat.add(R.Rat{R.Rat.num(mq1, mn1), 1n+dq1},
-                               R.Rat{R.Rat.num(mq2, mn2), 1n+dq2}),
-                     R.Rat{R.Rat.num(mq3, mn3), 1n+dq3})},
-    Q.QExt{R.Rat.add(R.Rat{R.Rat.num(np1, nn1), 1n+dp1},
-                     R.Rat.add(R.Rat{R.Rat.num(np2, nn2), 1n+dp2},
-                               R.Rat{R.Rat.num(np3, nn3), 1n+dp3})),
-           R.Rat.add(R.Rat.add(R.Rat{R.Rat.num(mq1, mn1), 1n+dq1},
-                               R.Rat{R.Rat.num(mq2, mn2), 1n+dq2}),
-                     R.Rat{R.Rat.num(mq3, mn3), 1n+dq3})},
-    Q.QExt{R.Rat.add(R.Rat{R.Rat.num(np1, nn1), 1n+dp1},
-                     R.Rat.add(R.Rat{R.Rat.num(np2, nn2), 1n+dp2},
-                               R.Rat{R.Rat.num(np3, nn3), 1n+dp3})),
-           R.Rat.add(R.Rat{R.Rat.num(mq1, mn1), 1n+dq1},
-                     R.Rat.add(R.Rat{R.Rat.num(mq2, mn2), 1n+dq2},
-                               R.Rat{R.Rat.num(mq3, mn3), 1n+dq3}))},
-    qext.re(R.Rat.add(R.Rat.add(R.Rat{R.Rat.num(mq1, mn1), 1n+dq1},
-                                R.Rat{R.Rat.num(mq2, mn2), 1n+dq2}),
-                      R.Rat{R.Rat.num(mq3, mn3), 1n+dq3}),
-      R.Rat.add(R.Rat.add(R.Rat{R.Rat.num(np1, nn1), 1n+dp1},
-                          R.Rat{R.Rat.num(np2, nn2), 1n+dp2}),
-                R.Rat{R.Rat.num(np3, nn3), 1n+dp3}),
-      R.Rat.add(R.Rat{R.Rat.num(np1, nn1), 1n+dp1},
-                R.Rat.add(R.Rat{R.Rat.num(np2, nn2), 1n+dp2},
-                          R.Rat{R.Rat.num(np3, nn3), 1n+dp3})),
-      R.Rat.add_assoc(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3)),
-    qext.im(R.Rat.add(R.Rat{R.Rat.num(np1, nn1), 1n+dp1},
-                      R.Rat.add(R.Rat{R.Rat.num(np2, nn2), 1n+dp2},
-                                R.Rat{R.Rat.num(np3, nn3), 1n+dp3})),
-      R.Rat.add(R.Rat.add(R.Rat{R.Rat.num(mq1, mn1), 1n+dq1},
-                          R.Rat{R.Rat.num(mq2, mn2), 1n+dq2}),
-                R.Rat{R.Rat.num(mq3, mn3), 1n+dq3}),
-      R.Rat.add(R.Rat{R.Rat.num(mq1, mn1), 1n+dq1},
-                R.Rat.add(R.Rat{R.Rat.num(mq2, mn2), 1n+dq2},
-                          R.Rat{R.Rat.num(mq3, mn3), 1n+dq3})),
-      R.Rat.add_assoc(mq1, mn1, dq1, mq2, mn2, dq2, mq3, mn3, dq3)))
+def Q.QExt.add_assoc(x, y, z, gx, hx, gy, hy, gz, hz):
+  match x y z:
+    case Q.QExt{xa, xb} Q.QExt{ya, yb} Q.QExt{za, zb}:
+      Equal.trans(Q.QExt,
+        Q.QExt{R.Rat.add(R.Rat.add(xa, ya), za), R.Rat.add(R.Rat.add(xb, yb), zb)},
+        Q.QExt{R.Rat.add(xa, R.Rat.add(ya, za)), R.Rat.add(R.Rat.add(xb, yb), zb)},
+        Q.QExt{R.Rat.add(xa, R.Rat.add(ya, za)), R.Rat.add(xb, R.Rat.add(yb, zb))},
+        qext.re(R.Rat.add(R.Rat.add(xb, yb), zb),
+          R.Rat.add(R.Rat.add(xa, ya), za), R.Rat.add(xa, R.Rat.add(ya, za)),
+          R.Rat.add_assoc.arb(xa, ya, za, gx, gy, gz)),
+        qext.im(R.Rat.add(xa, R.Rat.add(ya, za)),
+          R.Rat.add(R.Rat.add(xb, yb), zb), R.Rat.add(xb, R.Rat.add(yb, zb)),
+          R.Rat.add_assoc.arb(xb, yb, zb, hx, hy, hz)))
 
 # QExt.neg_neg: negation is componentwise and does not touch a denominator, so
 # this is Rat.neg_neg once per coordinate -- one qext.re step and one qext.im

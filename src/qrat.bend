@@ -40,14 +40,18 @@ import ./rat.bend as R
 # The canonical presentation
 # --------------------------
 #
-# The coefficients of a *law* are spelled the way every canonical law of
-# rat.bend spells them -- Rat{Rat.num(np, nn), 1n+dp}, a one-sided difference
-# pair over a successor -- because that is the shape the Rat laws are proved
-# over *and* the shape Rat.mk itself produces, so a law stated this way can be
-# applied to the output of an earlier operation. (Assembly of a QExt value is
-# not restricted to it: the operations below are defined on any two Rats.)
-# The comparison of a numerator is a parameter with its evidence, because which
-# side of the difference pair is zero is only known from Nat.cmp.
+# QExt.of spells a QExt value the way every canonical law of rat.bend spells
+# its coefficients -- Rat{Rat.num(np, nn), 1n+dp}, a one-sided difference pair
+# over a successor -- and it is the presentation QExt.neg_neg is stated in,
+# because that is where the Rat-level law it calls (Rat.neg_neg) lives, and the
+# shape Rat.mk itself produces. It is *not* the presentation the composing laws
+# need any more: QExt.add_assoc is stated over arbitrary values, with the
+# positivity of the six coefficients as its hypotheses, which is the form a
+# caller holding an operation's output can instantiate. (Assembly of a QExt
+# value was never restricted to the presentation: the operations below are
+# defined on any two Rats.) The comparison of a numerator is a parameter with
+# its evidence, because which side of the difference pair is zero is only known
+# from Nat.cmp.
 #
 # Coprimality is *not* part of the presentation, and is added only to the one
 # law whose truth needs it -- QExt.neg_neg, whose Rat-level twin Rat.neg_neg is
@@ -58,6 +62,19 @@ import ./rat.bend as R
 
 type QExt is Data:
   QExt{re: R.Rat, im: R.Rat}
+
+# QExt.re(x) / QExt.im(x): the two coefficients as functions. The general
+# add_assoc below states its positivity hypotheses about an *arbitrary* QExt's
+# coefficients, and a statement has no body to put a match in -- so the
+# projection has to be a def, exactly as Rat.numof/Rat.denof are. Both are
+# (+a, +b), so a caller can read a coordinate twice.
+def QExt.re(x: QExt) -> R.Rat:
+  QExt{+a, +b} = x
+  a
+
+def QExt.im(x: QExt) -> R.Rat:
+  QExt{+a, +b} = x
+  b
 
 # QExt.nat(d): the natural d as a rational -- the coefficient of the sqrt(d)*
 # sqrt(d) = d step in QExt.mul.
@@ -145,53 +162,33 @@ law QExt.neg_neg:
                           R.Rat{R.Rat.num(mq, mn), 1n+dq}}))
    == QExt{R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat{R.Rat.num(mq, mn), 1n+dq}} : QExt}
 
-# QExt.add_assoc: (x + y) + z = x + (y + z) for the additive group.
+# QExt.add_assoc: (x + y) + z = x + (y + z) for the additive group, over
+# *arbitrary* QExt values.
 #
-# Addition is componentwise, so this is one Rat.add_assoc per coordinate and
-# nothing else: two calls into rat_proofs.bend's fill, with no hypothesis of any
-# kind -- Rat.add_assoc takes none.
+# Addition is componentwise, so this is one Rat.add_assoc.arb per coordinate and
+# nothing else: two calls into rat_proofs.bend's fill, no arithmetic of its own.
 #
-# The elements are named in the canonical presentation (QExt.of above), exactly
-# as QExt.neg_neg names its own and as every *composing* law of rat.bend names
-# its arguments: a difference-pair numerator over a successor denominator. That
-# is the presentation Rat.add_assoc is stated over, so a law written this way can
-# call it as it stands.
+# The six hypotheses are the positivity of the six coefficients. They are what
+# the Rat-level law needs, and they are not avoidable by a bridge: an arbitrary
+# Rat's denominator may be zero (Rat{Int{1,0}, 0} is a legal argument, mk's
+# behaviour there is junk, and every value lemma in rat.bend carries the same
+# hypothesis for exactly that reason), and == on Rat is structural, so no law
+# turns an arbitrary Rat into a canonical one. So the hypotheses are stated
+# rather than discharged -- and a caller with canonical values supplies each of
+# them with `{==}`, by computation.
 #
-# The form over *arbitrary* QExt values (`for +x: QExt, +y: QExt, +z: QExt`) is
-# not in this round, and the obstruction is measured rather than guessed. For
-# arbitrary coordinates the Rat-level goal's two sides are mk-headed terms whose
-# closing lemma is Rat.mk.eqv.val, and that lemma needs the *positivity* of the
-# two denominators it compares -- which an arbitrary Rat has not got: a zero
-# denominator is a legal argument (Rat{Int{1,0}, 0}), mk's behavior there is
-# junk, and the value lemmas (mk.value, mk_idem.raw, add.value.mixed) all carry a
-# positivity hypothesis for exactly that reason. Reaching the general form needs
-# either the mk-headed Rat.add_assoc at the positivity hypotheses those lemmas
-# take, or a proof of the zero-denominator cases on their own; neither is built.
-# The restriction is on the proof side, not the truth side: every witness of the
-# general law that was evaluated agrees (PROVING.md records them), so no
-# counterexample justifies it -- it is what the machinery can presently reach.
+# The presentation: this law needs no canonical spelling at all (that is the
+# point of it), and neither do the two commuting laws above. QExt.neg_neg is the
+# one law that still uses QExt.of's presentation, because its Rat-level twin is
+# false unconditionally.
 law QExt.add_assoc:
-  for +np1: Nat
-  for +nn1: Nat
-  for +dp1: Nat
-  for +mq1: Nat
-  for +mn1: Nat
-  for +dq1: Nat
-  for +np2: Nat
-  for +nn2: Nat
-  for +dp2: Nat
-  for +mq2: Nat
-  for +mn2: Nat
-  for +dq2: Nat
-  for +np3: Nat
-  for +nn3: Nat
-  for +dp3: Nat
-  for +mq3: Nat
-  for +mn3: Nat
-  for +dq3: Nat
-  {QExt.add(QExt.add(QExt.of(np1, nn1, dp1, mq1, mn1, dq1),
-                     QExt.of(np2, nn2, dp2, mq2, mn2, dq2)),
-            QExt.of(np3, nn3, dp3, mq3, mn3, dq3))
-   == QExt.add(QExt.of(np1, nn1, dp1, mq1, mn1, dq1),
-               QExt.add(QExt.of(np2, nn2, dp2, mq2, mn2, dq2),
-                        QExt.of(np3, nn3, dp3, mq3, mn3, dq3))) : QExt}
+  for +x: QExt
+  for +y: QExt
+  for +z: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +gy: {Nat.cmp(0n, R.Rat.denof(QExt.re(y))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  for +gz: {Nat.cmp(0n, R.Rat.denof(QExt.re(z))) == LT{} : Cmp}
+  for +hz: {Nat.cmp(0n, R.Rat.denof(QExt.im(z))) == LT{} : Cmp}
+  {QExt.add(QExt.add(x, y), z) == QExt.add(x, QExt.add(y, z)) : QExt}

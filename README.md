@@ -276,12 +276,14 @@ Known gaps, in dependency order:
    Still open: the `QExt` block below -- both distributive laws are now in, so
    the remaining Rat-side work is the field axioms and the inverse.
 2. `QExt` over `Rat` — landed so far:
-   `src/qrat.bend` + `src/qrat_proofs.bend` carry the type, the operations and
-   five laws: `QExt.add_comm`, `QExt.mul_comm` (both hold for *every* pair of
-   coefficients, because addition is componentwise and the radicand coefficient
-   is a parameter, not an operation's output), `QExt.sub_eq_add_neg`
-   (definitional, as in Rat), `QExt.neg_neg` (`-(-x) = x`) and
-   `QExt.add_assoc` (canonical presentation, below).
+   `src/qrat.bend` + `src/qrat_proofs.bend` carry the type, the operations, the
+   two coefficient projections (`QExt.re`/`QExt.im`, which the general
+   add_assoc's hypotheses are stated over) and five laws: `QExt.add_comm`,
+   `QExt.mul_comm` (both hold for *every* pair of coefficients, because addition
+   is componentwise and the radicand coefficient is a parameter, not an
+   operation's output), `QExt.sub_eq_add_neg` (definitional, as in Rat),
+   `QExt.neg_neg` (`-(-x) = x`, the one law that needs the canonical
+   presentation and coprimality) and `QExt.add_assoc` (arbitrary values, below).
    `QExt.neg_neg` is componentwise `Rat.neg_neg` and therefore carries that
    law's coprimality hypothesis on *both* coordinates -- the Rat law is false
    unconditionally for the same reason (== is structural, and a negated value
@@ -294,31 +296,31 @@ Known gaps, in dependency order:
    with the copy. All five are deleted: the Rat-level work is
    `rat_proofs.bend`'s fill, called at the law's own telescope with a literal
    `Nat.cmp` and `{==}` evidence.
-   `QExt.add_assoc` landed, in the canonical presentation its own comment and
-   `QExt.neg_neg` use -- six coordinates, each `Rat{Rat.num(np,nn), 1n+dp}`, so
-   the law reads `QExt.add_assoc(np1, nn1, dp1, mq1, mn1, dq1, np2, ...)`. The
-   fill is exactly what the componentwise shape promised: one `R.Rat.add_assoc`
-   per coordinate and nothing else, two calls, no hypothesis (Rat.add_assoc
-   takes none) and no case analysis.
-   The form over *arbitrary* QExt values is **not** in, and the obstruction is
-   now measured on both sides of it.
-   - Truth side: no counterexample. The Rat-level law
-     `add(add(x,y),z) == add(x,add(y,z))` was evaluated on nine triples outside
-     the canonical presentation -- zero denominators, gcd-reducible numerators,
-     two-sided numerators -- and both sides agree on every one (the nine
-     witnesses, and the collapse argument behind them, are in PROVING.md). So
-     the restriction is not justified by falsity.
-   - Proof side: for arbitrary coordinates the Rat-level goal's two sides are
-     `mk`-headed, and the only closing lemma is `Rat.mk.eqv.val`, whose
-     hypothesis set includes the **positivity** of the two denominators
-     compared. An arbitrary `Rat` may be `Rat{Int{1,0}, 0}`: `mk`'s behaviour
-     there is junk and every value lemma in rat.bend (`mk.value`,
-     `mk_idem.raw`, `add.value.mixed`) carries a positivity hypothesis for
-     exactly that reason. Reaching the general form needs either an mk-headed
-     `Rat.add_assoc` at those same hypotheses plus a way to discharge them from
-     arbitrary coordinates (there is none), or a proof of the zero-denominator
-     cases on their own (which is a case analysis on which denominator is zero,
-     with the collapse lemmas `gcd(a,0) = a`, `div(a,a) = 1` under it).
+   `QExt.add_assoc` landed first in the canonical presentation its own comment
+   and `QExt.neg_neg` use -- six coordinates, each `Rat{Rat.num(np,nn), 1n+dp}`,
+   so the law read `QExt.add_assoc(np1, nn1, dp1, mq1, mn1, dq1, np2, ...)` -- and
+   is now the form over **arbitrary** QExt values, at the same key: `for +x:
+   QExt, +y: QExt, +z: QExt` with the positivity of the six coefficients as the
+   six hypotheses. The fill is exactly what the componentwise shape promised: one
+   `R.Rat.add_assoc.arb` per coordinate and nothing else, two calls, no case
+   analysis, and no arithmetic of its own -- and the six hypotheses are spent as
+   they are, three per coordinate.
+   The canonical form is gone rather than duplicated because the general one
+   *does* subsume it: a caller with canonical values supplies each hypothesis
+   with `{==}`, by computation (`Rat.denof(Rat{Rat.num(np,nn), 1n+dp})` is
+   `1n+dp`). The Rat-level pair does not collapse that way -- there the canonical
+   `Rat.add_assoc` stays stated beside `Rat.add_assoc.arb`, since its positivity
+   slot is empty while the general form's inputs are not mk-shaped -- which is
+   why the two layers are written differently.
+   The earlier round recorded both sides of the obstruction honestly and they are
+   still the reason the law needs hypotheses rather than a bridge: the law is
+   *true* without them (nine evaluated witnesses outside the canonical
+   presentation agree, PROVING.md records them) and the machinery cannot discharge
+   them (an arbitrary `Rat` may be `Rat{Int{1,0}, 0}`, where mk's behaviour is
+   junk, and == on Rat is structural so nothing turns an arbitrary Rat into a
+   canonical one). What changed is that the Rat layer now has the mk-headed law
+   the general form needs, so the hypotheses can be *stated* and passed through
+   instead of being an obstruction.
    The composing *multiplicative* laws are further out still, and for a
    different reason: `QExt.mul`'s coordinates are *sums of products*
    (`xa*ya + d*xb*yb`), so `QExt.mul_assoc` and `QExt.mul_distrib` are not
