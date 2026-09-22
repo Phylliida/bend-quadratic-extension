@@ -192,3 +192,60 @@ law QExt.add_assoc:
   for +gz: {Nat.cmp(0n, R.Rat.denof(QExt.re(z))) == LT{} : Cmp}
   for +hz: {Nat.cmp(0n, R.Rat.denof(QExt.im(z))) == LT{} : Cmp}
   {QExt.add(QExt.add(x, y), z) == QExt.add(x, QExt.add(y, z)) : QExt}
+
+# QExt.mul_assoc: (x * y) * z = x * (y * z) over *arbitrary* QExt values.
+#
+# Multiplication here is not componentwise -- a coordinate is a sum of products,
+# `xa*ya + d*(xb*yb)` -- so this is not one Rat law per coordinate the way
+# QExt.add_assoc is. Each coordinate is a ring identity over *stuck* Rat terms
+# (products and sums of the six coefficients), which is what the rung-2 laws
+# Rat.mul_assoc.arb / Rat.mul_distrib.arb / Rat.mul_add_left.arb exist for: the
+# canonical Rat.mul_distrib and Rat.mul_assoc are stated over
+# `Rat{Rat.num(np,nn), 1n+dp}` and cannot be instantiated at `Rat.mul(xa,ya)`.
+# Rat.add_assoc.arb and the unconditional Rat.add_comm / Rat.mul_comm carry the
+# sum-level bookkeeping, and Rat.mul.den.pos / Rat.add.den.pos supply the
+# positivity every one of those laws asks for at a *compound* term.
+#
+# The radicand coefficient QExt.nat(d) is the canonical value
+# Rat{Rat.num(d,0), 1}, so its denominator's positivity is `{==}` at every call
+# site -- the same computation the canonical laws' fills rely on.
+#
+# The six hypotheses are the positivity of the six coefficients, exactly as in
+# QExt.add_assoc and for the same reason: an arbitrary Rat's denominator may be
+# zero, and `==` on Rat is structural, so no law turns an arbitrary Rat into a
+# canonical one.
+law QExt.mul_assoc:
+  for +d: Nat
+  for +x: QExt
+  for +y: QExt
+  for +z: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +gy: {Nat.cmp(0n, R.Rat.denof(QExt.re(y))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  for +gz: {Nat.cmp(0n, R.Rat.denof(QExt.re(z))) == LT{} : Cmp}
+  for +hz: {Nat.cmp(0n, R.Rat.denof(QExt.im(z))) == LT{} : Cmp}
+  {QExt.mul(d, QExt.mul(d, x, y), z) == QExt.mul(d, x, QExt.mul(d, y, z)) : QExt}
+
+# QExt.mul_distrib: x * (y + z) = x*y + x*z over arbitrary QExt values.
+#
+# Each coordinate is one rung-2 distributivity and one rearrangement: the
+# imaginary coordinate is literally Rat.mul_distrib.arb twice (the coefficient
+# products), and the real one is the same law three times, because the radicand
+# coefficient D multiplies a sum of products on the inner factor as well. No
+# associativity shuffle appears anywhere, which is the whole difference from
+# QExt.mul_assoc -- there the two sides' products are associated differently,
+# here they are the same products summed in a different order.
+law QExt.mul_distrib:
+  for +d: Nat
+  for +x: QExt
+  for +y: QExt
+  for +z: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +gy: {Nat.cmp(0n, R.Rat.denof(QExt.re(y))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  for +gz: {Nat.cmp(0n, R.Rat.denof(QExt.re(z))) == LT{} : Cmp}
+  for +hz: {Nat.cmp(0n, R.Rat.denof(QExt.im(z))) == LT{} : Cmp}
+  {QExt.mul(d, x, QExt.add(y, z))
+   == QExt.add(QExt.mul(d, x, y), QExt.mul(d, x, z)) : QExt}

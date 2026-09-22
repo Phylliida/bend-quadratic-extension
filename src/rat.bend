@@ -934,6 +934,157 @@ law Rat.add_assoc.arb:
   for +pz: {Nat.cmp(0n, Rat.denof(z)) == LT{} : Cmp}
   {Rat.add(Rat.add(x, y), z) == Rat.add(x, Rat.add(y, z)) : Rat}
 
+# Rat.mul.value.mixed
+# ===================
+#
+# mul(mk(np1/nn1 over d), (Zp - Zn)/D) named by the raw product pair -- the
+# multiplicative twin of Rat.add.value.mixed above, at the same telescope and
+# with the same two positivity hypotheses (d is the denominator mk was handed,
+# pq is the one mk's own reduction produced; D is the second factor's).
+#
+# The difference from the additive law is the whole reason the rung-2
+# multiplicative fill is not a mechanical port: an Int.add numerator is a sum of
+# two scaled pairs, so the additive law's right side is a *sum* whose coordinates
+# are not a constructor and the fill has to assemble them (Rat.add.mixed.cross,
+# the Int.mul_scale steps, the sub_diag rewrites). An Int.mul numerator of two
+# raw coordinate pairs *is* a constructor: Int.mul(Int{P1,Q1}, Int{Zp,Zn})
+# reduces to the pair (P1*Zp + Q1*Zn, P1*Zn + Q1*Zp), so this law's right side
+# needs no shape law at all, and its fill's cross product is a pure ring
+# permutation with no sums in it (Rat.mul.mixed.cross).
+#
+# The second factor is a *raw* coordinate pair (Zp, Zn) over its own D, not a
+# difference pair over a successor, exactly as in the additive law -- that is the
+# form the rung-2 law needs, since its inputs are arbitrary Rat variables. And
+# the first summand is mk(Rat.num(np1,nn1), d) rather than mk(Int{np1,nn1}, d)
+# for the same reason the additive law spells it that way: mk.value's right side
+# names Rat.num, and Rat.mk.trunc is the one step from a raw numerator to it.
+law Rat.mul.value.mixed:
+  for +np1: Nat
+  for +nn1: Nat
+  for +d: Nat
+  for +pd: {Nat.cmp(0n, d) == LT{} : Cmp}
+  for +pq: {Nat.cmp(0n, Rat.denof(Rat.mk(Rat.num(np1, nn1), d))) == LT{} : Cmp}
+  for +Zp: Nat
+  for +Zn: Nat
+  for +D: Nat
+  for +pD: {Nat.cmp(0n, D) == LT{} : Cmp}
+  {Rat.mul(Rat.mk(Rat.num(np1, nn1), d), Rat{I.Int{Zp, Zn}, D})
+   == Rat.mk(I.Int.mul(I.Int{Nat.sub(np1, nn1), Nat.sub(nn1, np1)}, I.Int{Zp, Zn}),
+        Nat.mul(d, D)) : Rat}
+
+# Rat.mul_assoc.arb
+# =================
+#
+# (x*y)*z = x*(y*z) for *arbitrary* Rats, with the positivity of the three
+# input denominators as the only hypotheses -- the multiplicative twin of
+# Rat.add_assoc.arb above, at the same telescope and for the same reasons.
+#
+# It is the statement a caller whose multiplicands are pattern variables can
+# instantiate, which is what the QExt composing laws need: `QExt.mul`'s
+# coordinates are sums of products of Rat *variables*, so every Rat law those
+# coordinates need has to be usable at a stuck term. Rat.mul_assoc below is the
+# same law in the canonical presentation and has no hypothesis at all; its fill
+# is this law at its own coordinates.
+#
+# The answer to "why a second rung rather than a bridge" is the same as the
+# additive law's, and the multiplicative chain states it more sharply: a
+# product of two *raw* coordinate pairs is itself a raw pair, but it is not the
+# one-sided difference pair the canonical laws are stated over. `Rat.mk.value`
+# names its numerator in Rat.num spelling, so at a raw pair the value equation
+# speaks about `Rat.num(cin, din)` -- a *different* Int from `Int{cin, din}`
+# whenever both coordinates are non-zero, which is the generic case here (the
+# product of two mixed-sign factors has two non-zero coordinates).
+#
+# What the fill actually uses is measured, and it is *not* the additive one's
+# value machinery: the inner products are bridged by Rat.mk.rep alone (mk.trunc
+# is its truncation-spelled twin and plays no part), and the outer operation
+# needs a value law of its own, Rat.mul.value.mixed above -- because an outer
+# Rat.mul destructures the mk the inner one produced, so its numerator is the
+# div/gcd-spelled projection and not a raw pair. What makes that law cheap is
+# the constructor fact: its right side is a product of two raw pairs, so its
+# cross product is a pure Int ring permutation with no sums in it. See the end
+# of PROVING.md for the measured route and for the Nat closing, which is where
+# the port to the multiplicative case genuinely stops being mechanical.
+#
+# The hypotheses are what the *normalization* needs -- mk's output denominator
+# div(d, G) is positive only when it is a quotient of positive numbers -- not a
+# canonicality condition, exactly as in Rat.add_assoc.arb. No coprimality.
+law Rat.mul_assoc.arb:
+  for +x: Rat
+  for +y: Rat
+  for +z: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
+  for +pz: {Nat.cmp(0n, Rat.denof(z)) == LT{} : Cmp}
+  {Rat.mul(Rat.mul(x, y), z) == Rat.mul(x, Rat.mul(y, z)) : Rat}
+
+# Rat.mul.den.pos / Rat.add.den.pos
+# ==================================
+#
+# The denominator of a product (resp. a sum) of two positive-denominator Rats is
+# positive. Both are *derived* facts, not hypotheses: mk's output denominator is
+# div(d, G) with G = gcd(mag(U,V), d) a divisor of d, so it is div_pos_wit's
+# content once the dividend's spelling is fixed (Rat.div.pos in the proofs file,
+# which is the same two-rewrite bridge the rung-2 fills use).
+#
+# They exist as laws rather than proof-only helpers because the QExt fills need
+# them and a helper of rat_proofs.bend is not reachable from qrat_proofs.bend
+# (measured: `Rat.div.pos` there fails with "expected : a defined name"). The
+# rung-2 distributive laws take the positivity of *three arbitrary* Rats, and a
+# QExt coordinate is a product of products, so a fill that instantiates them has
+# to build these facts itself.
+law Rat.mul.den.pos:
+  for +x: Rat
+  for +y: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
+  {Nat.cmp(0n, Rat.denof(Rat.mul(x, y))) == LT{} : Cmp}
+
+law Rat.add.den.pos:
+  for +x: Rat
+  for +y: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
+  {Nat.cmp(0n, Rat.denof(Rat.add(x, y))) == LT{} : Cmp}
+
+# Rat.mul_distrib.arb / Rat.mul_add_left.arb
+# ==========================================
+#
+# x*(y + z) = x*y + x*z, and its mirror, for *arbitrary* Rats, with the
+# positivity of the three input denominators as the only hypotheses -- the
+# distributive laws at the rung-2 telescope, next to Rat.mul_assoc.arb and for
+# the same reason.
+#
+# They are what a caller whose factors are *stuck terms* needs, and the QExt
+# multiplicative laws are exactly that caller: a `QExt.mul` coordinate is
+# `Rat.add(Rat.mul(..), Rat.mul(..))`, an mk-headed sum of mk-headed products, so
+# expanding `(a*c + d*(b*e))*f` is distributivity at three arbitrary Rats.
+# Rat.mul_distrib and Rat.mul_add_left below are stated over
+# `Rat{Rat.num(np,nn), 1n+dp}` only, and no unconditional distributive law exists
+# in this file at all -- `==` on Rat is structural, so no value law or bridge
+# turns an arbitrary Rat into a canonical one.
+#
+# The mirror is not proved separately: (x + y)*z = z*(x + y) = z*x + z*y
+# = x*z + y*z is Rat.mul_comm, the law above and two Rat.mul_comms under a
+# congruence -- the same three-step shape the canonical Rat.mul_add_left has.
+law Rat.mul_distrib.arb:
+  for +x: Rat
+  for +y: Rat
+  for +z: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
+  for +pz: {Nat.cmp(0n, Rat.denof(z)) == LT{} : Cmp}
+  {Rat.mul(x, Rat.add(y, z)) == Rat.add(Rat.mul(x, y), Rat.mul(x, z)) : Rat}
+
+law Rat.mul_add_left.arb:
+  for +x: Rat
+  for +y: Rat
+  for +z: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
+  for +pz: {Nat.cmp(0n, Rat.denof(z)) == LT{} : Cmp}
+  {Rat.mul(Rat.add(x, y), z) == Rat.add(Rat.mul(x, z), Rat.mul(y, z)) : Rat}
+
 # Rat.add_exchange
 # ================
 #
@@ -1049,6 +1200,102 @@ law Rat.mul_distrib:
            Rat.add(Rat{Rat.num(np2, nn2), 1n+dp2}, Rat{Rat.num(np3, nn3), 1n+dp3}))
    == Rat.add(Rat.mul(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np2, nn2), 1n+dp2}),
               Rat.mul(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np3, nn3), 1n+dp3})) : Rat}
+
+# Rat.mk.diag
+# ===========
+#
+# A numerator whose two sides are equal is zero, so it normalizes to Rat.zero()
+# for every positive denominator. This is the law that reads the *sum* of
+# x and -x: Rat.add scales each summand by the other's denominator, and for the
+# two sides of one value those scales are the same product twice, so the raw sum
+# is the diagonal pair Int{T,T} -- a pair no value equation can reach, since the
+# cross product of a canonical fraction needs a one-sided numerator. The
+# diagonal case is where the divergence is visible: gcd(|T - T|, d) is d itself,
+# both coordinate divisions are 0/d and the denominator's is d/d.
+#
+# No coprimality hypothesis, exactly as Rat.mk.zero: what makes the reduction
+# fire is the magnitude, mag(T,T) = (T - T) + (T - T) = 0, not the divisor.
+law Rat.mk.diag:
+  for +T: Nat
+  for +d: Nat
+  for +pd: {Nat.cmp(0n, d) == LT{} : Cmp}
+  {Rat.mk(I.Int{T, T}, d) == Rat.zero() : Rat}
+
+# Rat.mul_neg
+# ===========
+#
+# x * (-y) = -(x * y), for every pair of Rats whose denominators are positive.
+#
+# The two sides are not a congruence pair: each is a *composition*, an outer
+# operation applied to the other operation's output. The raw spellings do line
+# up -- the left side's numerator is Int.mul(xn, Int.neg(yn)) and the right
+# side's is Int.neg(Int.mul(xn,yn)), which are the same Int constructor pair --
+# but that is invisible to the checker here, because Rat.mul destructures its
+# second argument and Rat.neg(y) is an mk whose first argument Int.neg(yn) is
+# stuck while yn is a variable. So the goal never reduces to the congruence
+# shape, and the law needs a route of its own.
+#
+# The route is that negation *is* multiplication by -1:
+#
+#   Rat.neg_eq_mul_negone (rat_proofs.bend):  -y = (-1)*y,
+#
+# an unconditional law (its fill is two congruences, both sides being mk of raw
+# pairs one Nat.add_zero per coordinate apart), which turns the statement into
+#
+#   x*((-1)*y) = (x*(-1))*y = ((-1)*x)*y = (-1)*(x*y)
+#
+# -- Rat.mul_assoc.arb twice around one Rat.mul_comm. No value law, no cross sum
+# and no div/gcd spelling appears, and no Int or Nat arithmetic at all.
+#
+# The two hypotheses are the positivity of x's and y's denominators, which is
+# what Rat.mul_assoc.arb asks for at arbitrary values; the -1 factor's own
+# denominator is 1, positive by computation. They are the hypothesis every
+# rung-2 law of this file carries, and the ones the QExt layer already states
+# about its coefficients -- at a zero denominator mk's output is junk, and no
+# law in this file compares two such outputs.
+law Rat.mul_neg:
+  for +x: Rat
+  for +y: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
+  {Rat.mul(x, Rat.neg(y)) == Rat.neg(Rat.mul(x, y)) : Rat}
+
+# Rat.add_neg
+# ===========
+#
+# x + (-x) = 0 for every Rat with a positive denominator -- the additive
+# inverse identity, and the first law here whose add carries an operation's
+# output on *both* sides.
+#
+# It names a specific representative (Rat.zero()), so no congruence can reach
+# it: the raw sum of a value with its negation is the diagonal pair Int{T,T}
+# over xd*xd -- zero in *value*, but the constructor Rat{Int{T,T}, xd*xd} is not
+# Rat.zero() and Int{T,T} is not Int{0,0}. Two bridges close the gap:
+#
+#   - Rat.mul_comm puts the mk-headed summand (-x) in the slot
+#     Rat.add.value.mixed takes, and Rat.mk.rep re-spells its raw numerator
+#     Int{xnn,xp} as the truncation pair Rat.num(xnn,xp) that law is stated
+#     over -- so the mixed value law lands on mk of the raw sum of two scaled
+#     pairs;
+#   - Rat.mk.diag turns mk(Int{T,T}, d) into Rat.zero() for *any* positive d,
+#     which is the only place the denominator xd*xd enters.
+#
+# The one piece of arithmetic left is the diagonal itself: the mixed law's
+# numerator is a sum of scaled pairs whose two coordinates differ only by the
+# order of the products and of the truncations, and they meet at
+# mul(sub(xnn,xp) + xp, xd) = mul(sub(xp,xnn) + xnn, xd) -- Nat.mul_add_left
+# read backwards, Nat.sub_cross at cmp(xnn,xp), and four mul_zero/add_zero
+# steps. No value equation, no cross sum, no coprimality: unlike Rat.neg_neg
+# (whose two sides are a raw value and an mk of it), this law's two sides are
+# both *compositions*, and the diagonal numerator reaches zero on its own.
+#
+# The positivity hypothesis is the rung-2 hypothesis again, and it is needed:
+# at xd = 0 the sum's denominator is 0, mk's output there is Rat{Int{0,0},0}
+# rather than Rat{Int{0,0},1}, and no law compares the two.
+law Rat.add_neg:
+  for +x: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  {Rat.add(x, Rat.neg(x)) == Rat.zero() : Rat}
 
 # Rat.mul_add_left
 # ================
