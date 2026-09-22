@@ -778,3 +778,239 @@ def R.Rat.mk.value(c, np, nn, d, e, pd):
         I.Int.mul(R.Rat.num(np, nn), I.Int{R.Rat.denof(R.Rat.mk(I.Int{np, nn}, d)), 0n}),
         I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
         I.Int.mul_scale(P, Q, Rr))))
+
+# The product shape
+# =================
+#
+# The composing laws (mul_assoc and its siblings) have to relate two
+# *normalized* results, and the only tool for that is Rat.mk.eqv, whose
+# hypothesis is a cross product of the raw numerators. Rat.mk.value supplies
+# each factor's cross product, but it names its numerator in Rat.num spelling
+# (the difference pair), while the products the operations write are raw
+# coordinates -- and those two are not the same Int: Rat.num(np,nn) is the
+# one-sided pair sub(np,nn), sub(nn,np), which is a different *pair* from
+# Int{np,nn}. Closing that gap is what the two helpers below do.
+#
+# Rat.num.mul: the product of two difference pairs is Rat.num of the product's
+# own coordinates -- i.e. that product is one-sided again. Which side is zero is
+# exactly the sign of the two factors, so the two comparisons arrive as
+# parameters and the fill splits on them; each branch derives the zeros
+# (sub_of_lt at the flipped comparison) and finishes with dp.eq.right /
+# dp.eq.left, which need nothing but "one side is zero". In between, a zero
+# factor kills its product: mul_zero for a zero on the right, computation for a
+# zero on the left.
+
+def R.Rat.dp.eq.right(U, V, z):
+  %Equal.sym(Nat, V, 0n, z) : {I.Int{U, _} == R.Rat.num(U, _) : I.Int}
+  %Equal.sym(Nat, Nat.sub(U, 0n), U, N.sub_zero(U)) : {I.Int{U, 0n} == I.Int{_, Nat.sub(0n, U)} : I.Int}
+  %Equal.sym(Nat, Nat.sub(0n, U), 0n, N.sub_zero_left(U)) : {I.Int{U, 0n} == I.Int{U, _} : I.Int}
+  {==}
+
+def R.Rat.dp.eq.left(U, V, z):
+  %Equal.sym(Nat, U, 0n, z) : {I.Int{_, V} == R.Rat.num(_, V) : I.Int}
+  %Equal.sym(Nat, Nat.sub(0n, V), 0n, N.sub_zero_left(V)) : {I.Int{0n, V} == I.Int{_, Nat.sub(V, 0n)} : I.Int}
+  %Equal.sym(Nat, Nat.sub(V, 0n), V, N.sub_zero(V)) : {I.Int{0n, V} == I.Int{0n, _} : I.Int}
+  {==}
+
+def R.Rat.num.mul(c1, np1, nn1, e1, c2, np2, nn2, e2):
+  match c1:
+    case GT{}:
+      match c2:
+        case GT{}:
+          +P1 = Nat.sub(np1, nn1)
+          +Q1 = Nat.sub(nn1, np1)
+          +P2 = Nat.sub(np2, nn2)
+          +Q2 = Nat.sub(nn2, np2)
+          +U = Nat.add(Nat.mul(P1, P2), Nat.mul(Q1, Q2))
+          +V = Nat.add(Nat.mul(P1, Q2), Nat.mul(Q1, P2))
+          +z1 = N.sub_of_lt(nn1, np1,
+            N.cmp_lt_of_gt(np1, nn1, Equal.sym(Cmp, GT{}, Nat.cmp(np1, nn1), e1)))
+          +z2 = N.sub_of_lt(nn2, np2,
+            N.cmp_lt_of_gt(np2, nn2, Equal.sym(Cmp, GT{}, Nat.cmp(np2, nn2), e2)))
+          R.Rat.dp.eq.right(U, V,
+            Equal.trans(Nat, V, Nat.add(Nat.mul(P1, 0n), Nat.mul(Q1, P2)), 0n,
+              Equal.cong(Nat, Nat, w => Nat.add(Nat.mul(P1, w), Nat.mul(Q1, P2)),
+                Q2, 0n, z2),
+              Equal.trans(Nat,
+                Nat.add(Nat.mul(P1, 0n), Nat.mul(Q1, P2)),
+                Nat.add(0n, Nat.mul(Q1, P2)),
+                0n,
+                Equal.cong(Nat, Nat, w => Nat.add(w, Nat.mul(Q1, P2)),
+                  Nat.mul(P1, 0n), 0n, N.mul_zero(P1)),
+                Equal.cong(Nat, Nat, w => Nat.add(0n, Nat.mul(w, P2)),
+                  Q1, 0n, z1))))
+        case EQ{}:
+          +P1 = Nat.sub(np1, nn1)
+          +Q1 = Nat.sub(nn1, np1)
+          +U = Nat.add(Nat.mul(P1, Nat.sub(np2, nn2)), Nat.mul(Q1, Nat.sub(nn2, np2)))
+          +V = Nat.add(Nat.mul(P1, Nat.sub(nn2, np2)), Nat.mul(Q1, Nat.sub(np2, nn2)))
+          +z2 = N.cmp_eq(np2, nn2, Equal.sym(Cmp, EQ{}, Nat.cmp(np2, nn2), e2))
+          R.Rat.dp.eq.right(U, V,
+            Equal.trans(Nat, V,
+              Nat.add(Nat.mul(P1, Nat.sub(nn2, nn2)), Nat.mul(Q1, Nat.sub(nn2, nn2))),
+              0n,
+              Equal.cong(Nat, Nat,
+                w => Nat.add(Nat.mul(P1, Nat.sub(nn2, w)), Nat.mul(Q1, Nat.sub(w, nn2))),
+                np2, nn2, z2),
+              Equal.trans(Nat,
+                Nat.add(Nat.mul(P1, Nat.sub(nn2, nn2)), Nat.mul(Q1, Nat.sub(nn2, nn2))),
+                Nat.add(Nat.mul(P1, 0n), Nat.mul(Q1, 0n)),
+                0n,
+                Equal.cong(Nat, Nat, w => Nat.add(Nat.mul(P1, w), Nat.mul(Q1, w)),
+                  Nat.sub(nn2, nn2), 0n,
+                  N.sub_self(nn2)),
+                Equal.trans(Nat,
+                  Nat.add(Nat.mul(P1, 0n), Nat.mul(Q1, 0n)),
+                  Nat.add(0n, Nat.mul(Q1, 0n)),
+                  0n,
+                  Equal.cong(Nat, Nat, w => Nat.add(w, Nat.mul(Q1, 0n)),
+                    Nat.mul(P1, 0n), 0n, N.mul_zero(P1)),
+                  Equal.cong(Nat, Nat, w => Nat.add(0n, w), Nat.mul(Q1, 0n), 0n,
+                    N.mul_zero(Q1))))))
+        case LT{}:
+          +P1 = Nat.sub(np1, nn1)
+          +Q1 = Nat.sub(nn1, np1)
+          +P2 = Nat.sub(np2, nn2)
+          +Q2 = Nat.sub(nn2, np2)
+          +U = Nat.add(Nat.mul(P1, P2), Nat.mul(Q1, Q2))
+          +V = Nat.add(Nat.mul(P1, Q2), Nat.mul(Q1, P2))
+          +z1 = N.sub_of_lt(nn1, np1,
+            N.cmp_lt_of_gt(np1, nn1, Equal.sym(Cmp, GT{}, Nat.cmp(np1, nn1), e1)))
+          +z2 = N.sub_of_lt(np2, nn2, Equal.sym(Cmp, LT{}, Nat.cmp(np2, nn2), e2))
+          R.Rat.dp.eq.left(U, V,
+            Equal.trans(Nat, U, Nat.add(Nat.mul(P1, 0n), Nat.mul(Q1, Q2)), 0n,
+              Equal.cong(Nat, Nat, w => Nat.add(Nat.mul(P1, w), Nat.mul(Q1, Q2)),
+                P2, 0n, z2),
+              Equal.trans(Nat,
+                Nat.add(Nat.mul(P1, 0n), Nat.mul(Q1, Q2)),
+                Nat.add(0n, Nat.mul(Q1, Q2)),
+                0n,
+                Equal.cong(Nat, Nat, w => Nat.add(w, Nat.mul(Q1, Q2)),
+                  Nat.mul(P1, 0n), 0n, N.mul_zero(P1)),
+                Equal.cong(Nat, Nat, w => Nat.add(0n, Nat.mul(w, Q2)),
+                  Q1, 0n, z1))))
+    case EQ{}:
+      match c2:
+        case GT{}:
+          +P2 = Nat.sub(np2, nn2)
+          +Q2 = Nat.sub(nn2, np2)
+          +U = Nat.add(Nat.mul(Nat.sub(np1, nn1), P2), Nat.mul(Nat.sub(nn1, np1), Q2))
+          +V = Nat.add(Nat.mul(Nat.sub(np1, nn1), Q2), Nat.mul(Nat.sub(nn1, np1), P2))
+          +z1 = N.cmp_eq(np1, nn1, Equal.sym(Cmp, EQ{}, Nat.cmp(np1, nn1), e1))
+          R.Rat.dp.eq.right(U, V,
+            Equal.trans(Nat, V,
+              Nat.add(Nat.mul(Nat.sub(nn1, nn1), Q2), Nat.mul(Nat.sub(nn1, nn1), P2)),
+              0n,
+              Equal.cong(Nat, Nat,
+                w => Nat.add(Nat.mul(Nat.sub(w, nn1), Q2), Nat.mul(Nat.sub(nn1, w), P2)),
+                np1, nn1, z1),
+              Equal.cong(Nat, Nat, w => Nat.add(Nat.mul(w, Q2), Nat.mul(w, P2)),
+                Nat.sub(nn1, nn1), 0n, N.sub_self(nn1))))
+        case EQ{}:
+          +U = Nat.add(Nat.mul(Nat.sub(np1, nn1), Nat.sub(np2, nn2)),
+                       Nat.mul(Nat.sub(nn1, np1), Nat.sub(nn2, np2)))
+          +V = Nat.add(Nat.mul(Nat.sub(np1, nn1), Nat.sub(nn2, np2)),
+                       Nat.mul(Nat.sub(nn1, np1), Nat.sub(np2, nn2)))
+          +z1 = N.cmp_eq(np1, nn1, Equal.sym(Cmp, EQ{}, Nat.cmp(np1, nn1), e1))
+          R.Rat.dp.eq.right(U, V,
+            Equal.trans(Nat, V,
+              Nat.add(Nat.mul(Nat.sub(nn1, nn1), Nat.sub(nn2, np2)),
+                      Nat.mul(Nat.sub(nn1, nn1), Nat.sub(np2, nn2))),
+              0n,
+              Equal.cong(Nat, Nat,
+                w => Nat.add(Nat.mul(Nat.sub(w, nn1), Nat.sub(nn2, np2)),
+                             Nat.mul(Nat.sub(nn1, w), Nat.sub(np2, nn2))),
+                np1, nn1, z1),
+              Equal.cong(Nat, Nat,
+                w => Nat.add(Nat.mul(w, Nat.sub(nn2, np2)), Nat.mul(w, Nat.sub(np2, nn2))),
+                Nat.sub(nn1, nn1), 0n, N.sub_self(nn1))))
+        case LT{}:
+          +P1 = Nat.sub(np1, nn1)
+          +Q1 = Nat.sub(nn1, np1)
+          +P2 = Nat.sub(np2, nn2)
+          +Q2 = Nat.sub(nn2, np2)
+          +U = Nat.add(Nat.mul(P1, P2), Nat.mul(Q1, Q2))
+          +V = Nat.add(Nat.mul(P1, Q2), Nat.mul(Q1, P2))
+          +z1 = N.cmp_eq(np1, nn1, Equal.sym(Cmp, EQ{}, Nat.cmp(np1, nn1), e1))
+          R.Rat.dp.eq.right(U, V,
+            Equal.trans(Nat, V,
+              Nat.add(Nat.mul(Nat.sub(nn1, nn1), Q2), Nat.mul(Nat.sub(nn1, nn1), P2)),
+              0n,
+              Equal.cong(Nat, Nat,
+                w => Nat.add(Nat.mul(Nat.sub(w, nn1), Q2), Nat.mul(Nat.sub(nn1, w), P2)),
+                np1, nn1, z1),
+              Equal.cong(Nat, Nat, w => Nat.add(Nat.mul(w, Q2), Nat.mul(w, P2)),
+                Nat.sub(nn1, nn1), 0n, N.sub_self(nn1))))
+    case LT{}:
+      match c2:
+        case GT{}:
+          +P1 = Nat.sub(np1, nn1)
+          +Q1 = Nat.sub(nn1, np1)
+          +P2 = Nat.sub(np2, nn2)
+          +Q2 = Nat.sub(nn2, np2)
+          +U = Nat.add(Nat.mul(P1, P2), Nat.mul(Q1, Q2))
+          +V = Nat.add(Nat.mul(P1, Q2), Nat.mul(Q1, P2))
+          +z1 = N.sub_of_lt(np1, nn1, Equal.sym(Cmp, LT{}, Nat.cmp(np1, nn1), e1))
+          +z2 = N.sub_of_lt(nn2, np2,
+            N.cmp_lt_of_gt(np2, nn2, Equal.sym(Cmp, GT{}, Nat.cmp(np2, nn2), e2)))
+          R.Rat.dp.eq.left(U, V,
+            Equal.trans(Nat, U, Nat.add(Nat.mul(0n, P2), Nat.mul(Q1, Q2)), 0n,
+              Equal.cong(Nat, Nat, w => Nat.add(Nat.mul(w, P2), Nat.mul(Q1, Q2)),
+                P1, 0n, z1),
+              Equal.trans(Nat,
+                Nat.add(Nat.mul(0n, P2), Nat.mul(Q1, Q2)),
+                Nat.add(0n, Nat.mul(Q1, 0n)),
+                0n,
+                Equal.cong(Nat, Nat, w => Nat.add(0n, Nat.mul(Q1, w)),
+                  Q2, 0n, z2),
+                Equal.cong(Nat, Nat, w => Nat.add(0n, w), Nat.mul(Q1, 0n), 0n,
+                  N.mul_zero(Q1)))))
+        case EQ{}:
+          +P1 = Nat.sub(np1, nn1)
+          +Q1 = Nat.sub(nn1, np1)
+          +U = Nat.add(Nat.mul(P1, Nat.sub(np2, nn2)), Nat.mul(Q1, Nat.sub(nn2, np2)))
+          +V = Nat.add(Nat.mul(P1, Nat.sub(nn2, np2)), Nat.mul(Q1, Nat.sub(np2, nn2)))
+          +z2 = N.cmp_eq(np2, nn2, Equal.sym(Cmp, EQ{}, Nat.cmp(np2, nn2), e2))
+          R.Rat.dp.eq.right(U, V,
+            Equal.trans(Nat, V,
+              Nat.add(Nat.mul(P1, Nat.sub(nn2, nn2)), Nat.mul(Q1, Nat.sub(nn2, nn2))),
+              0n,
+              Equal.cong(Nat, Nat,
+                w => Nat.add(Nat.mul(P1, Nat.sub(nn2, w)), Nat.mul(Q1, Nat.sub(w, nn2))),
+                np2, nn2, z2),
+              Equal.trans(Nat,
+                Nat.add(Nat.mul(P1, Nat.sub(nn2, nn2)), Nat.mul(Q1, Nat.sub(nn2, nn2))),
+                Nat.add(Nat.mul(P1, 0n), Nat.mul(Q1, 0n)),
+                0n,
+                Equal.cong(Nat, Nat, w => Nat.add(Nat.mul(P1, w), Nat.mul(Q1, w)),
+                  Nat.sub(nn2, nn2), 0n,
+                  N.sub_self(nn2)),
+                Equal.trans(Nat,
+                  Nat.add(Nat.mul(P1, 0n), Nat.mul(Q1, 0n)),
+                  Nat.add(0n, Nat.mul(Q1, 0n)),
+                  0n,
+                  Equal.cong(Nat, Nat, w => Nat.add(w, Nat.mul(Q1, 0n)),
+                    Nat.mul(P1, 0n), 0n, N.mul_zero(P1)),
+                  Equal.cong(Nat, Nat, w => Nat.add(0n, w), Nat.mul(Q1, 0n), 0n,
+                    N.mul_zero(Q1))))))
+        case LT{}:
+          +P1 = Nat.sub(np1, nn1)
+          +Q1 = Nat.sub(nn1, np1)
+          +P2 = Nat.sub(np2, nn2)
+          +Q2 = Nat.sub(nn2, np2)
+          +U = Nat.add(Nat.mul(P1, P2), Nat.mul(Q1, Q2))
+          +V = Nat.add(Nat.mul(P1, Q2), Nat.mul(Q1, P2))
+          +z1 = N.sub_of_lt(np1, nn1, Equal.sym(Cmp, LT{}, Nat.cmp(np1, nn1), e1))
+          +z2 = N.sub_of_lt(np2, nn2, Equal.sym(Cmp, LT{}, Nat.cmp(np2, nn2), e2))
+          R.Rat.dp.eq.right(U, V,
+            Equal.trans(Nat, V, Nat.add(Nat.mul(0n, Q2), Nat.mul(Q1, P2)), 0n,
+              Equal.cong(Nat, Nat, w => Nat.add(Nat.mul(w, Q2), Nat.mul(Q1, P2)),
+                P1, 0n, z1),
+              Equal.trans(Nat,
+                Nat.add(Nat.mul(0n, Q2), Nat.mul(Q1, P2)),
+                Nat.add(0n, Nat.mul(Q1, 0n)),
+                0n,
+                Equal.cong(Nat, Nat, w => Nat.add(0n, Nat.mul(Q1, w)),
+                  P2, 0n, z2),
+                Equal.cong(Nat, Nat, w => Nat.add(0n, w), Nat.mul(Q1, 0n), 0n,
+                  N.mul_zero(Q1)))))

@@ -65,7 +65,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 124, int.bend 30, qext.bend 32 = 30 Int + 2
-QExt, rat.bend 174 = 124 Nat + 30 Int + 20 Rat.
+QExt, rat.bend 177 = 124 Nat + 30 Int + 23 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
