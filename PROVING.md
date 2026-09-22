@@ -1,6 +1,7 @@
 # Proving in Bend: lessons learned
 
-Notes from building `src/nat.bend`, `src/int.bend`, `src/qext.bend` (exact
+Notes from building `src/nat.bend`, `src/int.bend`, `src/qext.bend` (laws)
+and their `*_proofs.bend` counterparts (exact
 integer arithmetic and `QExt.mul_comm` from scratch, June 2026). Written for
 whoever picks this up next. Everything here was learned by hitting the
 checker; each pattern below appears in a file in this repo that currently
@@ -91,13 +92,50 @@ a `%` chain, ask whether some helper's type already *is* the goal. See
 - **Discrimination boilerplate, once.** Impossible `cmp` cases are closed
   by a predicate def returning `Type` (`CmpIsEQ`: `EQ{}` ↦ `Unit`, else
   `Empty`), then `%Equal.sym(Cmp, LT{}, EQ{}, e) : CmpIsEQ(_); Unit{}` —
-  see `lt_ne_eq` in `src/nat.bend`. With an `Empty` in hand,
+  see `lt_ne_eq` in `src/nat_proofs.bend` (law stated in `src/nat.bend`). With an `Empty` in hand,
   `Empty.absurd(goal, it)` closes anything.
 - **Evidence-carrying comparisons.** `Nat.cmp` returns a bare `Cmp`. The
   bridges `cmp_eq` / `cmp_gt_sub_add` (hypothesis `{Nat.cmp(a,b) == EQ{}}`
   etc. as a law parameter) are how a proof learns arithmetic facts from a
   comparison result. Any serious development needs these; expect each to
   be a small induction with two absurd cases.
+
+## Laws vs proofs (the split-file mechanism, as observed)
+
+This repo keeps laws and proofs in separate files per module
+(`nat.bend`/`nat_proofs.bend`, `int.bend`/`int_proofs.bend`,
+`qext.bend`/`qext_proofs.bend`). What the checker actually does, all
+verified empirically on this checkout:
+
+- **Filling**: `proofs.bend` does `import ./laws.bend as L`, then
+  `def L.name(args): <proof>` fills `law name`. Dotted law names fill the
+  same way: `law Int.add_comm` is filled by `def I.Int.add_comm(x, y)`.
+- **Naming inside the proofs file**: the fill attaches the def to the
+  *laws file's* module, so recursive and cross-proof calls go through the
+  alias: `NL.add_comm(...)`, `I.Int.add.same_comm(...)`. Bare names do not
+  resolve (the proofs file defines nothing under its own namespace), and
+  chained aliases do not exist: `NP.NL.add_comm` is "not a defined name".
+- **Third files** that want to *use* a proved law must import both the
+  laws file (under the alias they call through) and the proofs file
+  (under any alias — it may be unused; its presence in the import graph
+  is what fills the laws). Calling an unfilled law errors with
+  `a filled definition (an unfilled law is a dead claim: live code
+  cannot use it)`.
+- **A laws-only file does not check.** Open laws count as TODOs, so
+  `node bend2/main.ts src/nat.bend` exits 1 with
+  `Error: 78 TODOs found. The code is incomplete, and not a valid proof
+  yet.` — and the count is transitive over imports (int.bend reports
+  101 = 78 Nat + 23 Int; qext.bend 103). This is expected; the
+  `*_proofs.bend` files are the gates that print `All terms check.`
+- **Defs are not laws**: a def a law *statement* needs (`Cmp.flip` in
+  `cmp_antisym`, `flip_eq_lt`, ...) must live in the laws file; anything
+  only proofs touch (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`) moves
+  to the proofs file. int.bend's one cross-module statement dependency
+  is `N.Cmp.flip` in `Int.add.opp_comm`, so it keeps its
+  `import ./nat.bend as N` even though the proofs all moved out.
+- **Files with a `main`** that returns a value print only the normalized
+  value, not `All terms check.` — scratch.bend printing
+  `src/int.Int{False{}, 5n}` with exit 0 *is* the pass signal there.
 
 ## Gotchas
 
