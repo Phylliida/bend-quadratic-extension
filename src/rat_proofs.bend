@@ -1526,7 +1526,7 @@ def R.Rat.neg_neg(c, np, nn, dp, e, g1):
 # the product case has its own shape law (Rat.num.mul), but a sum of difference
 # pairs is not one-sided, so its cross product has to be assembled instead.
 
-# R.Rat.add.piece: one summand of the additive cross product,
+# Rat.add.piece: one summand of the additive cross product,
 #
 #   (A*g) * (e*f) == (u*f) * (h*g),
 #
@@ -1538,7 +1538,7 @@ def R.Rat.neg_neg(c, np, nn, dp, e, g1):
 # equation applies, and the two scales are recombined as h*g. Writing the scales
 # as Int.unit(...) is what makes them movable at all -- as a value a scale is an
 # Int, and Int.scale.pair is the law that splits it.
-def R.Rat.add.piece(+A: I.Int, +r: I.Int, +u: I.Int, +e: Nat, +f: Nat, +g: Nat, +h: Nat,
+def Rat.add.piece(+A: I.Int, +r: I.Int, +u: I.Int, +e: Nat, +f: Nat, +g: Nat, +h: Nat,
              v: {I.Int.mul(A, I.Int.unit(e)) == I.Int.mul(r, I.Int.unit(h)) : I.Int},
              s: {r == u : I.Int})
   -> {I.Int.mul(I.Int.mul(A, I.Int.unit(g)), I.Int.unit(Nat.mul(e, f)))
@@ -1583,13 +1583,13 @@ def R.Rat.add.piece(+A: I.Int, +r: I.Int, +u: I.Int, +e: Nat, +f: Nat, +g: Nat, 
     : {I.Int.mul(I.Int.mul(u, F), _) == I.Int.mul(I.Int.mul(u, F), HG) : I.Int}
   {==}
 
-# R.Rat.add.cross: the cross product itself, one piece per summand and one
+# Rat.add.cross: the cross product itself, one piece per summand and one
 # Int.mul_add_left step at each end to take the sum in and out of the product.
 # The two summands' pieces are mirror images -- (A, e=xd, g=k2, h=k1) against
 # (B, e=yd, g=k1, h=k2) -- so the second piece needs the shared denominator and
 # the merged scale re-spelled by Nat.mul_comm before and after it; both are one
 # congruence over the Nat inside an Int.unit.
-def R.Rat.add.cross(+A: I.Int, +B: I.Int, +r1: I.Int, +u1: I.Int, +r2: I.Int, +u2: I.Int,
+def Rat.add.cross(+A: I.Int, +B: I.Int, +r1: I.Int, +u1: I.Int, +r2: I.Int, +u2: I.Int,
              +xd: Nat, +yd: Nat, +k1: Nat, +k2: Nat,
              v1: {I.Int.mul(A, I.Int.unit(xd)) == I.Int.mul(r1, I.Int.unit(k1)) : I.Int},
              v2: {I.Int.mul(B, I.Int.unit(yd)) == I.Int.mul(r2, I.Int.unit(k2)) : I.Int},
@@ -1606,13 +1606,13 @@ def R.Rat.add.cross(+A: I.Int, +B: I.Int, +r1: I.Int, +u1: I.Int, +r2: I.Int, +u
   %Equal.sym(I.Int, I.Int.mul(I.Int.add(AK, BK), D), I.Int.add(I.Int.mul(AK, D), I.Int.mul(BK, D)),
       I.Int.mul_add_left(AK, BK, D))
     : {_ == I.Int.mul(I.Int.add(U1, U2), K) : I.Int}
-  %Equal.sym(I.Int, I.Int.mul(AK, D), I.Int.mul(U1, K), R.Rat.add.piece(A, r1, u1, xd, yd, k2, k1, v1, s1))
+  %Equal.sym(I.Int, I.Int.mul(AK, D), I.Int.mul(U1, K), Rat.add.piece(A, r1, u1, xd, yd, k2, k1, v1, s1))
     : {I.Int.add(_, I.Int.mul(BK, D)) == I.Int.mul(I.Int.add(U1, U2), K) : I.Int}
   %Equal.sym(I.Int, D, I.Int.unit(Nat.mul(yd, xd)),
       Equal.cong(Nat, I.Int, w => I.Int.unit(w), Nat.mul(xd, yd), Nat.mul(yd, xd), N.mul_comm(xd, yd)))
     : {I.Int.add(I.Int.mul(U1, K), I.Int.mul(BK, _)) == I.Int.mul(I.Int.add(U1, U2), K) : I.Int}
   %Equal.sym(I.Int, I.Int.mul(BK, I.Int.unit(Nat.mul(yd, xd))), I.Int.mul(U2, I.Int.unit(Nat.mul(k2, k1))),
-      R.Rat.add.piece(B, r2, u2, yd, xd, k1, k2, v2, s2))
+      Rat.add.piece(B, r2, u2, yd, xd, k1, k2, v2, s2))
     : {I.Int.add(I.Int.mul(U1, K), _) == I.Int.mul(I.Int.add(U1, U2), K) : I.Int}
   %Equal.sym(I.Int, I.Int.unit(Nat.mul(k2, k1)), K,
       Equal.cong(Nat, I.Int, w => I.Int.unit(w), Nat.mul(k2, k1), Nat.mul(k1, k2), N.mul_comm(k2, k1)))
@@ -1628,7 +1628,7 @@ def R.Rat.add.cross(+A: I.Int, +B: I.Int, +r1: I.Int, +u1: I.Int, +r2: I.Int, +u
 # and already reduced, so the left side is mk(nR, kR) with nR the two
 # projections scaled by the other's denominator (k1, k2 the quotients the two
 # gcds left) and kR = k1*k2 -- two normal forms, compared by exactly the cross
-# product R.Rat.add.cross assembles. The four facts it is built from are:
+# product Rat.add.cross assembles. The four facts it is built from are:
 #
 #   v1/v2  mk.value on each summand: numof(Mi)*di == Rat.num(ai,bi)*ki, with
 #          (ai, bi) = (sub(npi,nni), sub(nni,npi)) the coordinates mk saw;
@@ -1679,7 +1679,7 @@ def R.Rat.add.value(np1, nn1, dp1, np2, nn2, dp2):
   R.Rat.mk.eqv.raw(nR, kR, T, d,
     N.mul_pos(k1, k2, pk1, pk2),
     N.mul_pos(xd, yd, {==}, {==}),
-    R.Rat.add.cross(A, B, R.Rat.num(a1, b1), I.Int{a1, b1}, R.Rat.num(a2, b2), I.Int{a2, b2}, xd, yd, k1, k2, v1, v2, s1, s2))
+    Rat.add.cross(A, B, R.Rat.num(a1, b1), I.Int{a1, b1}, R.Rat.num(a2, b2), I.Int{a2, b2}, xd, yd, k1, k2, v1, v2, s1, s2))
 
 # The mixed value equation
 # ========================
@@ -1694,7 +1694,7 @@ def R.Rat.add.value(np1, nn1, dp1, np2, nn2, dp2):
 # The two Nat reorderings the helper needs are the associativity/commutativity
 # shuffles that put the scaled value equation next to the scale the goal carries.
 
-# R.Rat.add.mixed.cross: the cross product mk.eqv.raw consumes in
+# Rat.add.mixed.cross: the cross product mk.eqv.raw consumes in
 # Rat.add.value.mixed, from the value equation v of the mk summand:
 #
 #   (A*Y + C*k1) * (d*Y)  ==  (R*Y + C*d) * (k1*Y)
@@ -1706,7 +1706,7 @@ def R.Rat.add.value(np1, nn1, dp1, np2, nn2, dp2):
 # one (scale.pair, read backwards), applies v scaled by Y*Y to the first summand
 # of each side, and reorders the pure-Nat scales of the second (mul_comm and
 # mul_assoc inside Int.unit).
-def R.Rat.add.mixed.cross(+A: I.Int, +R: I.Int, +C: I.Int, +d: Nat, +Yd: Nat, +k1: Nat,
+def Rat.add.mixed.cross(+A: I.Int, +R: I.Int, +C: I.Int, +d: Nat, +Yd: Nat, +k1: Nat,
              v: {I.Int.mul(A, I.Int.unit(d)) == I.Int.mul(R, I.Int.unit(k1)) : I.Int})
   -> {I.Int.mul(I.Int.add(I.Int.mul(A, I.Int.unit(Yd)), I.Int.mul(C, I.Int.unit(k1))),
                I.Int.unit(Nat.mul(d, Yd)))
@@ -1827,7 +1827,7 @@ def R.Rat.add.mixed.cross(+A: I.Int, +R: I.Int, +C: I.Int, +d: Nat, +Yd: Nat, +k
 # arguments of the add are constructors once unfolded, so the left side is
 # mk(nL, dL) with nL the two projections scaled by the *other* denominator
 # (k1 = denof(M1) for the mk summand, Yd for the constructor) and dL = k1*Yd --
-# two normal forms compared by exactly the cross product R.Rat.add.mixed.cross
+# two normal forms compared by exactly the cross product Rat.add.mixed.cross
 # assembles from the value equation v. The three facts it is built from:
 #
 #   v   mk.value on the mk summand: numof(M1)*d == Rat.num(P1,Q1)*k1, which is
@@ -1876,7 +1876,7 @@ def R.Rat.add.value.mixed(np1, nn1, d, pd, pq, np2, nn2, dp2):
   R.Rat.mk.eqv.raw(nL, dL, T, dT,
     N.mul_pos(k1, Yd, pq, {==}),
     N.mul_pos(d, Yd, pd, {==}),
-    R.Rat.add.mixed.cross(A, I.Int{P1, Q1}, I.Int{P2, Q2}, d, Yd, k1, v))
+    Rat.add.mixed.cross(A, I.Int{P1, Q1}, I.Int{P2, Q2}, d, Yd, k1, v))
 # probe: Rat.neg_add -- -(x + y) = -x + -y for the canonical presentation.
 # Rat.neg_add: the goal is
 #   neg(add(Rat{Rat.num(np1,nn1), xd}, Rat{Rat.num(np2,nn2), yd}))   against
@@ -2010,7 +2010,7 @@ def R.Rat.neg_add(np1, nn1, dp1, np2, nn2, dp2):
 # (instance 2 needs its own padding piece first), and d3/xy are the two
 # denominator shorthands the statement is written with.
 
-def R.Rat.nat.pad(+b: Nat, +Xd: Nat, +Zd: Nat, +D: Nat)
+def Rat.nat.pad(+b: Nat, +Xd: Nat, +Zd: Nat, +D: Nat)
   -> {Nat.mul(Nat.mul(b, Xd), Nat.mul(Zd, D)) == Nat.mul(Nat.mul(b, Zd), Nat.mul(Xd, D)) : Nat}:
   %Equal.sym(Nat, Nat.mul(Nat.mul(b, Xd), Nat.mul(Zd, D)), Nat.mul(b, Nat.mul(Xd, Nat.mul(Zd, D))),
       N.mul_assoc(b, Xd, Nat.mul(Zd, D)))
@@ -2026,7 +2026,7 @@ def R.Rat.nat.pad(+b: Nat, +Xd: Nat, +Zd: Nat, +D: Nat)
     : {_ == Nat.mul(Nat.mul(b, Zd), Nat.mul(Xd, D)) : Nat}
   {==}
 
-def R.Rat.nat.exch4(+x1: Nat, +x2: Nat, +x3: Nat, +x4: Nat)
+def Rat.nat.exch4(+x1: Nat, +x2: Nat, +x3: Nat, +x4: Nat)
   -> {Nat.add(Nat.add(x1, x3), Nat.add(x2, x4)) == Nat.add(Nat.add(x1, x4), Nat.add(x2, x3)) : Nat}:
   %Equal.sym(Nat, Nat.add(Nat.add(x1, x3), Nat.add(x2, x4)), Nat.add(x1, Nat.add(x3, Nat.add(x2, x4))),
       N.add_assoc(x1, x3, Nat.add(x2, x4)))
@@ -2042,7 +2042,7 @@ def R.Rat.nat.exch4(+x1: Nat, +x2: Nat, +x3: Nat, +x4: Nat)
     : {_ == Nat.add(Nat.add(x1, x4), Nat.add(x2, x3)) : Nat}
   {==}
 
-def R.Rat.nat.split(+P: Nat, +Q: Nat, +vg: Nat, +vp: Nat, +ug: Nat, +up: Nat, +s: Nat, +T: Nat, +T2: Nat,
+def Rat.nat.split(+P: Nat, +Q: Nat, +vg: Nat, +vp: Nat, +ug: Nat, +up: Nat, +s: Nat, +T: Nat, +T2: Nat,
           e: {Nat.add(P, Nat.add(vg, vp)) == Nat.add(Q, Nat.add(ug, up)) : Nat},
           ev: {Nat.mul(vp, s) == T : Nat},
           eu: {Nat.mul(up, s) == T2 : Nat})
@@ -2076,16 +2076,16 @@ def R.Rat.nat.split(+P: Nat, +Q: Nat, +vg: Nat, +vp: Nat, +ug: Nat, +up: Nat, +s
     : {Nat.mul(Nat.add(P, Nat.add(vg, vp)), s) == _ : Nat}
   {==}
 
-# R.Rat.nat.d3(Xd,Yd,Zd) = Xd*(Yd*Zd): the common denominator the cross sum is scaled by.
-def R.Rat.nat.d3(+Xd: Nat, +Yd: Nat, +Zd: Nat) -> Nat:
+# Rat.nat.d3(Xd,Yd,Zd) = Xd*(Yd*Zd): the common denominator the cross sum is scaled by.
+def Rat.nat.d3(+Xd: Nat, +Yd: Nat, +Zd: Nat) -> Nat:
   Nat.mul(Xd, Nat.mul(Yd, Zd))
 
-# R.Rat.nat.xy(Xd,Yd) = Xd*Yd: the first inner sum's denominator.
-def R.Rat.nat.xy(+Xd: Nat, +Yd: Nat) -> Nat:
+# Rat.nat.xy(Xd,Yd) = Xd*Yd: the first inner sum's denominator.
+def Rat.nat.xy(+Xd: Nat, +Yd: Nat) -> Nat:
   Nat.mul(Xd, Yd)
 
 # flip2: exchange the two summands inside each side's inner sum.
-def R.Rat.nat.flip2(+P: Nat, +Q: Nat, +vp: Nat, +vg: Nat, +up: Nat, +ug: Nat,
+def Rat.nat.flip2(+P: Nat, +Q: Nat, +vp: Nat, +vg: Nat, +up: Nat, +ug: Nat,
           e: {Nat.add(P, Nat.add(vp, vg)) == Nat.add(Q, Nat.add(up, ug)) : Nat})
   -> {Nat.add(P, Nat.add(vg, vp)) == Nat.add(Q, Nat.add(ug, up)) : Nat}:
   Equal.trans(Nat,
@@ -2104,75 +2104,75 @@ def R.Rat.nat.flip2(+P: Nat, +Q: Nat, +vp: Nat, +vg: Nat, +up: Nat, +ug: Nat,
           Equal.sym(Nat, Nat.add(up, ug), Nat.add(ug, up), N.add_comm(up, ug))))))
 
 # foldA: (c1*(Zd*D) + (c2*Yd)*(Xd*D)) = (c1*Zd + c2*(Xd*Yd)) * D
-def R.Rat.nat.foldA(+c1: Nat, +c2: Nat, +Xd: Nat, +Yd: Nat, +Zd: Nat)
-  -> {Nat.add(Nat.mul(c1, Nat.mul(Zd, R.Rat.nat.d3(Xd, Yd, Zd))),
-            Nat.mul(Nat.mul(c2, Yd), Nat.mul(Xd, R.Rat.nat.d3(Xd, Yd, Zd))))
-      == Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, R.Rat.nat.xy(Xd, Yd))), R.Rat.nat.d3(Xd, Yd, Zd)) : Nat}:
-  %N.mul_assoc(c1, Zd, R.Rat.nat.d3(Xd, Yd, Zd))
-    : {Nat.add(_, Nat.mul(Nat.mul(c2, Yd), Nat.mul(Xd, R.Rat.nat.d3(Xd, Yd, Zd))))
-       == Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, R.Rat.nat.xy(Xd, Yd))), R.Rat.nat.d3(Xd, Yd, Zd)) : Nat}
-  %Equal.sym(Nat, Nat.mul(Nat.mul(c2, Yd), Nat.mul(Xd, R.Rat.nat.d3(Xd, Yd, Zd))),
-      Nat.mul(c2, Nat.mul(Yd, Nat.mul(Xd, R.Rat.nat.d3(Xd, Yd, Zd)))),
-      N.mul_assoc(c2, Yd, Nat.mul(Xd, R.Rat.nat.d3(Xd, Yd, Zd))))
-    : {Nat.add(Nat.mul(Nat.mul(c1, Zd), R.Rat.nat.d3(Xd, Yd, Zd)), _)
-       == Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, R.Rat.nat.xy(Xd, Yd))), R.Rat.nat.d3(Xd, Yd, Zd)) : Nat}
+def Rat.nat.foldA(+c1: Nat, +c2: Nat, +Xd: Nat, +Yd: Nat, +Zd: Nat)
+  -> {Nat.add(Nat.mul(c1, Nat.mul(Zd, Rat.nat.d3(Xd, Yd, Zd))),
+            Nat.mul(Nat.mul(c2, Yd), Nat.mul(Xd, Rat.nat.d3(Xd, Yd, Zd))))
+      == Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, Rat.nat.xy(Xd, Yd))), Rat.nat.d3(Xd, Yd, Zd)) : Nat}:
+  %N.mul_assoc(c1, Zd, Rat.nat.d3(Xd, Yd, Zd))
+    : {Nat.add(_, Nat.mul(Nat.mul(c2, Yd), Nat.mul(Xd, Rat.nat.d3(Xd, Yd, Zd))))
+       == Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, Rat.nat.xy(Xd, Yd))), Rat.nat.d3(Xd, Yd, Zd)) : Nat}
+  %Equal.sym(Nat, Nat.mul(Nat.mul(c2, Yd), Nat.mul(Xd, Rat.nat.d3(Xd, Yd, Zd))),
+      Nat.mul(c2, Nat.mul(Yd, Nat.mul(Xd, Rat.nat.d3(Xd, Yd, Zd)))),
+      N.mul_assoc(c2, Yd, Nat.mul(Xd, Rat.nat.d3(Xd, Yd, Zd))))
+    : {Nat.add(Nat.mul(Nat.mul(c1, Zd), Rat.nat.d3(Xd, Yd, Zd)), _)
+       == Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, Rat.nat.xy(Xd, Yd))), Rat.nat.d3(Xd, Yd, Zd)) : Nat}
   %Equal.trans(Nat,
-      Nat.mul(R.Rat.nat.xy(Xd, Yd), R.Rat.nat.d3(Xd, Yd, Zd)),
-      Nat.mul(Nat.mul(Yd, Xd), R.Rat.nat.d3(Xd, Yd, Zd)),
-      Nat.mul(Yd, Nat.mul(Xd, R.Rat.nat.d3(Xd, Yd, Zd))),
-      Equal.cong(Nat, Nat, v => Nat.mul(v, R.Rat.nat.d3(Xd, Yd, Zd)), R.Rat.nat.xy(Xd, Yd), Nat.mul(Yd, Xd), N.mul_comm(Xd, Yd)),
-      N.mul_assoc(Yd, Xd, R.Rat.nat.d3(Xd, Yd, Zd)))
-    : {Nat.add(Nat.mul(Nat.mul(c1, Zd), R.Rat.nat.d3(Xd, Yd, Zd)), Nat.mul(c2, _))
-       == Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, R.Rat.nat.xy(Xd, Yd))), R.Rat.nat.d3(Xd, Yd, Zd)) : Nat}
-  %N.mul_assoc(c2, R.Rat.nat.xy(Xd, Yd), R.Rat.nat.d3(Xd, Yd, Zd))
-    : {Nat.add(Nat.mul(Nat.mul(c1, Zd), R.Rat.nat.d3(Xd, Yd, Zd)), _)
-       == Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, R.Rat.nat.xy(Xd, Yd))), R.Rat.nat.d3(Xd, Yd, Zd)) : Nat}
-  %Equal.sym(Nat, Nat.add(Nat.mul(Nat.mul(c1, Zd), R.Rat.nat.d3(Xd, Yd, Zd)),
-        Nat.mul(Nat.mul(c2, R.Rat.nat.xy(Xd, Yd)), R.Rat.nat.d3(Xd, Yd, Zd))),
-      Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, R.Rat.nat.xy(Xd, Yd))), R.Rat.nat.d3(Xd, Yd, Zd)),
-      N.mul_add_left(Nat.mul(c1, Zd), Nat.mul(c2, R.Rat.nat.xy(Xd, Yd)), R.Rat.nat.d3(Xd, Yd, Zd)))
-    : {_ == Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, R.Rat.nat.xy(Xd, Yd))), R.Rat.nat.d3(Xd, Yd, Zd)) : Nat}
+      Nat.mul(Rat.nat.xy(Xd, Yd), Rat.nat.d3(Xd, Yd, Zd)),
+      Nat.mul(Nat.mul(Yd, Xd), Rat.nat.d3(Xd, Yd, Zd)),
+      Nat.mul(Yd, Nat.mul(Xd, Rat.nat.d3(Xd, Yd, Zd))),
+      Equal.cong(Nat, Nat, v => Nat.mul(v, Rat.nat.d3(Xd, Yd, Zd)), Rat.nat.xy(Xd, Yd), Nat.mul(Yd, Xd), N.mul_comm(Xd, Yd)),
+      N.mul_assoc(Yd, Xd, Rat.nat.d3(Xd, Yd, Zd)))
+    : {Nat.add(Nat.mul(Nat.mul(c1, Zd), Rat.nat.d3(Xd, Yd, Zd)), Nat.mul(c2, _))
+       == Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, Rat.nat.xy(Xd, Yd))), Rat.nat.d3(Xd, Yd, Zd)) : Nat}
+  %N.mul_assoc(c2, Rat.nat.xy(Xd, Yd), Rat.nat.d3(Xd, Yd, Zd))
+    : {Nat.add(Nat.mul(Nat.mul(c1, Zd), Rat.nat.d3(Xd, Yd, Zd)), _)
+       == Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, Rat.nat.xy(Xd, Yd))), Rat.nat.d3(Xd, Yd, Zd)) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mul(Nat.mul(c1, Zd), Rat.nat.d3(Xd, Yd, Zd)),
+        Nat.mul(Nat.mul(c2, Rat.nat.xy(Xd, Yd)), Rat.nat.d3(Xd, Yd, Zd))),
+      Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, Rat.nat.xy(Xd, Yd))), Rat.nat.d3(Xd, Yd, Zd)),
+      N.mul_add_left(Nat.mul(c1, Zd), Nat.mul(c2, Rat.nat.xy(Xd, Yd)), Rat.nat.d3(Xd, Yd, Zd)))
+    : {_ == Nat.mul(Nat.add(Nat.mul(c1, Zd), Nat.mul(c2, Rat.nat.xy(Xd, Yd))), Rat.nat.d3(Xd, Yd, Zd)) : Nat}
   {==}
 
 # foldB: (c1*(Xd*D) + (c2*Yd)*(Zd*D)) = (c1*Xd + c2*(Yd*Zd)) * D
-def R.Rat.nat.foldB(+c1: Nat, +c2: Nat, +Xd: Nat, +Yd: Nat, +Zd: Nat)
-  -> {Nat.add(Nat.mul(c1, Nat.mul(Xd, R.Rat.nat.d3(Xd, Yd, Zd))),
-            Nat.mul(Nat.mul(c2, Yd), Nat.mul(Zd, R.Rat.nat.d3(Xd, Yd, Zd))))
-      == Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), R.Rat.nat.d3(Xd, Yd, Zd)) : Nat}:
-  %N.mul_assoc(c1, Xd, R.Rat.nat.d3(Xd, Yd, Zd))
-    : {Nat.add(_, Nat.mul(Nat.mul(c2, Yd), Nat.mul(Zd, R.Rat.nat.d3(Xd, Yd, Zd))))
-       == Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), R.Rat.nat.d3(Xd, Yd, Zd)) : Nat}
-  %Equal.sym(Nat, Nat.mul(Nat.mul(c2, Yd), Nat.mul(Zd, R.Rat.nat.d3(Xd, Yd, Zd))),
-      Nat.mul(c2, Nat.mul(Yd, Nat.mul(Zd, R.Rat.nat.d3(Xd, Yd, Zd)))),
-      N.mul_assoc(c2, Yd, Nat.mul(Zd, R.Rat.nat.d3(Xd, Yd, Zd))))
-    : {Nat.add(Nat.mul(Nat.mul(c1, Xd), R.Rat.nat.d3(Xd, Yd, Zd)), _)
-       == Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), R.Rat.nat.d3(Xd, Yd, Zd)) : Nat}
-  %N.mul_assoc(Yd, Zd, R.Rat.nat.d3(Xd, Yd, Zd))
-    : {Nat.add(Nat.mul(Nat.mul(c1, Xd), R.Rat.nat.d3(Xd, Yd, Zd)), Nat.mul(c2, _))
-       == Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), R.Rat.nat.d3(Xd, Yd, Zd)) : Nat}
-  %N.mul_assoc(c2, Nat.mul(Yd, Zd), R.Rat.nat.d3(Xd, Yd, Zd))
-    : {Nat.add(Nat.mul(Nat.mul(c1, Xd), R.Rat.nat.d3(Xd, Yd, Zd)), _)
-       == Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), R.Rat.nat.d3(Xd, Yd, Zd)) : Nat}
-  %Equal.sym(Nat, Nat.add(Nat.mul(Nat.mul(c1, Xd), R.Rat.nat.d3(Xd, Yd, Zd)),
-        Nat.mul(Nat.mul(c2, Nat.mul(Yd, Zd)), R.Rat.nat.d3(Xd, Yd, Zd))),
-      Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), R.Rat.nat.d3(Xd, Yd, Zd)),
-      N.mul_add_left(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd)), R.Rat.nat.d3(Xd, Yd, Zd)))
-    : {_ == Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), R.Rat.nat.d3(Xd, Yd, Zd)) : Nat}
+def Rat.nat.foldB(+c1: Nat, +c2: Nat, +Xd: Nat, +Yd: Nat, +Zd: Nat)
+  -> {Nat.add(Nat.mul(c1, Nat.mul(Xd, Rat.nat.d3(Xd, Yd, Zd))),
+            Nat.mul(Nat.mul(c2, Yd), Nat.mul(Zd, Rat.nat.d3(Xd, Yd, Zd))))
+      == Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), Rat.nat.d3(Xd, Yd, Zd)) : Nat}:
+  %N.mul_assoc(c1, Xd, Rat.nat.d3(Xd, Yd, Zd))
+    : {Nat.add(_, Nat.mul(Nat.mul(c2, Yd), Nat.mul(Zd, Rat.nat.d3(Xd, Yd, Zd))))
+       == Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), Rat.nat.d3(Xd, Yd, Zd)) : Nat}
+  %Equal.sym(Nat, Nat.mul(Nat.mul(c2, Yd), Nat.mul(Zd, Rat.nat.d3(Xd, Yd, Zd))),
+      Nat.mul(c2, Nat.mul(Yd, Nat.mul(Zd, Rat.nat.d3(Xd, Yd, Zd)))),
+      N.mul_assoc(c2, Yd, Nat.mul(Zd, Rat.nat.d3(Xd, Yd, Zd))))
+    : {Nat.add(Nat.mul(Nat.mul(c1, Xd), Rat.nat.d3(Xd, Yd, Zd)), _)
+       == Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), Rat.nat.d3(Xd, Yd, Zd)) : Nat}
+  %N.mul_assoc(Yd, Zd, Rat.nat.d3(Xd, Yd, Zd))
+    : {Nat.add(Nat.mul(Nat.mul(c1, Xd), Rat.nat.d3(Xd, Yd, Zd)), Nat.mul(c2, _))
+       == Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), Rat.nat.d3(Xd, Yd, Zd)) : Nat}
+  %N.mul_assoc(c2, Nat.mul(Yd, Zd), Rat.nat.d3(Xd, Yd, Zd))
+    : {Nat.add(Nat.mul(Nat.mul(c1, Xd), Rat.nat.d3(Xd, Yd, Zd)), _)
+       == Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), Rat.nat.d3(Xd, Yd, Zd)) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mul(Nat.mul(c1, Xd), Rat.nat.d3(Xd, Yd, Zd)),
+        Nat.mul(Nat.mul(c2, Nat.mul(Yd, Zd)), Rat.nat.d3(Xd, Yd, Zd))),
+      Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), Rat.nat.d3(Xd, Yd, Zd)),
+      N.mul_add_left(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd)), Rat.nat.d3(Xd, Yd, Zd)))
+    : {_ == Nat.mul(Nat.add(Nat.mul(c1, Xd), Nat.mul(c2, Nat.mul(Yd, Zd))), Rat.nat.d3(Xd, Yd, Zd)) : Nat}
   {==}
 
 # cross4: the cross sum mk.eqv.val consumes, from the two sub_cross instances.
-def R.Rat.nat.cross4(+P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat,
+def Rat.nat.cross4(+P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat,
            +a1: Nat, +b1: Nat, +a2: Nat, +b2: Nat, +a3: Nat, +b3: Nat,
            +Xd: Nat, +Yd: Nat, +Zd: Nat,
            e1: {Nat.add(P1, Nat.add(Nat.mul(b1, Yd), Nat.mul(b2, Xd)))
                 == Nat.add(Q1, Nat.add(Nat.mul(a1, Yd), Nat.mul(a2, Xd))) : Nat},
            e2: {Nat.add(P2, Nat.add(Nat.mul(b2, Zd), Nat.mul(b3, Yd)))
                 == Nat.add(Q2, Nat.add(Nat.mul(a2, Zd), Nat.mul(a3, Yd))) : Nat})
-  -> {Nat.add(Nat.mul(Nat.add(Nat.mul(P1, Zd), Nat.mul(a3, R.Rat.nat.xy(Xd, Yd))), R.Rat.nat.d3(Xd, Yd, Zd)),
-           Nat.mul(Nat.add(Nat.mul(Q2, Xd), Nat.mul(b1, Nat.mul(Yd, Zd))), R.Rat.nat.d3(Xd, Yd, Zd)))
-      == Nat.add(Nat.mul(Nat.add(Nat.mul(P2, Xd), Nat.mul(a1, Nat.mul(Yd, Zd))), R.Rat.nat.d3(Xd, Yd, Zd)),
-                 Nat.mul(Nat.add(Nat.mul(Q1, Zd), Nat.mul(b3, R.Rat.nat.xy(Xd, Yd))), R.Rat.nat.d3(Xd, Yd, Zd))) : Nat}:
-  +D = R.Rat.nat.d3(Xd, Yd, Zd)
+  -> {Nat.add(Nat.mul(Nat.add(Nat.mul(P1, Zd), Nat.mul(a3, Rat.nat.xy(Xd, Yd))), Rat.nat.d3(Xd, Yd, Zd)),
+           Nat.mul(Nat.add(Nat.mul(Q2, Xd), Nat.mul(b1, Nat.mul(Yd, Zd))), Rat.nat.d3(Xd, Yd, Zd)))
+      == Nat.add(Nat.mul(Nat.add(Nat.mul(P2, Xd), Nat.mul(a1, Nat.mul(Yd, Zd))), Rat.nat.d3(Xd, Yd, Zd)),
+                 Nat.mul(Nat.add(Nat.mul(Q1, Zd), Nat.mul(b3, Rat.nat.xy(Xd, Yd))), Rat.nat.d3(Xd, Yd, Zd))) : Nat}:
+  +D = Rat.nat.d3(Xd, Yd, Zd)
   +s1 = Nat.mul(Zd, D)
   +s2 = Nat.mul(Xd, D)
   +A = Nat.add(Nat.mul(P1, s1), Nat.mul(Nat.mul(b1, Yd), s1))
@@ -2181,10 +2181,10 @@ def R.Rat.nat.cross4(+P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat,
   +B2 = Nat.add(Nat.mul(Q2, s2), Nat.mul(Nat.mul(a3, Yd), s2))
   +Tb = Nat.mul(Nat.mul(b2, Zd), s2)
   +Ta = Nat.mul(Nat.mul(a2, Zd), s2)
-  +e2f = R.Rat.nat.flip2(P2, Q2, Nat.mul(b2, Zd), Nat.mul(b3, Yd), Nat.mul(a2, Zd), Nat.mul(a3, Yd), e2)
-  +h1 = R.Rat.nat.split(P1, Q1, Nat.mul(b1, Yd), Nat.mul(b2, Xd), Nat.mul(a1, Yd), Nat.mul(a2, Xd),
-    s1, Tb, Ta, e1, R.Rat.nat.pad(b2, Xd, Zd, D), R.Rat.nat.pad(a2, Xd, Zd, D))
-  +h2 = R.Rat.nat.split(P2, Q2, Nat.mul(b3, Yd), Nat.mul(b2, Zd), Nat.mul(a3, Yd), Nat.mul(a2, Zd),
+  +e2f = Rat.nat.flip2(P2, Q2, Nat.mul(b2, Zd), Nat.mul(b3, Yd), Nat.mul(a2, Zd), Nat.mul(a3, Yd), e2)
+  +h1 = Rat.nat.split(P1, Q1, Nat.mul(b1, Yd), Nat.mul(b2, Xd), Nat.mul(a1, Yd), Nat.mul(a2, Xd),
+    s1, Tb, Ta, e1, Rat.nat.pad(b2, Xd, Zd, D), Rat.nat.pad(a2, Xd, Zd, D))
+  +h2 = Rat.nat.split(P2, Q2, Nat.mul(b3, Yd), Nat.mul(b2, Zd), Nat.mul(a3, Yd), Nat.mul(a2, Zd),
     s2, Tb, Ta, e2f, {==}, {==})
   +c = N.cross_add(A, A2, B, B2, Tb, Ta, h1, h2)
   +x1 = Nat.mul(P1, s1)
@@ -2195,12 +2195,12 @@ def R.Rat.nat.cross4(+P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat,
   +y2 = Nat.mul(P2, s2)
   +y3 = Nat.mul(Nat.mul(a1, Yd), s1)
   +y4 = Nat.mul(Nat.mul(b3, Yd), s2)
-  +xf = R.Rat.nat.exch4(x1, x2, x3, x4)
-  +yf = R.Rat.nat.exch4(y1, y2, y3, y4)
-  +r1 = Nat.mul(Nat.add(Nat.mul(P1, Zd), Nat.mul(a3, R.Rat.nat.xy(Xd, Yd))), D)
+  +xf = Rat.nat.exch4(x1, x2, x3, x4)
+  +yf = Rat.nat.exch4(y1, y2, y3, y4)
+  +r1 = Nat.mul(Nat.add(Nat.mul(P1, Zd), Nat.mul(a3, Rat.nat.xy(Xd, Yd))), D)
   +r2 = Nat.mul(Nat.add(Nat.mul(Q2, Xd), Nat.mul(b1, Nat.mul(Yd, Zd))), D)
   +r3 = Nat.mul(Nat.add(Nat.mul(P2, Xd), Nat.mul(a1, Nat.mul(Yd, Zd))), D)
-  +r4 = Nat.mul(Nat.add(Nat.mul(Q1, Zd), Nat.mul(b3, R.Rat.nat.xy(Xd, Yd))), D)
+  +r4 = Nat.mul(Nat.add(Nat.mul(Q1, Zd), Nat.mul(b3, Rat.nat.xy(Xd, Yd))), D)
   +lc = Equal.trans(Nat,
       Nat.add(A, B2),
       Nat.add(Nat.add(x1, x4), Nat.add(x2, x3)),
@@ -2211,9 +2211,9 @@ def R.Rat.nat.cross4(+P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat,
         Nat.add(r1, Nat.add(x2, x3)),
         Nat.add(r1, r2),
         Equal.cong(Nat, Nat, u => Nat.add(u, Nat.add(x2, x3)), Nat.add(x1, x4), r1,
-          R.Rat.nat.foldA(P1, a3, Xd, Yd, Zd)),
+          Rat.nat.foldA(P1, a3, Xd, Yd, Zd)),
         Equal.cong(Nat, Nat, u => Nat.add(r1, u), Nat.add(x2, x3), r2,
-          R.Rat.nat.foldB(Q2, b1, Xd, Yd, Zd))))
+          Rat.nat.foldB(Q2, b1, Xd, Yd, Zd))))
   +rc = Equal.trans(Nat,
       Nat.add(A2, B),
       Nat.add(Nat.add(y1, y4), Nat.add(y2, y3)),
@@ -2224,13 +2224,13 @@ def R.Rat.nat.cross4(+P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat,
         Nat.add(r4, Nat.add(y2, y3)),
         Nat.add(r3, r4),
         Equal.cong(Nat, Nat, u => Nat.add(u, Nat.add(y2, y3)), Nat.add(y1, y4), r4,
-          R.Rat.nat.foldA(Q1, b3, Xd, Yd, Zd)),
+          Rat.nat.foldA(Q1, b3, Xd, Yd, Zd)),
         Equal.trans(Nat,
           Nat.add(r4, Nat.add(y2, y3)),
           Nat.add(r4, r3),
           Nat.add(r3, r4),
           Equal.cong(Nat, Nat, u => Nat.add(r4, u), Nat.add(y2, y3), r3,
-            R.Rat.nat.foldB(P2, a1, Xd, Yd, Zd)),
+            Rat.nat.foldB(P2, a1, Xd, Yd, Zd)),
           N.add_comm(r4, r3))))
   Equal.trans(Nat,
     Nat.add(r1, r2),
@@ -2291,9 +2291,9 @@ def R.Rat.add_assoc(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
   +Q2 = Nat.sub(V2, U2)
   +N1 = R.Rat.mk(R.Rat.num(P1, Q1), d1)
   +N2 = R.Rat.mk(R.Rat.num(P2, Q2), d2)
-  +D = R.Rat.nat.d3(Xd, Yd, Zd)
-  +TLp = Nat.add(Nat.mul(P1, Zd), Nat.mul(a3, R.Rat.nat.xy(Xd, Yd)))
-  +TLn = Nat.add(Nat.mul(Q1, Zd), Nat.mul(b3, R.Rat.nat.xy(Xd, Yd)))
+  +D = Rat.nat.d3(Xd, Yd, Zd)
+  +TLp = Nat.add(Nat.mul(P1, Zd), Nat.mul(a3, Rat.nat.xy(Xd, Yd)))
+  +TLn = Nat.add(Nat.mul(Q1, Zd), Nat.mul(b3, Rat.nat.xy(Xd, Yd)))
   +TRp = Nat.add(Nat.mul(P2, Xd), Nat.mul(a1, Nat.mul(Yd, Zd)))
   +TRn = Nat.add(Nat.mul(Q2, Xd), Nat.mul(b1, Nat.mul(Yd, Zd)))
   +G1 = R.Rat.g(Nat.sub(P1, Q1), Nat.sub(Q1, P1), d1)
@@ -2448,7 +2448,7 @@ def R.Rat.add_assoc(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
           R.Rat.mk(I.Int{TRp, TRn}, D), R3, R4))))
   +ee1 = N.sub_cross(Nat.cmp(U1, V1), U1, V1, {==})
   +ee2 = N.sub_cross(Nat.cmp(U2, V2), U2, V2, {==})
-  +Hn = R.Rat.nat.cross4(P1, Q1, P2, Q2, a1, b1, a2, b2, a3, b3, Xd, Yd, Zd, ee1, ee2)
+  +Hn = Rat.nat.cross4(P1, Q1, P2, Q2, a1, b1, a2, b2, a3, b3, Xd, Yd, Zd, ee1, ee2)
   +pD = N.mul_pos(Xd, Nat.mul(Yd, Zd), {==}, N.mul_pos(Yd, Zd, {==}, {==}))
   +val = R.Rat.mk.eqv.val(TLp, TLn, D, pD, TRp, TRn, D, pD, Hn)
   Equal.trans(R.Rat,
@@ -2499,7 +2499,7 @@ def R.Rat.add_exchange(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
 
 # value.coords.pos / .neg: the value equation of a scaled difference pair, read
 # at its two Nat coordinates.
-def R.Rat.value.coords.pos(+ap: Nat, +an: Nat, +rp: Nat, +rn: Nat, +d: Nat, +b: Nat,
+def Rat.value.coords.pos(+ap: Nat, +an: Nat, +rp: Nat, +rn: Nat, +d: Nat, +b: Nat,
             v: {I.Int{Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)),
                       Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d))}
                 == I.Int{Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)),
@@ -2508,7 +2508,7 @@ def R.Rat.value.coords.pos(+ap: Nat, +an: Nat, +rp: Nat, +rn: Nat, +d: Nat, +b: 
   I.Int.eq.pos(Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)), Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d)),
     Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)), Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b)), v)
 
-def R.Rat.value.coords.neg(+ap: Nat, +an: Nat, +rp: Nat, +rn: Nat, +d: Nat, +b: Nat,
+def Rat.value.coords.neg(+ap: Nat, +an: Nat, +rp: Nat, +rn: Nat, +d: Nat, +b: Nat,
             v: {I.Int{Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)),
                       Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d))}
                 == I.Int{Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)),
@@ -2525,7 +2525,7 @@ def R.Rat.value.coords.neg(+ap: Nat, +an: Nat, +rp: Nat, +rn: Nat, +d: Nat, +b: 
 # the coordinate pair Int{add(mul(xp,d), mul(xn,0)), add(mul(xp,0), mul(xn,d))}
 # -- not the folded Int{mul(xp,d), mul(xn,d)} that Int.mul_scale names. Both
 # spellings appear below, each where it is the one the next step wants.
-def R.Rat.value.scaled(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Nat, +C: Nat,
+def Rat.value.scaled(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Nat, +C: Nat,
             v: {I.Int{Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d))}
                 == I.Int{Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b))} : I.Int})
   -> {I.Int{Nat.add(Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), C), Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), 0n)),
@@ -2540,7 +2540,7 @@ def R.Rat.value.scaled(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Nat,
 # -- the one rewrite both coordinates need first, kept separate because it is a
 # plain instantiation of Nat.add_zero and because spelling it here keeps the
 # two coordinate laws short.
-def R.Rat.nat.coord.term(+x: Nat)
+def Rat.nat.coord.term(+x: Nat)
   -> {Nat.add(x, 0n) == x : Nat}:
   N.add_zero(x)
 
@@ -2551,7 +2551,7 @@ def R.Rat.nat.coord.term(+x: Nat)
 # orientations: `Equal.sym` is handed the evidence in *its* order (`(a, b)` with
 # `e : {a == b}`) and yields `{b == a}`, which is what running the chain
 # backwards needs.
-def R.Rat.nat.zero.add(+x: Nat)
+def Rat.nat.zero.add(+x: Nat)
   -> {Nat.add(0n, x) == x : Nat}:
   Equal.trans(Nat, Nat.add(0n, x), Nat.add(x, 0n), x,
     N.add_comm(0n, x), N.add_zero(x))
@@ -2575,7 +2575,7 @@ def R.Rat.nat.zero.add(+x: Nat)
 # factor of the surviving product and its collapse is a `cong` on `u => mul(A,u)`
 # -- `mul_zero` is stated `mul(x,0n) == 0n`, i.e. already in the orientation the
 # goal wants, so no `Equal.sym` is needed there.
-def R.Rat.nat.coord.first(+xp: Nat, +xn: Nat, +d: Nat, +C: Nat)
+def Rat.nat.coord.first(+xp: Nat, +xn: Nat, +d: Nat, +C: Nat)
   -> {Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), C) == Nat.mul(xp, Nat.mul(d, C)) : Nat}:
   Equal.trans(Nat,
     Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), C),
@@ -2590,7 +2590,7 @@ def R.Rat.nat.coord.first(+xp: Nat, +xn: Nat, +d: Nat, +C: Nat)
       Nat.mul(Nat.mul(xp, d), C),
       Nat.mul(xp, Nat.mul(d, C)),
       Equal.cong(Nat, Nat, u => Nat.mul(u, C), Nat.add(Nat.mul(xp, d), 0n),
-        Nat.mul(xp, d), R.Rat.nat.coord.term(Nat.mul(xp, d))),
+        Nat.mul(xp, d), Rat.nat.coord.term(Nat.mul(xp, d))),
       N.mul_assoc(xp, d, C)))
 
 # nat.coord.second: the second coordinate of a scaled difference pair, with the
@@ -2600,7 +2600,7 @@ def R.Rat.nat.coord.first(+xp: Nat, +xn: Nat, +d: Nat, +C: Nat)
 # via `Equal.sym`) under a `cong` on that product -- the mirror of
 # nat.coord.first's `mul`-right hole, and the same reason (`%` would leave the
 # zero in the endpoint it compares against).
-def R.Rat.nat.coord.second(+xp: Nat, +xn: Nat, +d: Nat, +C: Nat)
+def Rat.nat.coord.second(+xp: Nat, +xn: Nat, +d: Nat, +C: Nat)
   -> {Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), C) == Nat.mul(xn, Nat.mul(d, C)) : Nat}:
   Equal.trans(Nat,
     Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), C),
@@ -2612,7 +2612,7 @@ def R.Rat.nat.coord.second(+xp: Nat, +xn: Nat, +d: Nat, +C: Nat)
         Nat.mul(xn, d),
         Equal.cong(Nat, Nat, u => Nat.add(u, Nat.mul(xn, d)), Nat.mul(xp, 0n), 0n,
           N.mul_zero(xp)),
-        R.Rat.nat.zero.add(Nat.mul(xn, d)))),
+        Rat.nat.zero.add(Nat.mul(xn, d)))),
     N.mul_assoc(xn, d, C))
 
 # value.scaled.pos / .neg: the scaled value equation read at one of its two Nat
@@ -2624,7 +2624,7 @@ def R.Rat.nat.coord.second(+xp: Nat, +xn: Nat, +d: Nat, +C: Nat)
 # (which the normalisation does not touch) and under the outer `Int` equality.
 # Nothing here is specific to mul_distrib; a law whose value equation is scaled
 # and then read coordinate-wise needs exactly this pair.
-def R.Rat.value.scaled.pos(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Nat, +C: Nat,
+def Rat.value.scaled.pos(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Nat, +C: Nat,
             v: {I.Int{Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d))}
                 == I.Int{Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b))} : I.Int})
   -> {Nat.mul(xp, Nat.mul(d, C)) == Nat.mul(yp, Nat.mul(b, C)) : Nat}:
@@ -2633,7 +2633,7 @@ def R.Rat.value.scaled.pos(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: 
     Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), C),
     Nat.mul(yp, Nat.mul(b, C)),
     Equal.sym(Nat, Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), C),
-      Nat.mul(xp, Nat.mul(d, C)), R.Rat.nat.coord.first(xp, xn, d, C)),
+      Nat.mul(xp, Nat.mul(d, C)), Rat.nat.coord.first(xp, xn, d, C)),
     Equal.trans(Nat,
       Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), C),
       Nat.mul(Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), C),
@@ -2642,9 +2642,9 @@ def R.Rat.value.scaled.pos(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: 
         Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)),
         I.Int.eq.pos(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)),
           Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)), v)),
-      R.Rat.nat.coord.first(yp, yn, b, C)))
+      Rat.nat.coord.first(yp, yn, b, C)))
 
-def R.Rat.value.scaled.neg(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Nat, +C: Nat,
+def Rat.value.scaled.neg(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Nat, +C: Nat,
             v: {I.Int{Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d))}
                 == I.Int{Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b))} : I.Int})
   -> {Nat.mul(xn, Nat.mul(d, C)) == Nat.mul(yn, Nat.mul(b, C)) : Nat}:
@@ -2653,7 +2653,7 @@ def R.Rat.value.scaled.neg(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: 
     Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), C),
     Nat.mul(yn, Nat.mul(b, C)),
     Equal.sym(Nat, Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), C),
-      Nat.mul(xn, Nat.mul(d, C)), R.Rat.nat.coord.second(xp, xn, d, C)),
+      Nat.mul(xn, Nat.mul(d, C)), Rat.nat.coord.second(xp, xn, d, C)),
     Equal.trans(Nat,
       Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), C),
       Nat.mul(Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)), C),
@@ -2662,7 +2662,7 @@ def R.Rat.value.scaled.neg(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: 
         Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)),
         I.Int.eq.neg(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)),
           Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)), v)),
-      R.Rat.nat.coord.second(yp, yn, b, C)))
+      Rat.nat.coord.second(yp, yn, b, C)))
 
 # The Nat block for Rat.mul_distrib
 # =================================
@@ -2685,8 +2685,8 @@ def R.Rat.value.scaled.neg(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: 
 #
 # Rat.nat.distrib is oblivious to the one-sidedness of the coordinate pairs: it
 # needs only the three cross sums and the two gather facts as hypotheses.
-# R.Rat.nat.swap: (A + B) + (t + s) = (A + t) + (B + s)
-def R.Rat.nat.swap(+A: Nat, +B: Nat, +t: Nat, +s: Nat)
+# Rat.nat.swap: (A + B) + (t + s) = (A + t) + (B + s)
+def Rat.nat.swap(+A: Nat, +B: Nat, +t: Nat, +s: Nat)
   -> {Nat.add(Nat.add(A, B), Nat.add(t, s)) == Nat.add(Nat.add(A, t), Nat.add(B, s)) : Nat}:
   %Equal.sym(Nat, Nat.add(Nat.add(A, B), Nat.add(t, s)), Nat.add(A, Nat.add(B, Nat.add(t, s))),
       N.add_assoc(A, B, Nat.add(t, s)))
@@ -2701,24 +2701,24 @@ def R.Rat.nat.swap(+A: Nat, +B: Nat, +t: Nat, +s: Nat)
     : {_ == Nat.add(Nat.add(A, t), Nat.add(B, s)) : Nat}
   {==}
 
-# R.Rat.nat.add2: two equations with their own paddings combine.
-def R.Rat.nat.add2(+A: Nat, +t: Nat, +A2: Nat, +t2: Nat, +B: Nat, +s: Nat, +B2: Nat, +s2: Nat,
+# Rat.nat.add2: two equations with their own paddings combine.
+def Rat.nat.add2(+A: Nat, +t: Nat, +A2: Nat, +t2: Nat, +B: Nat, +s: Nat, +B2: Nat, +s2: Nat,
             e1: {Nat.add(A, t) == Nat.add(A2, t2) : Nat},
             e2: {Nat.add(B, s) == Nat.add(B2, s2) : Nat})
   -> {Nat.add(Nat.add(A, B), Nat.add(t, s)) == Nat.add(Nat.add(A2, B2), Nat.add(t2, s2)) : Nat}:
   %Equal.sym(Nat, Nat.add(Nat.add(A, B), Nat.add(t, s)), Nat.add(Nat.add(A, t), Nat.add(B, s)),
-      R.Rat.nat.swap(A, B, t, s))
+      Rat.nat.swap(A, B, t, s))
     : {_ == Nat.add(Nat.add(A2, B2), Nat.add(t2, s2)) : Nat}
   %Equal.sym(Nat, Nat.add(A, t), Nat.add(A2, t2), e1)
     : {Nat.add(_, Nat.add(B, s)) == Nat.add(Nat.add(A2, B2), Nat.add(t2, s2)) : Nat}
   %Equal.sym(Nat, Nat.add(B, s), Nat.add(B2, s2), e2)
     : {Nat.add(Nat.add(A2, t2), _) == Nat.add(Nat.add(A2, B2), Nat.add(t2, s2)) : Nat}
-  %R.Rat.nat.swap(A2, B2, t2, s2)
+  %Rat.nat.swap(A2, B2, t2, s2)
     : {_ == Nat.add(Nat.add(A2, B2), Nat.add(t2, s2)) : Nat}
   {==}
 
-# R.Rat.nat.scale.eq: multiply a sum equation by c, distributed on both sides.
-def R.Rat.nat.scale.eq(+c: Nat, +X: Nat, +Y: Nat, +X2: Nat, +Y2: Nat,
+# Rat.nat.scale.eq: multiply a sum equation by c, distributed on both sides.
+def Rat.nat.scale.eq(+c: Nat, +X: Nat, +Y: Nat, +X2: Nat, +Y2: Nat,
             e: {Nat.add(X, Y) == Nat.add(X2, Y2) : Nat})
   -> {Nat.add(Nat.mul(c, X), Nat.mul(c, Y)) == Nat.add(Nat.mul(c, X2), Nat.mul(c, Y2)) : Nat}:
   %Equal.sym(Nat, Nat.add(Nat.mul(c, X), Nat.mul(c, Y)), Nat.mul(c, Nat.add(X, Y)),
@@ -2730,8 +2730,8 @@ def R.Rat.nat.scale.eq(+c: Nat, +X: Nat, +Y: Nat, +X2: Nat, +Y2: Nat,
     : {_ == Nat.add(Nat.mul(c, X2), Nat.mul(c, Y2)) : Nat}
   {==}
 
-# R.Rat.nat.scale.eq.r: the right-scaled twin of R.Rat.nat.scale.eq.
-def R.Rat.nat.scale.eq.r(+c: Nat, +X: Nat, +Y: Nat, +X2: Nat, +Y2: Nat,
+# Rat.nat.scale.eq.r: the right-scaled twin of Rat.nat.scale.eq.
+def Rat.nat.scale.eq.r(+c: Nat, +X: Nat, +Y: Nat, +X2: Nat, +Y2: Nat,
             e: {Nat.add(X, Y) == Nat.add(X2, Y2) : Nat})
   -> {Nat.add(Nat.mul(X, c), Nat.mul(Y, c)) == Nat.add(Nat.mul(X2, c), Nat.mul(Y2, c)) : Nat}:
   %Equal.sym(Nat, Nat.add(Nat.mul(X, c), Nat.mul(Y, c)), Nat.mul(Nat.add(X, Y), c),
@@ -2743,8 +2743,8 @@ def R.Rat.nat.scale.eq.r(+c: Nat, +X: Nat, +Y: Nat, +X2: Nat, +Y2: Nat,
     : {_ == Nat.add(Nat.mul(X2, c), Nat.mul(Y2, c)) : Nat}
   {==}
 
-# R.Rat.nat.gather: a*(u*Zd + v*Yd) + b*(p*Zd + q*Yd) = (a*u + b*p)*Zd + (a*v + b*q)*Yd
-def R.Rat.nat.gather(+a: Nat, +b: Nat, +u: Nat, +v: Nat, +p: Nat, +q: Nat, +Zd: Nat, +Yd: Nat)
+# Rat.nat.gather: a*(u*Zd + v*Yd) + b*(p*Zd + q*Yd) = (a*u + b*p)*Zd + (a*v + b*q)*Yd
+def Rat.nat.gather(+a: Nat, +b: Nat, +u: Nat, +v: Nat, +p: Nat, +q: Nat, +Zd: Nat, +Yd: Nat)
   -> {Nat.add(Nat.mul(a, Nat.add(Nat.mul(u, Zd), Nat.mul(v, Yd))),
             Nat.mul(b, Nat.add(Nat.mul(p, Zd), Nat.mul(q, Yd))))
       == Nat.add(Nat.mul(Nat.add(Nat.mul(a, u), Nat.mul(b, p)), Zd),
@@ -2781,7 +2781,7 @@ def R.Rat.nat.gather(+a: Nat, +b: Nat, +u: Nat, +v: Nat, +p: Nat, +q: Nat, +Zd: 
                           Nat.add(Nat.mul(Nat.mul(b, p), Zd), Nat.mul(Nat.mul(b, q), Yd))),
       Nat.add(Nat.add(Nat.mul(Nat.mul(a, u), Zd), Nat.mul(Nat.mul(b, p), Zd)),
               Nat.add(Nat.mul(Nat.mul(a, v), Yd), Nat.mul(Nat.mul(b, q), Yd))),
-      R.Rat.nat.swap(Nat.mul(Nat.mul(a, u), Zd), Nat.mul(Nat.mul(a, v), Yd),
+      Rat.nat.swap(Nat.mul(Nat.mul(a, u), Zd), Nat.mul(Nat.mul(a, v), Yd),
              Nat.mul(Nat.mul(b, p), Zd), Nat.mul(Nat.mul(b, q), Yd)))
     : {_ == Nat.add(Nat.mul(Nat.add(Nat.mul(a, u), Nat.mul(b, p)), Zd),
                     Nat.mul(Nat.add(Nat.mul(a, v), Nat.mul(b, q)), Yd)) : Nat}
@@ -2799,11 +2799,11 @@ def R.Rat.nat.gather(+a: Nat, +b: Nat, +u: Nat, +v: Nat, +p: Nat, +q: Nat, +Zd: 
                   Nat.mul(Nat.add(Nat.mul(a, v), Nat.mul(b, q)), Yd)) : Nat}
   {==}
 
-# R.Rat.nat.distrib: (T) -- the Nat identity at the heart of Rat.mul_distrib:
+# Rat.nat.distrib: (T) -- the Nat identity at the heart of Rat.mul_distrib:
 #   (a1*P2 + b1*Q2) + Q1*Zd + Q3*Yd == P1*Zd + P3*Yd + a1*Q2 + b1*P2
 # from the three cross sums of the pairs and the two "gather" facts that put
 # the multipliers a1, b1 next to the second pair's coordinates.
-def R.Rat.nat.distrib(+U1: Nat, +V1: Nat, +U2: Nat, +V2: Nat, +U3: Nat, +V3: Nat,
+def Rat.nat.distrib(+U1: Nat, +V1: Nat, +U2: Nat, +V2: Nat, +U3: Nat, +V3: Nat,
            +P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat, +P3: Nat, +Q3: Nat,
            +a1: Nat, +b1: Nat, +Zd: Nat, +Yd: Nat,
            e1: {Nat.add(P1, V1) == Nat.add(Q1, U1) : Nat},
@@ -2819,9 +2819,9 @@ def R.Rat.nat.distrib(+U1: Nat, +V1: Nat, +U2: Nat, +V2: Nat, +U3: Nat, +V3: Nat
   +YW = Nat.add(Nat.mul(Q1, Zd), Nat.mul(Q3, Yd))
   +VW = Nat.add(Nat.mul(V1, Zd), Nat.mul(V3, Yd))
   +UW = Nat.add(Nat.mul(U1, Zd), Nat.mul(U3, Yd))
-  +f2a = R.Rat.nat.scale.eq(a1, P2, V2, Q2, U2, e2)
-  +f2b = R.Rat.nat.scale.eq(b1, P2, V2, Q2, U2, e2)
-  +hx = R.Rat.nat.add2(Nat.mul(a1, P2), Nat.mul(a1, V2), Nat.mul(a1, Q2), Nat.mul(a1, U2),
+  +f2a = Rat.nat.scale.eq(a1, P2, V2, Q2, U2, e2)
+  +f2b = Rat.nat.scale.eq(b1, P2, V2, Q2, U2, e2)
+  +hx = Rat.nat.add2(Nat.mul(a1, P2), Nat.mul(a1, V2), Nat.mul(a1, Q2), Nat.mul(a1, U2),
                Nat.mul(b1, Q2), Nat.mul(b1, U2), Nat.mul(b1, P2), Nat.mul(b1, V2),
                f2a, Equal.sym(Nat, Nat.add(Nat.mul(b1, P2), Nat.mul(b1, V2)),
                                    Nat.add(Nat.mul(b1, Q2), Nat.mul(b1, U2)), f2b))
@@ -2837,9 +2837,9 @@ def R.Rat.nat.distrib(+U1: Nat, +V1: Nat, +U2: Nat, +V2: Nat, +U3: Nat, +V3: Nat
         Nat.add(XA, Nat.add(Nat.mul(a1, U2), Nat.mul(b1, V2))),
         Nat.add(XA, UW),
         hx, ey))
-  +h2 = R.Rat.nat.add2(Nat.mul(P1, Zd), Nat.mul(V1, Zd), Nat.mul(Q1, Zd), Nat.mul(U1, Zd),
+  +h2 = Rat.nat.add2(Nat.mul(P1, Zd), Nat.mul(V1, Zd), Nat.mul(Q1, Zd), Nat.mul(U1, Zd),
                Nat.mul(P3, Yd), Nat.mul(V3, Yd), Nat.mul(Q3, Yd), Nat.mul(U3, Yd),
-               R.Rat.nat.scale.eq.r(Zd, P1, V1, Q1, U1, e1), R.Rat.nat.scale.eq.r(Yd, P3, V3, Q3, U3, e3))
+               Rat.nat.scale.eq.r(Zd, P1, V1, Q1, U1, e1), Rat.nat.scale.eq.r(Yd, P3, V3, Q3, U3, e3))
   +c = N.cross_add(X, XA, YB, YW, VW, UW, h1, h2)
   %Equal.sym(Nat, Nat.add(Nat.add(X, Nat.mul(Q1, Zd)), Nat.mul(Q3, Yd)), Nat.add(X, YW),
       N.add_assoc(X, Nat.mul(Q1, Zd), Nat.mul(Q3, Yd)))
@@ -2848,7 +2848,7 @@ def R.Rat.nat.distrib(+U1: Nat, +V1: Nat, +U2: Nat, +V2: Nat, +U3: Nat, +V3: Nat
     : {_ == Nat.add(Nat.add(YB, Nat.mul(a1, Q2)), Nat.mul(b1, P2)) : Nat}
   %Equal.sym(Nat, Nat.add(XA, YB), Nat.add(Nat.add(Nat.mul(a1, Q2), Nat.mul(P1, Zd)),
                                           Nat.add(Nat.mul(b1, P2), Nat.mul(P3, Yd))),
-      R.Rat.nat.swap(Nat.mul(a1, Q2), Nat.mul(b1, P2), Nat.mul(P1, Zd), Nat.mul(P3, Yd)))
+      Rat.nat.swap(Nat.mul(a1, Q2), Nat.mul(b1, P2), Nat.mul(P1, Zd), Nat.mul(P3, Yd)))
     : {_ == Nat.add(Nat.add(YB, Nat.mul(a1, Q2)), Nat.mul(b1, P2)) : Nat}
   %Equal.sym(Nat, Nat.add(Nat.mul(a1, Q2), Nat.mul(P1, Zd)), Nat.add(Nat.mul(P1, Zd), Nat.mul(a1, Q2)),
       N.add_comm(Nat.mul(a1, Q2), Nat.mul(P1, Zd)))
@@ -2860,15 +2860,15 @@ def R.Rat.nat.distrib(+U1: Nat, +V1: Nat, +U2: Nat, +V2: Nat, +U3: Nat, +V3: Nat
        == Nat.add(Nat.add(YB, Nat.mul(a1, Q2)), Nat.mul(b1, P2)) : Nat}
   %Equal.sym(Nat, Nat.add(Nat.add(Nat.mul(P1, Zd), Nat.mul(a1, Q2)),
                           Nat.add(Nat.mul(P3, Yd), Nat.mul(b1, P2))), Nat.add(YB, Nat.add(Nat.mul(a1, Q2), Nat.mul(b1, P2))),
-      R.Rat.nat.swap(Nat.mul(P1, Zd), Nat.mul(a1, Q2), Nat.mul(P3, Yd), Nat.mul(b1, P2)))
+      Rat.nat.swap(Nat.mul(P1, Zd), Nat.mul(a1, Q2), Nat.mul(P3, Yd), Nat.mul(b1, P2)))
     : {_ == Nat.add(Nat.add(YB, Nat.mul(a1, Q2)), Nat.mul(b1, P2)) : Nat}
   %N.add_assoc(YB, Nat.mul(a1, Q2), Nat.mul(b1, P2))
     : {_ == Nat.add(Nat.add(YB, Nat.mul(a1, Q2)), Nat.mul(b1, P2)) : Nat}
   {==}
 
-# R.Rat.nat.pair.scale: (c1*x1 + c2*x2)*(d2*Xd) = (c1*y1 + c2*y2)*(Xd*m2), from the two
+# Rat.nat.pair.scale: (c1*x1 + c2*x2)*(d2*Xd) = (c1*y1 + c2*y2)*(Xd*m2), from the two
 # scaled coordinates x1*(d2*Xd) = y1*(m2*Xd), x2*(d2*Xd) = y2*(m2*Xd).
-def R.Rat.nat.pair.scale(+c1: Nat, +c2: Nat, +x1: Nat, +x2: Nat, +y1: Nat, +y2: Nat,
+def Rat.nat.pair.scale(+c1: Nat, +c2: Nat, +x1: Nat, +x2: Nat, +y1: Nat, +y2: Nat,
            +m2: Nat, +Xd: Nat, +d2: Nat,
            +e1: {Nat.mul(x1, Nat.mul(d2, Xd)) == Nat.mul(y1, Nat.mul(m2, Xd)) : Nat},
            +e2: {Nat.mul(x2, Nat.mul(d2, Xd)) == Nat.mul(y2, Nat.mul(m2, Xd)) : Nat})
@@ -2909,8 +2909,8 @@ def R.Rat.nat.pair.scale(+c1: Nat, +c2: Nat, +x1: Nat, +x2: Nat, +y1: Nat, +y2: 
     : {_ == Nat.mul(Nat.add(Nat.mul(c1, y1), Nat.mul(c2, y2)), Nat.mul(Xd, m2)) : Nat}
   {==}
 
-# R.Rat.nat.cross1: mk.eqv.val's hypothesis for LHS against U_L.
-def R.Rat.nat.cross1(+a1: Nat, +b1: Nat, +q2p: Nat, +q2n: Nat, +P2: Nat, +Q2: Nat,
+# Rat.nat.cross1: mk.eqv.val's hypothesis for LHS against U_L.
+def Rat.nat.cross1(+a1: Nat, +b1: Nat, +q2p: Nat, +q2n: Nat, +P2: Nat, +Q2: Nat,
            +m2: Nat, +Xd: Nat, +d2: Nat,
            +e2p: {Nat.mul(q2p, Nat.mul(d2, Xd)) == Nat.mul(P2, Nat.mul(m2, Xd)) : Nat},
            +e2n: {Nat.mul(q2n, Nat.mul(d2, Xd)) == Nat.mul(Q2, Nat.mul(m2, Xd)) : Nat})
@@ -2918,8 +2918,8 @@ def R.Rat.nat.cross1(+a1: Nat, +b1: Nat, +q2p: Nat, +q2n: Nat, +P2: Nat, +Q2: Na
              Nat.mul(Nat.add(Nat.mul(a1, Q2), Nat.mul(b1, P2)), Nat.mul(Xd, m2)))
       == Nat.add(Nat.mul(Nat.add(Nat.mul(a1, P2), Nat.mul(b1, Q2)), Nat.mul(Xd, m2)),
                  Nat.mul(Nat.add(Nat.mul(a1, q2n), Nat.mul(b1, q2p)), Nat.mul(d2, Xd))) : Nat}:
-  +hT1 = R.Rat.nat.pair.scale(a1, b1, q2p, q2n, P2, Q2, m2, Xd, d2, e2p, e2n)
-  +hT4 = R.Rat.nat.pair.scale(a1, b1, q2n, q2p, Q2, P2, m2, Xd, d2, e2n, e2p)
+  +hT1 = Rat.nat.pair.scale(a1, b1, q2p, q2n, P2, Q2, m2, Xd, d2, e2p, e2n)
+  +hT4 = Rat.nat.pair.scale(a1, b1, q2n, q2p, Q2, P2, m2, Xd, d2, e2n, e2p)
   Equal.trans(Nat,
     Nat.add(Nat.mul(Nat.add(Nat.mul(a1, q2p), Nat.mul(b1, q2n)), Nat.mul(d2, Xd)),
             Nat.mul(Nat.add(Nat.mul(a1, Q2), Nat.mul(b1, P2)), Nat.mul(Xd, m2))),
@@ -2941,8 +2941,8 @@ def R.Rat.nat.cross1(+a1: Nat, +b1: Nat, +q2p: Nat, +q2n: Nat, +P2: Nat, +Q2: Na
         Nat.mul(Nat.add(Nat.mul(a1, q2n), Nat.mul(b1, q2p)), Nat.mul(d2, Xd)),
         Nat.mul(Nat.add(Nat.mul(a1, Q2), Nat.mul(b1, P2)), Nat.mul(Xd, m2)), hT4)))
 
-# R.Rat.nat.dist4: ((A + B) + C) + D, scaled by F, distributed into its four products.
-def R.Rat.nat.dist4(+A: Nat, +B: Nat, +C: Nat, +D: Nat, +F: Nat)
+# Rat.nat.dist4: ((A + B) + C) + D, scaled by F, distributed into its four products.
+def Rat.nat.dist4(+A: Nat, +B: Nat, +C: Nat, +D: Nat, +F: Nat)
   -> {Nat.mul(Nat.add(Nat.add(Nat.add(A, B), C), D), F)
       == Nat.add(Nat.add(Nat.add(Nat.mul(A, F), Nat.mul(B, F)), Nat.mul(C, F)), Nat.mul(D, F)) : Nat}:
   %N.mul_add_left(Nat.add(Nat.add(A, B), C), D, F)
@@ -2955,9 +2955,9 @@ def R.Rat.nat.dist4(+A: Nat, +B: Nat, +C: Nat, +D: Nat, +F: Nat)
        == Nat.add(Nat.add(Nat.add(Nat.mul(A, F), Nat.mul(B, F)), Nat.mul(C, F)), Nat.mul(D, F)) : Nat}
   {==}
 
-# R.Rat.nat.align.zd: the Z-paired coordinate's scaled product, re-associated from the
+# Rat.nat.align.zd: the Z-paired coordinate's scaled product, re-associated from the
 # (T)-side grouping to the (U_L, U_R) grouping.  Pure comm/assoc.
-def R.Rat.nat.align.zd(+x: Nat, +Xd: Nat, +Yd: Nat, +Zd: Nat)
+def Rat.nat.align.zd(+x: Nat, +Xd: Nat, +Yd: Nat, +Zd: Nat)
   -> {Nat.mul(Nat.mul(x, Zd), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))
       == Nat.mul(Nat.mul(x, Nat.mul(Xd, Zd)), Nat.mul(Nat.mul(Yd, Zd), Xd)) : Nat}:
   %Equal.sym(Nat, Nat.mul(Nat.mul(x, Zd), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))),
@@ -2989,8 +2989,8 @@ def R.Rat.nat.align.zd(+x: Nat, +Xd: Nat, +Yd: Nat, +Zd: Nat)
     : {_ == Nat.mul(Nat.mul(x, Nat.mul(Xd, Zd)), Nat.mul(Nat.mul(Yd, Zd), Xd)) : Nat}
   {==}
 
-# R.Rat.nat.align.yd: the Y-paired coordinate's twin.
-def R.Rat.nat.align.yd(+x: Nat, +Xd: Nat, +Yd: Nat, +Zd: Nat)
+# Rat.nat.align.yd: the Y-paired coordinate's twin.
+def Rat.nat.align.yd(+x: Nat, +Xd: Nat, +Yd: Nat, +Zd: Nat)
   -> {Nat.mul(Nat.mul(x, Yd), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))
       == Nat.mul(Nat.mul(x, Nat.mul(Xd, Yd)), Nat.mul(Nat.mul(Yd, Zd), Xd)) : Nat}:
   %Equal.sym(Nat, Nat.mul(Nat.mul(x, Yd), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))),
@@ -3019,9 +3019,9 @@ def R.Rat.nat.align.yd(+x: Nat, +Xd: Nat, +Yd: Nat, +Zd: Nat)
     : {_ == Nat.mul(Nat.mul(x, Nat.mul(Xd, Yd)), Nat.mul(Nat.mul(Yd, Zd), Xd)) : Nat}
   {==}
 
-# R.Rat.nat.tl.scaled: the (T) left side, scaled by d1*d3, rewritten into the
+# Rat.nat.tl.scaled: the (T) left side, scaled by d1*d3, rewritten into the
 # (U_L, U_R) grouping: ULp*(d1*d3) + URn*(d2*Xd).
-def R.Rat.nat.tl.scaled(+a1: Nat, +b1: Nat, +P2: Nat, +Q2: Nat, +Q1: Nat, +Q3: Nat,
+def Rat.nat.tl.scaled(+a1: Nat, +b1: Nat, +P2: Nat, +Q2: Nat, +Q1: Nat, +Q3: Nat,
            +Xd: Nat, +Yd: Nat, +Zd: Nat)
   -> {Nat.mul(Nat.add(Nat.add(Nat.add(Nat.mul(a1, P2), Nat.mul(b1, Q2)), Nat.mul(Q1, Zd)), Nat.mul(Q3, Yd)),
             Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))
@@ -3035,14 +3035,14 @@ def R.Rat.nat.tl.scaled(+a1: Nat, +b1: Nat, +P2: Nat, +Q2: Nat, +Q1: Nat, +Q3: N
                              Nat.mul(Nat.mul(b1, Q2), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))),
                        Nat.mul(Nat.mul(Q1, Zd), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))),
               Nat.mul(Nat.mul(Q3, Yd), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))),
-      R.Rat.nat.dist4(Nat.mul(a1, P2), Nat.mul(b1, Q2), Nat.mul(Q1, Zd), Nat.mul(Q3, Yd),
+      Rat.nat.dist4(Nat.mul(a1, P2), Nat.mul(b1, Q2), Nat.mul(Q1, Zd), Nat.mul(Q3, Yd),
         Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))))
     : {_ == Nat.add(Nat.mul(Nat.add(Nat.mul(a1, P2), Nat.mul(b1, Q2)), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))),
                     Nat.mul(Nat.add(Nat.mul(Q1, Nat.mul(Xd, Zd)), Nat.mul(Q3, Nat.mul(Xd, Yd))),
                             Nat.mul(Nat.mul(Yd, Zd), Xd))) : Nat}
   %Equal.sym(Nat, Nat.mul(Nat.mul(Q1, Zd), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))),
       Nat.mul(Nat.mul(Q1, Nat.mul(Xd, Zd)), Nat.mul(Nat.mul(Yd, Zd), Xd)),
-      R.Rat.nat.align.zd(Q1, Xd, Yd, Zd))
+      Rat.nat.align.zd(Q1, Xd, Yd, Zd))
     : {Nat.add(Nat.add(Nat.add(Nat.mul(Nat.mul(a1, P2), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))),
                                Nat.mul(Nat.mul(b1, Q2), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))),
                      _),
@@ -3052,7 +3052,7 @@ def R.Rat.nat.tl.scaled(+a1: Nat, +b1: Nat, +P2: Nat, +Q2: Nat, +Q1: Nat, +Q3: N
                           Nat.mul(Nat.mul(Yd, Zd), Xd))) : Nat}
   %Equal.sym(Nat, Nat.mul(Nat.mul(Q3, Yd), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))),
       Nat.mul(Nat.mul(Q3, Nat.mul(Xd, Yd)), Nat.mul(Nat.mul(Yd, Zd), Xd)),
-      R.Rat.nat.align.yd(Q3, Xd, Yd, Zd))
+      Rat.nat.align.yd(Q3, Xd, Yd, Zd))
     : {Nat.add(Nat.add(Nat.add(Nat.mul(Nat.mul(a1, P2), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))),
                                Nat.mul(Nat.mul(b1, Q2), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))),
                      Nat.mul(Nat.mul(Q1, Nat.mul(Xd, Zd)), Nat.mul(Nat.mul(Yd, Zd), Xd))),
@@ -3096,8 +3096,8 @@ def R.Rat.nat.tl.scaled(+a1: Nat, +b1: Nat, +P2: Nat, +Q2: Nat, +Q1: Nat, +Q3: N
                           Nat.mul(Nat.mul(Yd, Zd), Xd))) : Nat}
   {==}
 
-# R.Rat.nat.tr.scaled: the (T) right side, scaled the same way: URp*(d2*Xd) + ULn*(d1*d3).
-def R.Rat.nat.tr.scaled(+a1: Nat, +b1: Nat, +P1: Nat, +P2: Nat, +P3: Nat, +Q1: Nat, +Q2: Nat, +Q3: Nat,
+# Rat.nat.tr.scaled: the (T) right side, scaled the same way: URp*(d2*Xd) + ULn*(d1*d3).
+def Rat.nat.tr.scaled(+a1: Nat, +b1: Nat, +P1: Nat, +P2: Nat, +P3: Nat, +Q1: Nat, +Q2: Nat, +Q3: Nat,
            +Xd: Nat, +Yd: Nat, +Zd: Nat)
   -> {Nat.mul(Nat.add(Nat.add(Nat.add(Nat.mul(P1, Zd), Nat.mul(P3, Yd)), Nat.mul(a1, Q2)), Nat.mul(b1, P2)),
             Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))
@@ -3113,7 +3113,7 @@ def R.Rat.nat.tr.scaled(+a1: Nat, +b1: Nat, +P1: Nat, +P2: Nat, +P3: Nat, +Q1: N
                              Nat.mul(Nat.mul(P3, Yd), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))),
                        Nat.mul(Nat.mul(a1, Q2), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))),
               Nat.mul(Nat.mul(b1, P2), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))),
-      R.Rat.nat.dist4(Nat.mul(P1, Zd), Nat.mul(P3, Yd), Nat.mul(a1, Q2), Nat.mul(b1, P2),
+      Rat.nat.dist4(Nat.mul(P1, Zd), Nat.mul(P3, Yd), Nat.mul(a1, Q2), Nat.mul(b1, P2),
         Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))))
     : {_ == Nat.add(Nat.mul(Nat.add(Nat.mul(P1, Nat.mul(Xd, Zd)), Nat.mul(P3, Nat.mul(Xd, Yd))),
                             Nat.mul(Nat.mul(Yd, Zd), Xd)),
@@ -3121,7 +3121,7 @@ def R.Rat.nat.tr.scaled(+a1: Nat, +b1: Nat, +P1: Nat, +P2: Nat, +P3: Nat, +Q1: N
                             Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))) : Nat}
   %Equal.sym(Nat, Nat.mul(Nat.mul(P1, Zd), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))),
       Nat.mul(Nat.mul(P1, Nat.mul(Xd, Zd)), Nat.mul(Nat.mul(Yd, Zd), Xd)),
-      R.Rat.nat.align.zd(P1, Xd, Yd, Zd))
+      Rat.nat.align.zd(P1, Xd, Yd, Zd))
     : {Nat.add(Nat.add(Nat.add(_, Nat.mul(Nat.mul(P3, Yd), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))),
                        Nat.mul(Nat.mul(a1, Q2), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))),
               Nat.mul(Nat.mul(b1, P2), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))))
@@ -3131,7 +3131,7 @@ def R.Rat.nat.tr.scaled(+a1: Nat, +b1: Nat, +P1: Nat, +P2: Nat, +P3: Nat, +Q1: N
                           Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))) : Nat}
   %Equal.sym(Nat, Nat.mul(Nat.mul(P3, Yd), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))),
       Nat.mul(Nat.mul(P3, Nat.mul(Xd, Yd)), Nat.mul(Nat.mul(Yd, Zd), Xd)),
-      R.Rat.nat.align.yd(P3, Xd, Yd, Zd))
+      Rat.nat.align.yd(P3, Xd, Yd, Zd))
     : {Nat.add(Nat.add(Nat.add(Nat.mul(Nat.mul(P1, Nat.mul(Xd, Zd)), Nat.mul(Nat.mul(Yd, Zd), Xd)), _),
                        Nat.mul(Nat.mul(a1, Q2), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))),
               Nat.mul(Nat.mul(b1, P2), Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))))
@@ -3178,10 +3178,10 @@ def R.Rat.nat.tr.scaled(+a1: Nat, +b1: Nat, +P1: Nat, +P2: Nat, +P3: Nat, +Q1: N
                           Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd)))) : Nat}
   {==}
 
-# R.Rat.nat.cross2: mk.eqv.val's hypothesis for U_L against U_R, from (T) scaled by
+# Rat.nat.cross2: mk.eqv.val's hypothesis for U_L against U_R, from (T) scaled by
 # d1*d3 (the U_R denominator).  No value equation: the two sides are pure ring
 # reassociations of (T)'s two sides.
-def R.Rat.nat.cross2(+a1: Nat, +b1: Nat, +P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat, +P3: Nat, +Q3: Nat,
+def Rat.nat.cross2(+a1: Nat, +b1: Nat, +P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat, +P3: Nat, +Q3: Nat,
            +Xd: Nat, +Yd: Nat, +Zd: Nat,
            t: {Nat.add(Nat.add(Nat.add(Nat.mul(a1, P2), Nat.mul(b1, Q2)), Nat.mul(Q1, Zd)), Nat.mul(Q3, Yd))
                == Nat.add(Nat.add(Nat.add(Nat.mul(P1, Zd), Nat.mul(P3, Yd)), Nat.mul(a1, Q2)), Nat.mul(b1, P2)) : Nat})
@@ -3195,8 +3195,8 @@ def R.Rat.nat.cross2(+a1: Nat, +b1: Nat, +P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat,
   +tL = Nat.add(Nat.add(Nat.add(Nat.mul(a1, P2), Nat.mul(b1, Q2)), Nat.mul(Q1, Zd)), Nat.mul(Q3, Yd))
   +tR = Nat.add(Nat.add(Nat.add(Nat.mul(P1, Zd), Nat.mul(P3, Yd)), Nat.mul(a1, Q2)), Nat.mul(b1, P2))
   +dRu = Nat.mul(Nat.mul(Xd, Yd), Nat.mul(Xd, Zd))
-  +tl = R.Rat.nat.tl.scaled(a1, b1, P2, Q2, Q1, Q3, Xd, Yd, Zd)
-  +tr = R.Rat.nat.tr.scaled(a1, b1, P1, P2, P3, Q1, Q2, Q3, Xd, Yd, Zd)
+  +tl = Rat.nat.tl.scaled(a1, b1, P2, Q2, Q1, Q3, Xd, Yd, Zd)
+  +tr = Rat.nat.tr.scaled(a1, b1, P1, P2, P3, Q1, Q2, Q3, Xd, Yd, Zd)
   Equal.trans(Nat,
     Nat.add(Nat.mul(Nat.add(Nat.mul(a1, P2), Nat.mul(b1, Q2)), dRu),
             Nat.mul(Nat.add(Nat.mul(Q1, Nat.mul(Xd, Zd)), Nat.mul(Q3, Nat.mul(Xd, Yd))),
@@ -3228,7 +3228,7 @@ def R.Rat.nat.cross2(+a1: Nat, +b1: Nat, +P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat,
 #            clean coordinates (U2,V2) -- one Int.mul_scale per summand under
 #            one cong on mk's argument -- and carried through the outer mul;
 #   v2       Rat.mk.value at M2, read at both coordinates and scaled by Xd:
-#            the two equations R.Rat.nat.cross1 consumes;
+#            the two equations Rat.nat.cross1 consumes;
 #   val1     Rat.mk.eqv.val at the cross sum, the left-hand side against U_L;
 #   T        the pure Nat identity (T) -- three Nat.sub_cross instances plus the
 #            two gather facts (the multipliers next to the inner pair);
@@ -3306,9 +3306,9 @@ def R.Rat.mul_distrib(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
     R.Rat.add(R.Rat{yn, Yd}, R.Rat{zn, Zd}), M2, eYZ)
   +pd2 = N.mul_pos(Yd, Zd, {==}, {==})
   +v2 = R.Rat.mk.value(Nat.cmp(U2, V2), U2, V2, d2, {==}, pd2)
-  +e2p = R.Rat.value.scaled.pos(q2p, q2n, P2, Q2, d2, m2, Xd, v2)
-  +e2n = R.Rat.value.scaled.neg(q2p, q2n, P2, Q2, d2, m2, Xd, v2)
-  +cross1f = R.Rat.nat.cross1(a1, b1, q2p, q2n, P2, Q2, m2, Xd, d2, e2p, e2n)
+  +e2p = Rat.value.scaled.pos(q2p, q2n, P2, Q2, d2, m2, Xd, v2)
+  +e2n = Rat.value.scaled.neg(q2p, q2n, P2, Q2, d2, m2, Xd, v2)
+  +cross1f = Rat.nat.cross1(a1, b1, q2p, q2n, P2, Q2, m2, Xd, d2, e2p, e2n)
   +pq2 = N.div_pos_wit(G2, Nat.add(dp3, Nat.mul(dp2, Nat.add(1n, dp3))),
     Pair.snd(N.Nat.divides(G2, R.Rat.mag(U2, V2)), N.Nat.divides(G2, d2),
              N.gcd_divides(R.Rat.mag(U2, V2), d2)))
@@ -3318,11 +3318,11 @@ def R.Rat.mul_distrib(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
   +ee1 = N.sub_cross(Nat.cmp(U1, V1), U1, V1, {==})
   +ee2 = N.sub_cross(Nat.cmp(U2, V2), U2, V2, {==})
   +ee3 = N.sub_cross(Nat.cmp(U3, V3), U3, V3, {==})
-  +ea = R.Rat.nat.gather(a1, b1, a2, a3, b2, b3, Zd, Yd)
-  +eb = R.Rat.nat.gather(a1, b1, b2, b3, a2, a3, Zd, Yd)
-  +T = R.Rat.nat.distrib(U1, V1, U2, V2, U3, V3, P1, Q1, P2, Q2, P3, Q3, a1, b1, Zd, Yd,
+  +ea = Rat.nat.gather(a1, b1, a2, a3, b2, b3, Zd, Yd)
+  +eb = Rat.nat.gather(a1, b1, b2, b3, a2, a3, Zd, Yd)
+  +T = Rat.nat.distrib(U1, V1, U2, V2, U3, V3, P1, Q1, P2, Q2, P3, Q3, a1, b1, Zd, Yd,
     ee1, ee2, ee3, ea, eb)
-  +cross2f = R.Rat.nat.cross2(a1, b1, P1, Q1, P2, Q2, P3, Q3, Xd, Yd, Zd, T)
+  +cross2f = Rat.nat.cross2(a1, b1, P1, Q1, P2, Q2, P3, Q3, Xd, Yd, Zd, T)
   +pd1 = N.mul_pos(Xd, Yd, {==}, {==})
   +pd3 = N.mul_pos(Xd, Zd, {==}, {==})
   +posRu = N.mul_pos(d1, d3, pd1, pd3)
