@@ -594,3 +594,37 @@ law Rat.mul_assoc:
             Rat{Rat.num(np3, nn3), 1n+dp3})
    == Rat.mul(Rat{Rat.num(np1, nn1), 1n+dp1},
               Rat.mul(Rat{Rat.num(np2, nn2), 1n+dp2}, Rat{Rat.num(np3, nn3), 1n+dp3})) : Rat}
+
+# Rat.neg_neg
+# ===========
+#
+# -(-x) = x, for a *canonical* x. This is the first law whose argument is
+# another operation's output, and the canonicality hypothesis is not a
+# convenience here -- it is required for truth, because == on Rat is
+# structural and negation of a non-canonical term comes back mk-headed with
+# div/gcd fields. np = 4, nn = 0, dp = 1 is a witness, evaluated:
+#
+#   neg(neg(Rat{Rat.num(4,0), 2}))   = Rat{Int{2,0}, 1}
+#   Rat{Rat.num(4,0), 2}             = Rat{Int{4,0}, 2}
+#
+# The hypothesis is coprimality of the value -- Rat.mk.fixed's own hypothesis,
+# which the identity laws' `fx` also carries -- and what it buys is that the
+# value *and its negation* are fixed points of mk: the negation of
+# Rat{Rat.num(np,nn), 1+dp} is mk of the swapped pair, whose gcd is the same
+# gcd because Rat.mag is symmetric, so mk.fixed applies to it as well and the
+# two mk-headed intermediates disappear.
+#
+# The fill is therefore two mk.fixed calls (one for the intermediate, one for
+# the goal's own value) around one congruence, plus the add_comm that moves the
+# swapped magnitude back to the stated one. No value equation and no case
+# split: neg_neg never needs the cross products the *additive* and
+# *multiplicative* composing laws do, because negation does not change the
+# denominator.
+law Rat.neg_neg:
+  for +c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  for +g1: {N.Nat.gcd(Rat.mag(np, nn), 1n+dp) == 1n : Nat}
+  {Rat.neg(Rat.neg(Rat{Rat.num(np, nn), 1n+dp})) == Rat{Rat.num(np, nn), 1n+dp} : Rat}

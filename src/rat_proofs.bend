@@ -1160,3 +1160,36 @@ def R.Rat.mul_assoc(c1, np1, nn1, e1, dp1, c2, np2, nn2, e2, dp2, c3, np3, nn3, 
   +w = I.Int.scale.cancel(I.Int.mul(I.Int.mul(A, zn), I.Int.unit(Nat.mul(xd, b))),
     I.Int.mul(I.Int.mul(xn, B), I.Int.unit(Nat.mul(a, zd))), dp2, cr)
   R.Rat.mk.eqv.raw(I.Int.mul(A, zn), Nat.mul(a, zd), I.Int.mul(xn, B), Nat.mul(xd, b), p1, p2, w)
+
+# Rat.neg_neg: neg on a constructor is mk of the swapped numerator, so the inner
+# negation is M1 = mk(Int.neg(Rat.num(np,nn)), 1+dp), i.e. mk(Rat.num(nn,np),
+# 1+dp) -- and that is one mk.fixed away from the canonical value
+# Rat{Rat.num(nn,np), 1+dp}, because mag(nn,np) is mag(np,nn) with its two
+# summands exchanged (add_comm), so the same gcd is 1. Negating that value gives
+# mk(Rat.num(np,nn), 1+dp) back, and the second mk.fixed returns the original
+# value. Both mk-headed intermediates are definitional; only the mag symmetry
+# needs a proof, and it is the same one mk.fixed's own fill makes.
+def R.Rat.neg_neg(c, np, nn, dp, e, g1):
+  +d = Nat.add(1n, dp)
+  +g1s = Equal.trans(Nat,
+    N.Nat.gcd(R.Rat.mag(nn, np), d),
+    N.Nat.gcd(R.Rat.mag(np, nn), d),
+    1n,
+    Equal.cong(Nat, Nat, u => N.Nat.gcd(u, d),
+      R.Rat.mag(nn, np), R.Rat.mag(np, nn),
+      N.add_comm(Nat.sub(nn, np), Nat.sub(np, nn))),
+    g1)
+  Equal.trans(R.Rat,
+    R.Rat.neg(R.Rat.neg(R.Rat{R.Rat.num(np, nn), d})),
+    R.Rat.neg(R.Rat{R.Rat.num(nn, np), d}),
+    R.Rat{R.Rat.num(np, nn), d},
+    Equal.cong(R.Rat, R.Rat, u => R.Rat.neg(u),
+      R.Rat.mk(I.Int.neg(R.Rat.num(np, nn)), d),
+      R.Rat{R.Rat.num(nn, np), d},
+      R.Rat.mk.fixed(Nat.cmp(nn, np), nn, np, dp, {==}, g1s)),
+    Equal.trans(R.Rat,
+      R.Rat.neg(R.Rat{R.Rat.num(nn, np), d}),
+      R.Rat.mk(R.Rat.num(np, nn), d),
+      R.Rat{R.Rat.num(np, nn), d},
+      {==},
+      R.Rat.mk.fixed(c, np, nn, dp, e, g1)))
