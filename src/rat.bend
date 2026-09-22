@@ -452,6 +452,52 @@ law Rat.mk.value:
   {I.Int.mul(Rat.numof(Rat.mk(I.Int{np, nn}, d)), I.Int{d, 0n})
    == I.Int.mul(Rat.num(np, nn), I.Int{Rat.denof(Rat.mk(I.Int{np, nn}, d)), 0n}) : I.Int}
 
+# Rat.mk_idem: mk is the identity on its own output -- the bridge every law
+# whose operation argument is *another operation's output* crosses.
+#
+# An outer operation destructures what the inner one produced, so the numerator
+# it writes is Rat.numof(M) -- div/gcd terms -- while the raw statements
+# (Rat.num.mul, Rat.mk.value) and the composing laws are written over the
+# difference pair the value came from. This law says the two agree: mk of the
+# projection is M again, i.e. normalizing a normalized fraction changes
+# nothing, which is what lets an outer operation's arguments meet the raw
+# spelling.
+#
+# Two hypotheses, neither of them canonicality and neither of them about
+# coprimality:
+#
+#   - pd: d is positive. Exactly Rat.mk.value's hypothesis, for the same reason
+#     -- d = 0 is the junk case no law speaks about (the denominator is a
+#     general d rather than the 1 + dp spelling for the same reason it is in
+#     mk.value: callers hold products of positive denominators).
+#   - pq: the *output's* denominator is positive. This is the whole reason the
+#     law is a bridge rather than a computation. denof(M) is div(d, gcd(...)),
+#     and the gcd Rat.mk computes once it has destructured its own
+#     difference-pair argument is a different *spelling* of Rat.mag's -- the
+#     two are equal by one sub_diag per coordinate -- and no congruence reaches
+#     a rewrite under Nat.div (the checker expands Nat.div into divmod form
+#     first, see PROVING.md). A caller holding an operation's output has this
+#     fact for free: Rat.mk.den.pos at its own gcd spelling, with gcd_divides'
+#     witness, is exactly pq. So the hypothesis costs the caller nothing, while
+#     deriving it inside the fill is what blocked three earlier rounds.
+#     Unconditional mk_idem stays future work.
+#
+# The fill is Rat.mk.eqv.raw at the cross product Rat.mk.value already gives --
+# no coprimality, no case split. The only arithmetic is the two sub_diag
+# rewrites that carry mk.value's Rat.num-of-the-raw-coordinates numerator to
+# the difference pair this statement is written over (the same pair of
+# rewrites, with the same flip evidence, that Rat.mk.fixed makes).
+law Rat.mk_idem:
+  for +c: Cmp
+  for +np: Nat
+  for +nn: Nat
+  for +d: Nat
+  for +e: {c == Nat.cmp(np, nn) : Cmp}
+  for +pd: {Nat.cmp(0n, d) == LT{} : Cmp}
+  for +pq: {Nat.cmp(0n, Rat.denof(Rat.mk(Rat.num(np, nn), d))) == LT{} : Cmp}
+  {Rat.mk(Rat.numof(Rat.mk(Rat.num(np, nn), d)), Rat.denof(Rat.mk(Rat.num(np, nn), d)))
+   == Rat.mk(Rat.num(np, nn), d) : Rat}
+
 # The product shape
 # =================
 #
