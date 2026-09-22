@@ -2516,3 +2516,34 @@ def R.Rat.value.coords.neg(+ap: Nat, +an: Nat, +rp: Nat, +rn: Nat, +d: Nat, +b: 
   -> {Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d)) == Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b)) : Nat}:
   I.Int.eq.neg(Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)), Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d)),
     Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)), Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b)), v)
+
+
+# value.scaled: the value equation of a scaled difference pair, multiplied by a
+# positive unit C and read at one of its two coordinates. The equations are
+# *unfolded* on purpose: `Int.mul(pair, unit d)` reduces as far as its arguments
+# allow, so when the pair is substituted into a congruence body the result is
+# the coordinate pair Int{add(mul(xp,d), mul(xn,0)), add(mul(xp,0), mul(xn,d))}
+# -- not the folded Int{mul(xp,d), mul(xn,d)} that Int.mul_scale names. Both
+# spellings appear below, each where it is the one the next step wants.
+def R.Rat.value.scaled(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Nat, +C: Nat,
+            v: {I.Int{Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d))}
+                == I.Int{Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b))} : I.Int})
+  -> {I.Int{Nat.add(Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), C), Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), 0n)),
+            Nat.add(Nat.mul(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), 0n), Nat.mul(Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), C))}
+      == I.Int{Nat.add(Nat.mul(Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), C), Nat.mul(Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)), 0n)),
+               Nat.add(Nat.mul(Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), 0n), Nat.mul(Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)), C))} : I.Int}:
+  Equal.cong(I.Int, I.Int, u => I.Int.mul(u, I.Int.unit(C)),
+    I.Int{Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d))},
+    I.Int{Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b))}, v)
+
+# nat.coord.first: the first coordinate's surviving term, normalised from
+# `mul(add(mul(p,d), mul(q,0)), 0)`-free form to the scale-first product
+# `mul(p, mul(d, C))`. The zero addend collapses with mul_zero through the
+# commutativity of 0, and the two scales merge with mul_assoc.
+# nat.coord.term: the surviving first term of a coordinate, with its zero
+# addend off -- the one rewrite every coordinate needs before the scale can be
+# pushed inside, kept separate because it is a plain instantiation of
+# Nat.add_zero and because spelling it here keeps the callers short.
+def R.Rat.nat.coord.term(+x: Nat)
+  -> {Nat.add(x, 0n) == x : Nat}:
+  N.add_zero(x)
