@@ -65,7 +65,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 124, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 182 = 124 Nat + 32 Int + 26 Rat.
+QExt, rat.bend 183 = 124 Nat + 32 Int + 27 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -126,10 +126,25 @@ Known gaps, in dependency order:
    bridge: the product of two difference pairs is a difference pair again, by
    sign case analysis), `Int.scale_cross` (the cross product of the composed
    fraction from the two value equations, scaled by the shared denominator and
-   cancelled with `Int.scale.cancel`), and `Rat.mk.eqv.raw`. Still open:
+   cancelled with `Int.scale.cancel`), and `Rat.mk.eqv.raw`. `Rat.neg_neg` is
+   proved too — the first law whose argument is another operation's *output*.
+   Its statement carries coprimality (`Rat.mk.fixed`'s own hypothesis), and
+   that is required for truth rather than a convenience: `==` on `Rat` is
+   structural, and `np = 4, nn = 0, dp = 1` evaluates to
+   `neg(neg(Rat{Rat.num(4,0),2})) = Rat{Int{2,0},1}` against
+   `Rat{Rat.num(4,0),2} = Rat{Int{4,0},2}`. With it, negation on a canonical
+   value is two `Rat.mk.fixed` calls around one congruence (the intermediate's
+   coprimality is the stated one, since `Rat.mag` is symmetric by `add_comm`) —
+   no value equation, because negation does not touch the denominator. Still
+   open:
    - `add_assoc`, `add_exchange`, `mul_distrib`, `mul_add_left`, `neg_add`,
-     `neg_neg`, the same recipe with the additive value equations (which also
-     need the two `Int.canon`-level facts an `Int.add` numerator forces).
+     the same recipe with the additive value equations. These are the ones with
+     an obstacle of their own: an `Int.add` numerator is a *sum* of two
+     difference pairs, and `Rat.mk.value`'s right-hand side names it in
+     `Rat.num` spelling, which for a sum is a pair with *both* sides non-zero —
+     so the bridge from the value equation to the raw spelling the Int ring
+     laws see is not `Rat.dp.eq` but something at the `Int.canon` level (see
+     `PROVING.md`).
 2. `QExt` over `Rat`: field axioms plus the multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`).
 3. Binary nats for performance (unary `Nat` is O(value)).
