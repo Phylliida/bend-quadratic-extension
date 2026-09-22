@@ -1485,3 +1485,35 @@ and `Rat.add.value.mixed` in, `add_assoc` has all of its pieces except the cross
 sum itself -- the (★) equation below -- which needs one Nat law for the
 truncation cross sum (`sub(a,b) + b == sub(b,a) + a`) and the criss-cross
 combination of two of them.
+
+### The two Nat laws the additive block needs, and why they are Nat laws
+
+Landed, each with its fill: **`Nat.sub_cross`** and **`Nat.cross_add`**.
+
+    sub_cross:  (a - b) + b == (b - a) + a              [comparison threaded in]
+    cross_add:  A + t == A' + t' and B + t == B' + t'  =>  A + B' == A' + B
+
+`sub_cross` is the *only* place the sign information of an arbitrary pair of
+naturals is consumed, and it is the bridge between a pair and its own truncation
+pair -- the shape the canonical coordinates of a sum of two difference pairs
+have. Its fill is three branches, each two existing facts (`cmp_gt_sub_add` /
+`cmp_lt_sub_add` for the non-zero side, `sub_of_lt` for the zero one, `cmp_eq` +
+`sub_self` in EQ); the comparison is a parameter because the fill cases on it,
+and callers pass `Nat.cmp(a, b)` with `{==}` evidence, so **no caller ever
+case-splits**.
+
+`cross_add` is the criss-cross combination: two equations with a common padding
+determine the difference of their left-hand constants. In integers both
+hypotheses read "A - A' = t' - t" and "B - B' = t' - t", so A - B = A' - B'; Nat
+has no negative values, so the statement is over the two padded equations and the
+fill pads both sides by `t + t'` and cancels with `add_cancel`. Its fill is the
+one place with real shuffling (three `add_assoc`/`add_comm` steps per side to
+reach `(A + t) + (B' + t')`), which is why it is a law and not an inline chain.
+
+Neither is a Rat law, and they are here because the alternative -- deriving the
+sign facts inside each Rat fill -- is exactly the case analysis the whole
+`Rat.mk` design avoids: `Rat.mk` is match-free so that all sign analysis can be
+threaded in as a parameter, and these two laws are what that buys for the
+additive block. Both are unconditional, both take their comparisons (or nothing)
+as parameters, and both are green: nat gate green, `nat.bend` alone 126 TODOs
+(was 124), `rat.bend` alone 192, the other two counts unchanged.

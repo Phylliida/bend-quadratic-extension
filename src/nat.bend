@@ -896,6 +896,44 @@ law sub_diag:
   for +e: {c == Nat.cmp(np, nn) : Cmp}
   {Nat.sub(Nat.sub(np, nn), Nat.sub(nn, np)) == Nat.sub(np, nn) : Nat}
 
+# sub_cross: the cross sum of a truncation pair -- (a - b) + b = (b - a) + a.
+# Both sides are the larger argument, which is why it needs no hypothesis on a
+# and b: the comparison decides which truncation is the difference and which is
+# zero, and the two cases are cmp_gt_sub_add / cmp_lt_sub_add with the other
+# truncation collapsed by sub_of_lt. It is what relates a *pair* of naturals to
+# its own truncation pair -- the shape the canonical coordinates of a sum have --
+# and it is the only place the sign information of such a sum is consumed, which
+# is why the Rat additive laws can be pure ring shuffling on top of it.
+#
+# The comparison is a parameter with its evidence (the fill cases on it, and a
+# computed Nat.cmp is not a legal scrutinee); callers pass Nat.cmp(a, b) and {==}.
+law sub_cross:
+  for c: Cmp
+  for +a: Nat
+  for +b: Nat
+  for +e: {c == Nat.cmp(a, b) : Cmp}
+  {Nat.add(Nat.sub(a, b), b) == Nat.add(Nat.sub(b, a), a) : Nat}
+
+# cross_add: two equations with a common padding combine criss-cross. If
+# A + t = A' + t' and B + t = B' + t', then A + B' = A' + B -- in integers both
+# hypotheses say "A - A' = t' - t" and "B - B' = t' - t", so A - B = A' - B'.
+# Stated over the two hypotheses rather than over subtractions because Nat has no
+# negative values; the fill pads both sides by t + t' and cancels (add_cancel).
+#
+# This is the step that consumes the truncation cross sums sub_cross produces:
+# the pair (A, t) is one side's scaled coordinate pair, and the common padding is
+# what makes the two equations comparable at all.
+law cross_add:
+  for +A: Nat
+  for +A2: Nat
+  for +B: Nat
+  for +B2: Nat
+  for +t: Nat
+  for +t2: Nat
+  for e1: {Nat.add(A, t) == Nat.add(A2, t2) : Nat}
+  for e2: {Nat.add(B, t) == Nat.add(B2, t2) : Nat}
+  {Nat.add(A, B2) == Nat.add(A2, B) : Nat}
+
 # Nat.gcd
 # =======
 #
