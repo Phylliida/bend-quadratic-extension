@@ -611,6 +611,28 @@ law Rat.mk.canon.go:
   for +e: {c == Nat.cmp(xp, xn) : Cmp}
   {Rat.mk(I.Int{xp, xn}, d) == Rat.mk(I.Int.canon.go(c, xp, xn), d) : Rat}
 
+# Rat.mk.trunc: mk of a raw pair is mk of the pair's own truncation pair --
+# mk(Int{U,V}, d) against mk(Rat.num(sub(U,V), sub(V,U)), d). The two are the
+# same integer in two representations (the second has one side zero, and it is
+# the presentation Rat.num spells), so this is Rat.mk.canon.go's content with the
+# truncations written out instead of canon.go's case split -- and *no comparison
+# parameter is needed*: canon.go's branch value is exactly this pair, and sub_diag
+# reaches the collapse at the two explicit comparisons Nat.cmp(U,V) and
+# Nat.cmp(V,U), so nothing has to be cased on.
+#
+# This is the bridge a *composite* numerator needs, and the reason Rat.mk.rep is
+# not enough for it: a sum of two difference pairs has coordinates that are not
+# truncations of anything, so rep's collapse does not apply, while its *canonical*
+# coordinates are precisely (sub(U,V), sub(V,U)). With this law a value whose
+# numerator is an operation's output (an Int.add of two scaled difference pairs)
+# is one step away from the presentation the mixed value law and the composing
+# laws are stated over.
+law Rat.mk.trunc:
+  for +U: Nat
+  for +V: Nat
+  for +d: Nat
+  {Rat.mk(I.Int{U, V}, d) == Rat.mk(Rat.num(Nat.sub(U, V), Nat.sub(V, U)), d) : Rat}
+
 # The product shape
 # =================
 #

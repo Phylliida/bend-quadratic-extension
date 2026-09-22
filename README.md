@@ -67,7 +67,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 124, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 192 = 126 Nat + 32 Int + 34 Rat.
+QExt, rat.bend 193 = 126 Nat + 32 Int + 35 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -166,6 +166,14 @@ Known gaps, in dependency order:
    `Int.neg_mul` has moved the negation inside it, and `Rat.mk.rep` plus four
    `Nat.add` commutations join the two raw spellings. No coprimality, no case
    split, and no scaling at all — negation never touches a denominator.
+   `Rat.mk.trunc` is the representative bridge one level up from `Rat.mk.rep`:
+   `mk(Int{U,V}, d) == mk(Rat.num(sub(U,V), sub(V,U)), d)` -- the raw pair against
+   its own truncation pair, with no comparison parameter, because canon.go's
+   branch value *is* that pair and the collapse is two `sub_diag` instances at the
+   explicit comparisons. This is what a *composite* numerator needs (a sum of two
+   difference pairs is not a truncation of anything, so `mk.rep` cannot collapse
+   it), and it is one step from the presentation the mixed value law is stated
+   over.
    `Rat.mk.eqv.val` is the general quotient lemma the additive block needs, and
    the payoff of `Rat.mk.canon.go`: `mk` is *determined by the value* when the
    two fractions' cross **sums** agree (`xp*d2 + yn*d1 == yp*d1 + xn*d2`), with
