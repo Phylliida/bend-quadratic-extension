@@ -1,0 +1,104 @@
+import Base
+import ./nat.bend as N
+import ./qrat_rat.bend as R
+
+# QExt over Rat: the quadratic extension Q(sqrt d) with rational coefficients
+# ==========================================================================
+#
+# Elements are a + b*sqrt(d) with a, b : Rat, exactly as qext.bend's elements
+# are re + im*sqrt(d) with re, im : Int. The radicand d is a Nat parameter of
+# the *operations* rather than of the type, so one QExt type serves every
+# extension level (and, later, towers) -- which is why QExt.zero/one/nat take
+# no radicand, exactly as in qext.bend.
+#
+# Why a new file pair rather than an extension of qext.bend. qext.bend is the
+# extension over Int: it is finished, its gate is green, and its two laws are
+# stated about Int coefficients. The coefficient type is a type *parameter*
+# this language does not have, so the Rat layer cannot reuse those statements
+# -- it would have to restate every operation and every law anyway -- and the
+# two sets of fills share nothing at all: over Int every composition is
+# congruence (Int's operations are constructors, so Int.add_comm is two
+# cong steps), while over Rat every composition crosses a normalization and is
+# the whole difficulty. Keeping them apart leaves qext.bend and its proof
+# untouched. The Int version is not superseded: it is the coefficient-free
+# half, and it fixes the shape the laws here are stated in.
+#
+# Laws are stated here and left open; qrat_proofs.bend fills them via
+# `def Q.<name>(...)`.
+#
+# The canonical presentation
+# --------------------------
+#
+# The coefficients of a *law* are spelled the way every canonical law of
+# rat.bend spells them -- Rat{Rat.num(np, nn), 1n+dp}, a one-sided difference
+# pair over a successor -- because that is the shape the Rat laws are proved
+# over *and* the shape Rat.mk itself produces, so a law stated this way can be
+# applied to the output of an earlier operation. (Assembly of a QExt value is
+# not restricted to it: the operations below are defined on any two Rats.)
+# The comparison of a numerator is a parameter with its evidence, because which
+# side of the difference pair is zero is only known from Nat.cmp.
+#
+# Coprimality is *not* part of the presentation, and is added only to the one
+# law whose truth needs it -- QExt.neg_neg, whose Rat-level twin Rat.neg_neg is
+# false unconditionally for the same reason: == on Rat is structural. With it,
+# the Rat fact Rat.mk.fixed turns "the gcd of the value and the denominator is
+# 1" into "mk is the identity here", which is what lets the mk-headed output of
+# Rat.neg meet the constructor-headed value it came from.
+
+type QExt is Data:
+  QExt{re: R.Rat, im: R.Rat}
+
+# QExt.nat(d): the natural d as a rational -- the coefficient of the sqrt(d)*
+# sqrt(d) = d step in QExt.mul.
+def QExt.nat(d: Nat) -> R.Rat:
+  R.Rat{R.Rat.num(d, 0n), 1n}
+
+def QExt.zero() -> QExt:
+  QExt{R.Rat.zero(), R.Rat.zero()}
+
+def QExt.one() -> QExt:
+  QExt{R.Rat.one(), R.Rat.zero()}
+
+def QExt.add(x: QExt, y: QExt) -> QExt:
+  QExt{+xa, +xb} = x
+  QExt{+ya, +yb} = y
+  QExt{R.Rat.add(xa, ya), R.Rat.add(xb, yb)}
+
+def QExt.neg(x: QExt) -> QExt:
+  QExt{+xa, +xb} = x
+  QExt{R.Rat.neg(xa), R.Rat.neg(xb)}
+
+def QExt.sub(x: QExt, y: QExt) -> QExt:
+  QExt.add(x, QExt.neg(y))
+
+# QExt.mul(d, x, y) = (xa + xb*sqrt d)(ya + yb*sqrt d)
+#                   = (xa*ya + d*xb*yb) + (xa*yb + xb*ya)*sqrt d
+def QExt.mul(+d: Nat, x: QExt, y: QExt) -> QExt:
+  QExt{+xa, +xb} = x
+  QExt{+ya, +yb} = y
+  di = QExt.nat(d)
+  QExt{R.Rat.add(R.Rat.mul(xa, ya), R.Rat.mul(di, R.Rat.mul(xb, yb))),
+       R.Rat.add(R.Rat.mul(xa, yb), R.Rat.mul(xb, ya))}
+
+# QExt.add_comm: x + y = y + x. Holds for every pair: addition is
+# componentwise, and Rat.add_comm is unconditional.
+law QExt.add_comm:
+  for +x: QExt
+  for +y: QExt
+  {QExt.add(x, y) == QExt.add(y, x) : QExt}
+
+# QExt.mul_comm: x * y = y * x. Also unconditional: the radicand coefficient is
+# the same term on both sides (it is a *parameter*, not an operation's output),
+# and the Rat ring laws that permute the coefficients hold for every Rat.
+law QExt.mul_comm:
+  for +d: Nat
+  for +x: QExt
+  for +y: QExt
+  {QExt.mul(d, x, y) == QExt.mul(d, y, x) : QExt}
+
+# QExt.sub_eq_add_neg: x - y = x + (-y) -- true by definition here, exactly as
+# Rat.sub_eq_add_neg is
+law QExt.sub_eq_add_neg:
+  for +x: QExt
+  for +y: QExt
+  {QExt.sub(x, y) == QExt.add(x, QExt.neg(y)) : QExt}
