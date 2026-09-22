@@ -2384,7 +2384,8 @@ committed state and all six gates are green at that commit.
 `Rat` variables `x`, `y`, `z` with `{Nat.cmp(0n, Rat.denof(_)) == LT{}}` on each
 of the three, conclusion `add(add(x,y),z) == add(x,add(y,z))`. Counts move as the
 README records: rat 198 -> 199, qrat 203 -> 204 (the canonical `Rat.add_assoc`
-stays stated and keeps its fill, so no existing call site moved).
+stays *stated*, so no existing call site moved; its fill is now one call of the
+general law -- see the ordering rule at the end of this section).
 
 **The route that worked is not the route the last two rounds were on.** Those
 rounds tried to reach the law by *bridging a mk-headed summand*: to turn
@@ -2419,15 +2420,34 @@ hypotheses are stated over `Rat.denof(x)`; in the level-1 branch `px` is usable 
 (a helper taking `{Nat.cmp(0n, d) == LT{}}` called with `xd` and `px`) checks,
 and that is what the fill relies on.
 
-**The chain itself is the canonical fill's, at raw coordinates.** The three
+**The chain is the old canonical chain, at raw coordinates -- and it is now the
+only copy.** The three
 inputs' numerators are the pairs the match bound -- *truncations of nothing*, the
 whole difference from rung 1 -- the inner sums' clean coordinates are the two
 `Int.mul_scale` re-spellings `U1/V1`, `U2/V2`, the mk-headed summands become
 `mk(Rat.num(P,Q), d)` by `Rat.mk.trunc`, each outer add is one
 `Rat.add.value.mixed`, and the closing is `Rat.mk.eqv.val` at
 `Rat.nat.cross4`'s cross sum from the two `Nat.sub_cross` instances. That whole
-Nat block is *verbatim* the canonical fill's: its hypotheses are gaps in the raw
-coordinates, so it never saw the presentation at all.
+Nat block is *verbatim* what the canonical fill had: its hypotheses are gaps in
+the raw coordinates, so it never saw the presentation at all. `R.Rat.add_assoc`
+(the canonical law's fill) is now one call of this one --
+`Rat.add_assoc.arb(Rat{Rat.num(np1,nn1), 1n+dp1}, ..., {==}, {==}, {==})` -- since
+at `Rat{Rat.num(np,nn), 1n+dp}` each hypothesis is `Nat.cmp(0n, 1n+dp)` up to the
+definition of `Rat.denof`, i.e. `LT{}` by computation. The 227-line canonical
+chain is gone; the general fill carries it.
+
+**One ordering rule this cost, measured.** The wrapper's *first* spelling put the
+canonical fill before the general one in the file, and the checker rejected it
+with
+
+    - expected : a filled definition (an unfilled law is a dead claim: live code
+                 cannot use it)
+    - observed : rat.Rat.add_assoc.arb
+
+-- a *law* may only be used in live code once its fill has been processed, and
+fills are processed in file order. Moving `R.Rat.add_assoc.arb`'s definition
+above the wrapper's fixed it with no other change. So in a proofs file that
+wraps one law with another, the wrapped law's fill has to come first.
 
 **Two pieces had to be new, and both are general.**
 
@@ -2466,8 +2486,17 @@ equations between terms, and conversion is not a transport -- and it is what
 records holds.
 
 **Not done, and therefore not claimed:** `QExt.mul_assoc` and `QExt.mul_distrib`
-are not started (they need the Rat multiplicative laws at mk-headed arguments,
-i.e. the same two-level treatment for three more laws); the inverse
+are not started, and the inverse is not started. The multiplicative laws need
+`Rat.mul_assoc`/`Rat.mul_distrib` at mk-headed arguments, i.e. the same two-level
+treatment -- but *not* the same chain: the raw product pair of two coordinate
+pairs is already a constructor (`Int.mul(Int{a1,b1}, Int{a2,b2})` unfolds to
+`Int{add(mul(a1,a2),mul(b1,b2)), add(mul(a1,b2),mul(b1,a2))}`), so no `Int.mul`
+shape law is involved at the top, while `Rat.mk.value`'s conclusion names its
+numerator in `Rat.num(np,nn)` spelling -- the *truncation* of the coordinates mk
+was handed -- and at a raw pair that is a different Int from the raw pair itself.
+So the multiplicative rung-2 work needs a value equation in the raw spelling (or
+a closing at `Rat.mk.eqv.val`'s cross sums) rather than a mechanical port. That
+paragraph is analysis, not measurement: nothing about it was run. The inverse
 `1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)` is not started; and
 `QExt.add_assoc` **is** the form over arbitrary values now: same key, statement
 replaced, and its fill is one `Rat.add_assoc.arb` per coordinate with the six

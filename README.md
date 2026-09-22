@@ -259,9 +259,11 @@ Known gaps, in dependency order:
    denominators as the only hypotheses. It is the statement a caller whose
    summands are pattern variables can instantiate (a law stated over `Rat.mk(...)`
    applications cannot be used at a stuck term, which is what an arbitrary `Rat`
-   is), and the canonical law above is its reading at its own coordinates -- both
-   stay stated, because neither is derivable from the other: the canonical form
-   has no positivity slot and the general form's inputs are not mk-shaped. The
+   is), and the canonical law above is its reading at its own coordinates -- it
+   stays stated beside the general one (its own positivity slot is empty, while
+   the general form's inputs are not mk-shaped, so a caller with canonical values
+   wants the hypothesis-free statement) and its fill is now one call of the
+   general law, with the three hypotheses supplied by `{==}`. The
    fill is the canonical fill's chain at the *raw* coordinates the two levels of
    destructuring expose (three Rats, then their three `Int` numerators -- one
    helper per level, since a def's parameters may be matched at its body head and
