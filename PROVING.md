@@ -857,7 +857,21 @@ consequences worth knowing before designing a helper:
 
 - a helper meant for callers must be defined with the laws-module prefix;
 - the cheapest alternative is to make it a *law* in the laws file and fill it,
-  which is what `div_self_scale` did (and what the value lemma's step wanted).
+  which is what `div_self_scale` did.
+
+Two corollaries for the value lemma, both hit and confirmed this session:
+
+- **A law binder's type may only mention names an *earlier binder* introduced.**
+  `for w: {p == Nat.mul(g, q) : Nat}` is rejected with `a defined name /
+  observed : q` -- a quotient invented in the statement is not writable. So the
+  value step has to take its quotients as *binders* and their equations as
+  further hypotheses, and the caller reads the quotient off a `Nat.Div` at the
+  one point where the goal determines its type parameters (the fill's own
+  binder, i.e. `NL.Div{q, we} = w` in a `def NL.<law>(...)`).
+- **`Nat.div` gets rewritten where it appears in `Nat.divmod.go` form, not as
+  `Nat.div`.** A `%` step whose annotation spells `Nat.div(p, g)` reports
+  `expected : Nat.div.fin(Nat.divmod(p, g))` and does nothing. `Equal.cong` over
+  a variable's argument is the reliable spelling.
 
 Verified by listing the loader's export keys (import the `.bend` file under
 `node` with `bend2/main.ts` registered and read `Object.keys(m.default)`).
