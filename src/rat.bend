@@ -847,6 +847,42 @@ law Rat.add.value.mixed:
         I.Int.mul(I.Int{Nat.sub(np2, nn2), Nat.sub(nn2, np2)}, I.Int.unit(d))),
       Nat.mul(d, 1n+dp2)) : Rat}
 
+# Rat.add_assoc
+# =============
+#
+# (x + y) + z = x + (y + z) for canonical values -- the law that composes a
+# sum with a sum, and the second half of the additive block.
+#
+# The value laws alone do not reach it. add(y,z) is mk-headed with a div/gcd
+# numerator, so the outer add's first argument is a *sum of two difference
+# pairs*: not one-sided, hence a different representative of the same integer
+# from the pair the canonical laws are stated over, and exactly the case
+# Rat.mk.trunc bridges (Rat.mk.rep collapses a one-sided pair only). The
+# mixed value law then names the outer sum by that assertion's own truncation
+# pair, and the cross *sum* that closes the proof -- Rat.mk.eqv.val's
+# hypothesis -- is a pure Nat identity in the two inner sums' truncation
+# pairs. It is proved from two Nat.sub_cross instances combined criss-cross by
+# Nat.cross_add: no new Nat law, and no case analysis anywhere.
+#
+# Statement and fill follow Rat.mul_assoc: canonical value
+# Rat{Rat.num(np,nn), 1n+dp}, no coprimality hypothesis, and no comparison
+# parameter -- nothing is cased on, since every sub_diag and sub_cross
+# instance is called at an explicit Nat.cmp with {==} evidence.
+law Rat.add_assoc:
+  for +np1: Nat
+  for +nn1: Nat
+  for +dp1: Nat
+  for +np2: Nat
+  for +nn2: Nat
+  for +dp2: Nat
+  for +np3: Nat
+  for +nn3: Nat
+  for +dp3: Nat
+  {Rat.add(Rat.add(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np2, nn2), 1n+dp2}),
+            Rat{Rat.num(np3, nn3), 1n+dp3})
+   == Rat.add(Rat{Rat.num(np1, nn1), 1n+dp1},
+              Rat.add(Rat{Rat.num(np2, nn2), 1n+dp2}, Rat{Rat.num(np3, nn3), 1n+dp3})) : Rat}
+
 # Rat.neg_add
 # ===========
 #

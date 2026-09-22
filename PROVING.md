@@ -1572,3 +1572,87 @@ fill of `add_assoc` is then: `mk.trunc` + `mk.rep` to re-spell the inner sum, on
 `Rat.add.value.mixed` per side, two `sub_diag` congs to collapse the mixed law's
 `sub(P1,Q1)` spellings, the Nat law above, and `Rat.mk.eqv.val`. Nothing else was
 measured here: the paragraph is a derivation, not a run.
+
+### `Rat.add_assoc` landed, and the sketch's last step needed one more shuffle
+
+Landed: **`Rat.add_assoc`** -- `(x + y) + z = x + (y + z)` for the canonical
+presentation `Rat{Rat.num(np,nn), 1n+dp}`, with no coprimality hypothesis and
+**no comparison parameter** (nothing is cased on: every `sub_diag` and
+`sub_cross` instance is called at an explicit `Nat.cmp` with `{==}`), exactly
+the shape `Rat.mul_assoc` has. The decomposition of the last section was right
+in outline -- `Rat.mk.trunc` + `Rat.add.value.mixed` per side, the two
+`sub_diag` congs on the mixed law's `Nat.sub(P1,Q1)` spellings, the cross sum
+from two `Nat.sub_cross` instances through `Nat.cross_add`, closing at
+`Rat.mk.eqv.val` -- and it needed no new Nat law. Five things about it were
+only visible once the fill was written, and four of them cost an iteration
+each:
+
+- **`Nat.cross_add`'s conclusion is not grouped the way `mk.eqv.val`'s pairs
+  are.** The scaled instances give `(x1 + x3) + (x2 + x4)`: the two summands
+  of one inner sum in each group. The cross sum wants `(x1 + x4) + (x2 + x3)`,
+  because `TLp` pairs the *first* summand with the *third* (`P1*Zd + a3*d1`)
+  and `TRn` the second with the first. So the "re-association" the sketch ends
+  with is really a four-term exchange (`x1 + (x3 + (x2 + x4))` -> ... ->
+  `(x1 + x4) + (x2 + x3)`, five `add_assoc`/`add_exchange`/`add_comm` steps,
+  the helper `R.Rat.nat.exch4`), and on the mirrored side the same exchange
+  plus one `add_comm`. This is not avoidable by choosing the padding
+  differently: the only summand both instances carry is the middle one, so the
+  padding is forced, and with it the grouping.
+- **The two scale factors have to be chosen together.** `cross_add`'s padding
+  `t` and `t'` are single terms, so the two scaled instances must share them
+  *as spelled*. Scaling the first instance by `Zd*D` and the second by `Xd*D`
+  (with `D = Xd*(Yd*Zd)` the common denominator `mk.eqv.val` is finally called
+  at) makes the two paddings `(b2*Xd)*(Zd*D)` and `(b2*Zd)*(Xd*D)` -- equal
+  after re-associating and commuting `Xd` with `Zd` (`R.Rat.nat.pad`, four
+  steps). A uniform scale does not work at all: the paddings would be `b2*Xd*S`
+  and `b2*Zd*S`, two different terms with no equation to respell one into the
+  other.
+- **The inner sums must be re-spelled before anything else touches them.** The
+  raw pair an operation writes is `Int.add(Int.mul(num, unit), Int.mul(num,
+  unit))`, whose coordinates contain `mul(x, 0n)` terms that are *stuck*
+  (`Nat.mul` matches on its first argument), so `sub_cross`'s instance would
+  have to be stated at a spelling that first needs four zero collapses; and
+  `P1 = sub(Up,Un)` computed at that spelling is not the `P1` the plan's
+  equation is written in. Two `Int.mul_scale` congs under one cong on mk's
+  argument (one per summand) put the inner sums in the clean coordinates
+  `(U,V)`, after which `sub_cross` applies verbatim. That is inference from the
+  stuck shapes, not a measurement -- the clean-first route was taken from the
+  start.
+- **`%`'s `_` marks exactly the occurrence of the evidence's RHS.** An
+  annotation whose `_` sits *inside* a wrapper (`{Nat.add(x1, _) == ...}` when
+  the whole side is the RHS) does not fail loudly: the checker reports
+  `expected : <the real goal type> / observed : <what the annotation demanded>`
+  (i.e. `expected` is the goal, `observed` is the demand), which reads backwards
+  until one notices. Two steps were spent on this, both time in
+  `exch4`/`split`.
+- **`Nat.mul_add_left` and `Nat.mul_distrib` are stated flipped** (`sum ==
+  product`), so folding a sum into a product is the direct `%mul_add_left`
+  while unfolding needs `Equal.sym` -- and `Equal.sym(A,a,b,e)` wants `(a,b)`
+  in the *evidence's* order. `Nat.mul_assoc` and `Nat.add_assoc` are the other
+  way round (`(a*b)*c == a*(b*c)`), so their `sym`s are the re-associations.
+
+One measurement worth recording for the next unit: **a third file cannot
+import `rat_proofs.bend`.** A two-line file that imports `rat.bend as R` and
+`rat_proofs.bend` and calls `R.Rat.mk` fails with
+
+    - expected : a defined name
+    - observed : R.Rat.add.piece
+
+-- the proof-only helpers that live under `R`'s namespace (`R.Rat.add.piece`,
+`R.Rat.add.mixed.cross`) are what trips it, since the same two-line test for
+`nat.bend`/`nat_proofs.bend` and `int.bend`/`int_proofs.bend` checks fine. So
+the Rat chain had to be developed *inside* `rat_proofs.bend` (which is where
+its helpers have to live anyway); `PROVING.md`'s "a third file imports both" is
+true for nat and int and false here.
+
+Cost: `rat_proofs.bend` 1981 -> 2465 lines -- nine proof-only helpers
+(`R.Rat.nat.d3/xy/pad/exch4/split/flip2/foldA/foldB/cross4`; 155 lines) plus
+the 232-line fill and the comments; `rat.bend` 879 -> 915 (the law and its
+comment). All five gates green, `rat.bend` alone reports **194** TODOs (was
+193). Nothing in `nat.bend` changed: the Nat half of this proof is a *proof*,
+not a law.
+
+Next, on the same recipe: `Rat.add_exchange`, then `Rat.mul_distrib` and
+`Rat.mul_add_left`. Each is a mixed sum plus a cross sum; the shuffle
+inventory (`exch4`, `foldA`, `foldB`, `split`, `pad`) is reusable as it stands,
+and `flip2` is the only piece that is specific to which two inner sums meet.

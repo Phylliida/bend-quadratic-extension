@@ -67,7 +67,7 @@ Check with `node bend2/main.ts <file>` from a bend checkout. The four
 `All terms check.`; the laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO). The count is
 transitive over imports: nat.bend 126, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 193 = 126 Nat + 32 Int + 35 Rat.
+QExt, rat.bend 194 = 126 Nat + 32 Int + 36 Rat.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -197,11 +197,21 @@ Known gaps, in dependency order:
    laws — no truncation reasoning, no case split, and the same two positivity
    hypotheses `Rat.mk.value`/`Rat.mk_idem.raw` take. Its mirror image
    (constructor first) is `Rat.add_comm` away, so it is not stated separately.
+   `Rat.add_assoc` is the newest, and the first law that composes a sum with a
+   *sum*: the outer add's mk-headed summand has a numerator that is a sum of two
+   difference pairs — not one-sided, which is what `Rat.mk.trunc` bridges — and
+   the two sides then meet at one `Rat.mk.eqv.val` whose hypothesis is the Nat
+   cross sum of the two inner sums' truncation pairs, proved from two
+   `Nat.sub_cross` instances combined criss-cross by `Nat.cross_add`. No new Nat
+   law, no case analysis, no coprimality, and no comparison parameter: the law
+   is stated over the canonical presentation exactly as `Rat.mul_assoc` is. The
+   Nat half is nine proof-only helpers (`R.Rat.nat.cross4` and the shuffles it
+   is built from) in `rat_proofs.bend`.
    Still open:
-   - `add_assoc`, `add_exchange`, `mul_distrib`, `mul_add_left` -- the rest of
-     the additive block, on the `Rat.neg_add` recipe (`Rat.add.value` for every
-     sum, `Rat.mk.eqv.raw` at the value equations, `Rat.mk.rep` where a
-     presentation has to change).
+   - `add_exchange`, `mul_distrib`, `mul_add_left` -- the rest of the additive
+     block, on the `Rat.add_assoc` recipe: `Rat.mk.trunc` for every mk-headed
+     summand, `Rat.add.value.mixed` for every mixed sum, two `Nat.sub_cross`
+     instances and `Nat.cross_add` for the cross sum `Rat.mk.eqv.val` consumes.
 2. `QExt` over `Rat`: field axioms plus the multiplicative inverse
    (`1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2 d)`).
 3. Binary nats for performance (unary `Nat` is O(value)).
