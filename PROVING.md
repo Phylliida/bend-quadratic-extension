@@ -572,6 +572,105 @@ The same trick is the general lesson: **when a proof has to use a witness twice,
 give the witness a `Data` ADT with `+` fields rather than an `Exists`, and never
 write a `+` re-bind.**
 
+## Int.canon: what the scaling and quotient lemmas cost
+
+`Int.canon.scale` (`canon(x*(1+kp)) == canon(x)*(1+kp)`) and the forward half of
+the quotient lemma (`Int.canon.eqv.fwd`: equal canonical forms force
+`xp + yn == yp + xn`) are proved. Notes for whoever picks up the rest.
+
+### Shape: thread the comparison, or you cannot case on it
+
+`Int.canon.go`'s body matches on its `Cmp`, and `Nat.cmp(xp, xn)` is a computed
+value -- not a legal match scrutinee -- so *every* law that reasons about canon
+per branch takes `c: Cmp` plus `e: {c == Nat.cmp(xp, xn)}` as parameters and
+spells the right-hand canon as `Int.canon.go(c, xp, xn)`. That is why
+`Int.canon.scale.go` exists next to the statement anyone wants to use
+(`Int.canon.scale`), which is one call with `c := Nat.cmp(xp, xn)` and `{==}`.
+
+### Scaling is bookkeeping, not mathematics
+
+`Int.mul(Int{xp, xn}, Int{1+kp, 0})` reduces to
+`Int{add(xp*(1+kp), xn*0), add(xp*0, xn*(1+kp))}`. The `Nat.mul`-by-zero slots do
+*not* reduce (`Nat.mul` matches on its first argument, a variable), so each
+branch starts with `mul_zero` and `add_zero` rewrites; each of those fires in two
+places at once (the `Nat.cmp` argument and `canon.go`'s own argument), which is
+what a motive with the hole repeated is for. `cmp_mul_right` then collapses the
+scaled comparison, the branch evidence collapses it to the constructor just
+matched, and `mul_sub_right` (already in nat.bend, the right-scaled twin of
+`mul_sub`) says the scaled difference is the difference of the scaled slots. The
+one non-obvious spelling: `e` has to be a `+` binder, because the GT and LT
+branches read it twice. An equation is `Data`, so a `+` equation binder costs
+nothing -- and unlike a `+` *field* of a Sigma it is not a dependent type, so the
+copy is unremarkable.
+
+### Int.eq.pos / Int.eq.neg: constructor injectivity, and the projections it needs
+
+`Int.canon.eqv.fwd` needs to get `a == c` out of `{Int{a, b} == Int{c, d}}`. Bend
+has no injectivity rule, so it is the J axiom (`%e : P`) with a motive whose two
+sides are *projections* of the two Ints:
+
+    %e : {Int.proj.pos(Int{a, b}) == Int.proj.pos(_) : Nat}
+
+At `_ := Int{c, d}` that motive is the goal `{a == c}`, and at the left-hand
+Int it is `{a == a}`, which `{==}` closes. The projections
+(`Int.proj.pos` / `Int.proj.neg`) are proof-only defs in `int_proofs.bend`; no
+law statement mentions them. This is the general recipe for extracting a
+constructor's fields from an equation in Bend: define the projection as a *def*
+(a motive cannot contain a `match`), then use it in the J motive.
+
+### The forward half: nine branches, two shapes
+
+Case on `c1` and `c2`. The canon forms are `Int{sub(xp,xn), 0}` (GT),
+`Int{0, sub(xn,xp)}` (LT) and `Int{0,0}` (EQ), so:
+
+- **the two forms agree** (GT/GT, LT/LT, EQ/EQ): `Int.eq.pos` / `Int.eq.neg`
+  turn the Int equation into a coordinate equation, and the goal is then Nat
+  shuffling -- `cmp_gt_sub_add` / `cmp_lt_sub_add` say the coordinate is the
+  difference, so both sides are "difference + common part" and the equation
+  follows by reassociating.
+- **they disagree** (a difference against zero, or differences of opposite
+  sign): the coordinate equation says a truncated difference is `0`, `sub_pos`
+  says that same difference is `1 + something`, and a successor is not zero.
+  That last step is `Nat.succ_ne_zero` (`0 = 1 + a` is impossible), stated over
+  `0` on the left because that is the orientation the callers build, with
+  `NatIsZero` as the discrimination -- both proof-only, next to `Nat.pred` in
+  nat_proofs. `Empty.absurd` then closes the branch, which is why the goal type
+  has to be written out in those branches.
+
+The one thing that cost real time here was `%`-orientation, twice per branch:
+`Equal.sym(A, a, b, e)` takes `e : {a == b}` and gives `{b == a}`, and its
+endpoints are *erased* -- so whatever you write as the second argument is what
+ends up on the left, and the checker does not complain if it disagrees with `e`.
+The reliable spelling is: to replace the goal's subterm `X` with `Y`, write the
+evidence `{Y == X}`, i.e. `Equal.sym(T, X, Y, <lemma stated {X == Y}>)`.
+
+### The backward half: not proved, and what it needs
+
+`xp + yn == yp + xn` giving the canon equation is *not* in the tree (so it is not
+stated either -- an unfilled law would make every dependent gate report TODOs).
+The plan, if it is wanted:
+
+- (GT/GT), (LT/LT): `cmp_gt_sub_add` / `cmp_lt_sub_add` turn the hypothesis into
+  `add(A, add(xn,yn)) == add(B, add(xn,yn))` with `A = sub(xp,xn)`,
+  `B = sub(yp,yn)` -- an `Equal.trans` chain of about six `cong`/assoc/comm links
+  -- and `add_cancel` then gives `{A == B}`. `Equal.sym` on that is the whole
+  rewrite the goal needs. (EQ/EQ) is `{==}`.
+- The six disagreeing pairs need a contradiction, and the clean way to get one
+  uniformly is three Nat helper laws (`GT vs EQ`, `GT vs LT`, `EQ vs LT`, each
+  with the cross-sum equation as a hypothesis), because the other three follow
+  by calling them with the arguments swapped and `Equal.sym` on the cross sum.
+  For `GT vs EQ`: `cmp_eq` turns the EQ side into an equality, cancelling gives
+  `xp == xn`, and `Nat.cmp(xp,xn) == GT` with `xp == xn` collapses to
+  `GT{} == EQ{}` (`cmp_refl` through a `cong`), which `gt_ne_eq` refutes. For
+  `GT vs LT`: cancel `xn + yp` out of the cross sum to get
+  `{add(A, B') == 0n}`, rewrite `A` with `sub_pos` to make the left side a
+  successor, and `Nat.succ_ne_zero` refutes it.
+
+`Int.canon.eqv` itself is then the pair of the two halves; it is *not* needed for
+the Rat route (that uses the forward direction of normalization, i.e.
+`canon.scale`, and the reverse direction of the quotient lemma is trivial there
+because two equal canonical Rats have equal fields).
+
 ### Small harness facts that cost time
 
 - A law may conclude a pair type (`{A} & {B}`), but *inside braces* the parser
