@@ -845,6 +845,23 @@ this one: it takes one component out of the Sigma `Nat.divides_both` returns
 without any destructure). If a future lemma needs a second component, that is
 `Pair.snd` with the same type arguments, and no annotation is needed.
 
+### Cross-file proof helpers: the naming rule, verified
+
+A `*_proofs.bend` file defines nothing under its own namespace, so a helper that
+another file must call has to be written with the *laws* module's prefix:
+`def Nat.wit_q(...)` in `nat_proofs.bend` is exported as the key `Nat.wit_q`,
+which an importer reaches as `Nat.wit_q` (not `nat.wit_q`, not `N.wit_q`).
+`def NL.div_self_scale(...)` -- the fill spelling -- is exported as
+`nat.div_self_scale`, so it is *not* reachable from another file at all. Two
+consequences worth knowing before designing a helper:
+
+- a helper meant for callers must be defined with the laws-module prefix;
+- the cheapest alternative is to make it a *law* in the laws file and fill it,
+  which is what `div_self_scale` did (and what the value lemma's step wanted).
+
+Verified by listing the loader's export keys (import the `.bend` file under
+`node` with `bend2/main.ts` registered and read `Object.keys(m.default)`).
+
 ### What is left
 
 The laws that compose two *normalized* results: `mul_assoc`, `add_assoc`,
