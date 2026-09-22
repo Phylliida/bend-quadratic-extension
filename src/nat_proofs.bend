@@ -873,6 +873,144 @@ def NL.div_add_mod(a, b):
 def NL.mod_lt(a, b):
   NL.divmod.go.mod_lt(a, b, 0n, 0n, 1n+b, {==})
 
+# Exact division
+# ==============
+#
+# div_unique is the induction; everything else in the block is a call of it (or
+# of div_exact) with an equation shuffled into the shape it wants.
+
+# lt_ne_add: the comparison moves to cmp(s, 0) -- cmp_add_right at b, then
+# add_comm so that the trailing b is add(0, b) = b -- and cmp_lt_zero refutes it.
+def NL.lt_ne_add(a, b, s, e1, e2):
+  NL.cmp_lt_zero(s,
+    Equal.trans(Cmp, Nat.cmp(s, 0n), Nat.cmp(Nat.add(b, s), b), LT{},
+      Equal.trans(Cmp, Nat.cmp(s, 0n), Nat.cmp(Nat.add(s, b), b), Nat.cmp(Nat.add(b, s), b),
+        Equal.sym(Cmp, Nat.cmp(Nat.add(s, b), b), Nat.cmp(s, 0n),
+          NL.cmp_add_right(s, 0n, b)),
+        Equal.sym(Cmp, Nat.cmp(Nat.add(b, s), b), Nat.cmp(Nat.add(s, b), b),
+          Equal.cong(Nat, Cmp, u => Nat.cmp(u, b), Nat.add(b, s), Nat.add(s, b),
+            NL.add_comm(b, s)))),
+      Equal.trans(Cmp, Nat.cmp(Nat.add(b, s), b), Nat.cmp(a, b), LT{},
+        Equal.cong(Nat, Cmp, u => Nat.cmp(u, b), Nat.add(b, s), a, e2),
+        e1)))
+
+# add_assoc_cancel: move the common b0 out to the right on both sides (comm,
+# then add_assoc backwards) and add_cancel it away.
+def NL.add_assoc_cancel(b0, x, r, y, s, e):
+  NL.add_cancel(Nat.add(x, r), Nat.add(y, s), b0,
+    Equal.trans(Nat,
+      Nat.add(Nat.add(x, r), b0),
+      Nat.add(Nat.add(b0, x), r),
+      Nat.add(Nat.add(y, s), b0),
+      Equal.trans(Nat,
+        Nat.add(Nat.add(x, r), b0),
+        Nat.add(b0, Nat.add(x, r)),
+        Nat.add(Nat.add(b0, x), r),
+        NL.add_comm(Nat.add(x, r), b0),
+        Equal.sym(Nat, Nat.add(Nat.add(b0, x), r), Nat.add(b0, Nat.add(x, r)),
+          NL.add_assoc(b0, x, r))),
+      Equal.trans(Nat,
+        Nat.add(Nat.add(b0, x), r),
+        Nat.add(Nat.add(b0, y), s),
+        Nat.add(Nat.add(y, s), b0),
+        e,
+        Equal.trans(Nat,
+          Nat.add(Nat.add(b0, y), s),
+          Nat.add(b0, Nat.add(y, s)),
+          Nat.add(Nat.add(y, s), b0),
+          NL.add_assoc(b0, y, s),
+          NL.add_comm(b0, Nat.add(y, s))))))
+
+# div_unique: induction on d1, case on d2, and in the folded case the common b0
+# comes off both sides with add_assoc_cancel before the induction hypothesis
+# applies.
+#
+# The two vacuous branches produce the hypothesis of lt_ne_add from the same
+# equation: with the d = 0 side reduced, one side of the equation is exactly
+# b0 + (d'*b0 + r), and lt_ne_add turns that into Empty.
+def NL.div_unique(d1, r1, d2, r2, b0, e, l1, l2):
+  match d1:
+    case 0n:
+      match d2:
+        case 0n:
+          {==}
+        case 1n+dp:
+          Empty.absurd({0n == 1n+dp : Nat},
+            NL.lt_ne_add(r1, 1n+b0, Nat.add(Nat.mul(dp, 1n+b0), r2), l1,
+              Equal.trans(Nat,
+                Nat.add(1n+b0, Nat.add(Nat.mul(dp, 1n+b0), r2)),
+                Nat.add(Nat.add(1n+b0, Nat.mul(dp, 1n+b0)), r2),
+                r1,
+                NL.add_assoc_rev(1n+b0, Nat.mul(dp, 1n+b0), r2),
+                Equal.sym(Nat, r1, Nat.add(Nat.add(1n+b0, Nat.mul(dp, 1n+b0)), r2), e))))
+    case 1n+d1p:
+      match d2:
+        case 0n:
+          Empty.absurd({1n+d1p == 0n : Nat},
+            NL.lt_ne_add(r2, 1n+b0, Nat.add(Nat.mul(d1p, 1n+b0), r1), l2,
+              Equal.trans(Nat,
+                Nat.add(1n+b0, Nat.add(Nat.mul(d1p, 1n+b0), r1)),
+                Nat.add(Nat.add(1n+b0, Nat.mul(d1p, 1n+b0)), r1),
+                r2,
+                NL.add_assoc_rev(1n+b0, Nat.mul(d1p, 1n+b0), r1),
+                e)))
+        case 1n+d2p:
+          Equal.cong(Nat, Nat, u => 1n+u, d1p, d2p,
+            NL.div_unique(d1p, r1, d2p, r2, b0,
+              NL.add_assoc_cancel(1n+b0, Nat.mul(d1p, 1n+b0), r1, Nat.mul(d2p, 1n+b0), r2, e),
+              l1, l2))
+
+# div_exact: the two representations of a are (div(a,1+b), mod(a,1+b)) from
+# div_add_mod and (q, 0) from the hypothesis -- the second needs the equation
+# commuted (mul_comm) and zero added, since div_unique wants it as
+# mul(q, 1+b) + 0.
+def NL.div_exact(a, b, q, e):
+  NL.div_unique(Nat.div(a, 1n+b), Nat.mod(a, 1n+b), q, 0n, b,
+    Equal.trans(Nat,
+      Nat.add(Nat.mul(Nat.div(a, 1n+b), 1n+b), Nat.mod(a, 1n+b)),
+      a,
+      Nat.add(Nat.mul(q, 1n+b), 0n),
+      NL.div_add_mod(a, b),
+      Equal.trans(Nat, a, Nat.mul(1n+b, q), Nat.add(Nat.mul(q, 1n+b), 0n),
+        e,
+        Equal.trans(Nat, Nat.mul(1n+b, q), Nat.mul(q, 1n+b), Nat.add(Nat.mul(q, 1n+b), 0n),
+          NL.mul_comm(1n+b, q),
+          Equal.sym(Nat, Nat.add(Nat.mul(q, 1n+b), 0n), Nat.mul(q, 1n+b),
+            NL.add_zero(Nat.mul(q, 1n+b)))))),
+    NL.mod_lt(a, b),
+    {==})
+
+# div_exact_mul: a*(1+k) is (1+b)*(1+k)*q up to mul_assoc and mul_comm, and
+# div_exact is stated for the divisor written 1 + b' -- here b' = k + b*(1+k),
+# which is what (1+b)*(1+k) reduces to.
+def NL.div_exact_mul(a, b, q, k, e):
+  NL.div_exact(Nat.mul(a, 1n+k), Nat.add(k, Nat.mul(b, 1n+k)), q,
+    Equal.trans(Nat,
+      Nat.mul(a, 1n+k),
+      Nat.mul(Nat.mul(1n+b, q), 1n+k),
+      Nat.mul(Nat.mul(1n+b, 1n+k), q),
+      Equal.cong(Nat, Nat, u => Nat.mul(u, 1n+k), a, Nat.mul(1n+b, q), e),
+      Equal.trans(Nat,
+        Nat.mul(Nat.mul(1n+b, q), 1n+k),
+        Nat.mul(1n+b, Nat.mul(1n+k, q)),
+        Nat.mul(Nat.mul(1n+b, 1n+k), q),
+        Equal.trans(Nat,
+          Nat.mul(Nat.mul(1n+b, q), 1n+k),
+          Nat.mul(1n+b, Nat.mul(q, 1n+k)),
+          Nat.mul(1n+b, Nat.mul(1n+k, q)),
+          NL.mul_assoc(1n+b, q, 1n+k),
+          Equal.cong(Nat, Nat, u => Nat.mul(1n+b, u), Nat.mul(q, 1n+k), Nat.mul(1n+k, q),
+            NL.mul_comm(q, 1n+k))),
+        Equal.sym(Nat, Nat.mul(Nat.mul(1n+b, 1n+k), q), Nat.mul(1n+b, Nat.mul(1n+k, q)),
+          NL.mul_assoc(1n+b, 1n+k, q)))))
+
+# div_one: g = 1 is 1 + 0, and a == 1*a is mul_one (a == a*1) commuted.
+def NL.div_one(a):
+  NL.div_exact(a, 0n, a,
+    Equal.trans(Nat, a, Nat.mul(a, 1n), Nat.mul(1n, a),
+      NL.mul_one(a),
+      Equal.sym(Nat, Nat.mul(1n, a), Nat.mul(a, 1n), NL.mul_comm(1n, a))))
+
 # Nat.gcd
 # =======
 #
