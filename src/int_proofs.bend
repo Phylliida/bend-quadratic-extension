@@ -354,6 +354,42 @@ def I.Int.eq.neg(a, b, c, d, e):
 # motive marks the subterm the evidence's right side sits at, so a step that
 # rewrites a difference inside a sum spells the sum around the hole; a motive
 # that does not mention the subterm at all would rewrite nothing.
+# Int.scale.cancel: both sides of the hypothesis go to the coordinate pair
+# Int.mul_scale names (one sym rewrite each), the two coordinates are read off
+# with Int.eq.pos / Int.eq.neg, Nat.mul_right_cancel turns each into the
+# unscaled coordinate equation, and the goal is those two equations carried
+# back through the Int constructor with one cong each.
+def I.Int.scale.cancel(u, v, kp, e):
+  match u:
+    case I.Int{up, un}:
+      match v:
+        case I.Int{vp, vn}:
+          +ce = Equal.trans(I.Int,
+            I.Int{Nat.mul(up, 1n+kp), Nat.mul(un, 1n+kp)},
+            I.Int.mul(I.Int{up, un}, I.Int{1n+kp, 0n}),
+            I.Int{Nat.mul(vp, 1n+kp), Nat.mul(vn, 1n+kp)},
+            Equal.sym(I.Int, I.Int.mul(I.Int{up, un}, I.Int{1n+kp, 0n}),
+              I.Int{Nat.mul(up, 1n+kp), Nat.mul(un, 1n+kp)},
+              I.Int.mul_scale(up, un, 1n+kp)),
+            Equal.trans(I.Int,
+              I.Int.mul(I.Int{up, un}, I.Int{1n+kp, 0n}),
+              I.Int.mul(I.Int{vp, vn}, I.Int{1n+kp, 0n}),
+              I.Int{Nat.mul(vp, 1n+kp), Nat.mul(vn, 1n+kp)},
+              e,
+              I.Int.mul_scale(vp, vn, 1n+kp)))
+          +eup = I.Int.eq.pos(Nat.mul(up, 1n+kp), Nat.mul(un, 1n+kp),
+            Nat.mul(vp, 1n+kp), Nat.mul(vn, 1n+kp), ce)
+          +eun = I.Int.eq.neg(Nat.mul(up, 1n+kp), Nat.mul(un, 1n+kp),
+            Nat.mul(vp, 1n+kp), Nat.mul(vn, 1n+kp), ce)
+          Equal.trans(I.Int,
+            I.Int{up, un},
+            I.Int{vp, un},
+            I.Int{vp, vn},
+            Equal.cong(Nat, I.Int, w => I.Int{w, un}, up, vp,
+              N.mul_right_cancel(up, vp, kp, eup)),
+            Equal.cong(Nat, I.Int, w => I.Int{vp, w}, un, vn,
+              N.mul_right_cancel(un, vn, kp, eun)))
+
 def I.Int.canon.eqv.fwd(c1, xp, xn, c2, yp, yn, e1, e2, e):
   match c1:
     case GT{}:
