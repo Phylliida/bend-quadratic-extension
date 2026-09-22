@@ -944,6 +944,64 @@ def R.Rat.mk.rep(U, V, d):
     Equal.cong(I.Int, R.Rat, u => R.Rat{u, Rr}, I.Int{A, B}, I.Int{A2, B2}, En),
     Equal.cong(Nat, R.Rat, u => R.Rat{I.Int{A2, B2}, u}, Rr, Rr2, E3))
 
+# Rat.mk.canon.go: canon.go's branch value and Rat.num(xp,xn) are the same pair
+# once the truncation the branch's own sign forces to zero has collapsed, so each
+# branch is one congruence after Rat.mk.rep (read backwards) has put the
+# numerator into the Rat.num spelling mk.rep is stated over:
+#
+#   GT: canon.go's value is Int{sub(xp,xn), 0}, and sub(xn,xp) is 0 by sub_of_lt
+#       at the comparison the GT flips to (cmp_lt_of_gt);
+#   LT: canon.go's value is Int{0, sub(xn,xp)}, and sub(xp,xn) is 0 by sub_of_lt
+#       at the comparison itself;
+#   EQ: both truncations are 0 -- cmp_eq turns the branch into xp == xn, and one
+#       cong puts sub(xp,xp) at each of them for sub_self to close.
+#
+# Every rewrite is an Equal.cong rather than a %: the two truncations sit in the
+# constructor's own slots, which a % could reach too, but the chain reads better
+# with the endpoints spelled out (and the goal's own Rat.num spelling only meets
+# the Int constructor by conversion).
+def R.Rat.mk.canon.go(c, xp, xn, d, e):
+  match c:
+    case EQ{}:
+      +eeq = Equal.sym(Nat, xp, xn,
+        N.cmp_eq(xp, xn, Equal.sym(Cmp, EQ{}, Nat.cmp(xp, xn), e)))
+      +exz = Equal.trans(Nat, Nat.sub(xp, xn), Nat.sub(xp, xp), 0n,
+        Equal.cong(Nat, Nat, u => Nat.sub(xp, u), xn, xp, eeq),
+        N.sub_self(xp))
+      +ezx = Equal.trans(Nat, Nat.sub(xn, xp), Nat.sub(xp, xp), 0n,
+        Equal.cong(Nat, Nat, u => Nat.sub(u, xp), xn, xp, eeq),
+        N.sub_self(xp))
+      +ev = Equal.trans(I.Int, R.Rat.num(xp, xn), I.Int{0n, Nat.sub(xn, xp)}, I.Int{0n, 0n},
+        Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(xn, xp)}, Nat.sub(xp, xn), 0n, exz),
+        Equal.cong(Nat, I.Int, u => I.Int{0n, u}, Nat.sub(xn, xp), 0n, ezx))
+      Equal.trans(R.Rat,
+        R.Rat.mk(I.Int{xp, xn}, d),
+        R.Rat.mk(R.Rat.num(xp, xn), d),
+        R.Rat.mk(I.Int{0n, 0n}, d),
+        Equal.sym(R.Rat, R.Rat.mk(R.Rat.num(xp, xn), d), R.Rat.mk(I.Int{xp, xn}, d),
+          R.Rat.mk.rep(xp, xn, d)),
+        Equal.cong(I.Int, R.Rat, u => R.Rat.mk(u, d), R.Rat.num(xp, xn), I.Int{0n, 0n}, ev))
+    case GT{}:
+      Equal.trans(R.Rat,
+        R.Rat.mk(I.Int{xp, xn}, d),
+        R.Rat.mk(R.Rat.num(xp, xn), d),
+        R.Rat.mk(I.Int{Nat.sub(xp, xn), 0n}, d),
+        Equal.sym(R.Rat, R.Rat.mk(R.Rat.num(xp, xn), d), R.Rat.mk(I.Int{xp, xn}, d),
+          R.Rat.mk.rep(xp, xn, d)),
+        Equal.cong(I.Int, R.Rat, u => R.Rat.mk(u, d), R.Rat.num(xp, xn), I.Int{Nat.sub(xp, xn), 0n},
+          Equal.cong(Nat, I.Int, u => I.Int{Nat.sub(xp, xn), u}, Nat.sub(xn, xp), 0n,
+            N.sub_of_lt(xn, xp, N.cmp_lt_of_gt(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e))))))
+    case LT{}:
+      Equal.trans(R.Rat,
+        R.Rat.mk(I.Int{xp, xn}, d),
+        R.Rat.mk(R.Rat.num(xp, xn), d),
+        R.Rat.mk(I.Int{0n, Nat.sub(xn, xp)}, d),
+        Equal.sym(R.Rat, R.Rat.mk(R.Rat.num(xp, xn), d), R.Rat.mk(I.Int{xp, xn}, d),
+          R.Rat.mk.rep(xp, xn, d)),
+        Equal.cong(I.Int, R.Rat, u => R.Rat.mk(u, d), R.Rat.num(xp, xn), I.Int{0n, Nat.sub(xn, xp)},
+          Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(xn, xp)}, Nat.sub(xp, xn), 0n,
+            N.sub_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e)))))
+
 # The product shape
 # =================
 #
