@@ -301,6 +301,137 @@ and say so in the law comment.
 - Unary `Nat` is O(value) at runtime. Proofs don't care; CAD-sized
   coordinates will. A binary-nat layer is the right next investment.
 
+## The Rat route: remaining plan
+
+State at handoff: `Int` is `Int{pos, neg}` = `pos - neg` with all 19 ring laws
+proved; `Int.canon` (+ `canon.pos`, `canon.neg`, `canon.idem`) is in; the Nat
+scaling groundwork (`cmp_add_left`, `cmp_mul_right`, `mul_sub_add`,
+`sub_of_add`, `mul_sub`, `mul_one`) is in. Everything below is still open.
+
+Check with (from a bend checkout):
+
+    cd /home/bepis/prog/verus-cad/bend
+    node bend2/main.ts ../bend-quadratic-extension/src/nat_proofs.bend
+    node bend2/main.ts ../bend-quadratic-extension/src/int_proofs.bend
+    node bend2/main.ts ../bend-quadratic-extension/src/qext_proofs.bend
+    node bend2/main.ts ../bend-quadratic-extension/scratch.bend
+
+All four must print `All terms check.` (scratch prints a value instead). The
+laws-only files are *supposed* to fail with `Error: N TODOs found.`
+
+### The target
+
+`Rat{num: Int, den: Nat}`, canonical when `den` is positive, `num` has one
+side zero (i.e. is `Int.canon`'s output), and `gcd(num.pos + num.neg, den)`
+is 1. `Rat.mk(n, d)` normalizes; `==` on canonical `Rat`s then decides
+rational equality.
+
+### The key move: prove canonicality by scaling, not by coprimality
+
+To make the field axioms work you need the **forward** direction only:
+
+    n1 * d2 = n2 * d1  implies  Rat.mk(n1, d1) == Rat.mk(n2, d2)
+
+Get it from `norm(n*k, d*k) == norm(n, d)` for `k >= 1`, applied to
+`(n1*d2)/(d1*d2)` on both sides. That needs:
+
+- `Int.canon.scale`: `canon(x * K) == canon(x) * K`, where `K = Int{k, 0n}`
+  and `k >= 1`. (Careful: `k = 0` is a separate branch, where
+  `Int.mul_zero` collapses both sides to `Int{0n, 0n}`.)
+- `gcd(m*k, d*k) == k * gcd(m, d)`.
+- exact-division cancellation: `div(p*k, g*k) == div(p, g)` when `g | p`.
+
+This deliberately avoids Euclid's lemma and coprime-ness (`gcd = 1` plus
+`b | a*x` implies `b | x`), which are the deep part of "gcd correctness". The
+*reverse* direction — `Rat.mk(n1,d1) == Rat.mk(n2,d2)` implies
+`n1*d2 = n2*d1` — is trivial, because two equal canonical `Rat`s have equal
+fields. What is *not* needed anywhere is that gcd is the *greatest*.
+
+### Nat division correctness
+
+`base.bend` has `Nat.divmod.go(n, m, d, r)` (fuel = `n`, structural) and
+`Nat.divmod(a, b) = divmod.go(a, bp, 0n, 0n)` for `b = 1+bp`. With
+`b = 1+bp`, the loop state satisfies
+
+    a = d*b + r + n        and        r + m + 1 = b
+
+(initially `n=a, m=bp, d=0, r=0`; each step either bumps `d` and resets
+`r` when `m` runs out, or bumps `r`). At `n = 0` that gives
+`div(a,b)*b + mod(a,b) == a` and `mod(a,b) < b`. Project the pair with
+`Nat.div.fin` / `Nat.mod.fin` — a law statement cannot destructure.
+
+The loop invariant is the whole proof; state it as a law parameterised by
+`n, m, d, r, b` with the `r + m + 1 == b` hypothesis, and induct on `n`
+(structural, and `n` is the first parameter, so the descent check passes).
+
+### Nat gcd
+
+Euclid's descent is *not* structural, so gcd has to be fuel-driven, exactly
+like `divmod.go`. Keep the fuel first so the descent check passes:
+
+    def Nat.gcd.go(s: Nat, y: Nat, c: Cmp, x: Nat) -> Nat:
+      match s:
+        case 0n: 0n                       # unreachable with enough fuel
+        case 1n+sp:
+          match y:
+            case 0n: x
+            case 1n+yp:
+              match c:                    # c = cmp(x, y), passed in
+                case EQ{}: x
+                case LT{}: Nat.gcd.go(sp, Nat.sub(y, x), Nat.cmp(x, Nat.sub(y, x)), x)
+                case GT{}: Nat.gcd.go(sp, Nat.sub(x, y), Nat.cmp(Nat.sub(x, y), y), Nat.sub(x, y))
+
+    def Nat.gcd(a: Nat, b: Nat) -> Nat:
+      Nat.gcd.go(Nat.add(a, b), b, Nat.cmp(a, b), a)
+
+Match `s` then `y` then `c` — that *is* binder order (s, y, c, x), so it is
+legal; matching out of order is not. The subtractive step is what makes
+scaling easy: `gcd(m*k, d*k) == k*gcd(m,d)` then follows from `mul_sub`
+plus the fact that each step lowers `x + y` by `min(x,y)`, so fuel `a + b`
+suffices. A `mod`-based Euclid would instead need `(m*k) mod (d*k) = k*(m mod d)`,
+i.e. more division correctness.
+
+### Idioms this work will need, restated
+
+- **Evidence as a parameter.** A `match` scrutinee must be a parameter or a
+  pattern-bound variable, never a computed value, and a body that matches a
+  *stuck* `Nat.cmp` never reduces. So every lemma about `Int.canon` takes
+  `c: Cmp` plus `e: {c == Nat.cmp(xp, xn)}`, and callers with no comparison
+  to hand pass `c := Nat.cmp(xp, xn)` with evidence `{==}`.
+- **Unsticking `Nat.sub`.** `Nat.sub(a,b)` is stuck while `a` is symbolic, so
+  anything downstream of it (a `Nat.cmp`, an `Int.mk`-style match) is stuck
+  too. `sub_pos` rewrites it to `1n+Nat.sub(a,1n+b)` given `cmp(a,b) == GT`,
+  which makes it a constructor and lets everything reduce. This is the single
+  most-used move in the existing proofs.
+- **`%e : P` orientation.** `P` is the goal with `_` at an occurrence of the
+  *RHS* of `e`; the rewrite puts the *LHS* there. To rewrite the other way,
+  `Equal.sym` first. `Equal.sym(A, a, b, e)` takes `e : {a == b}` and gives
+  `{b == a}` — get the two endpoints the right way round or the rewrite
+  silently does nothing.
+- **Reading errors.** For `{==}` the checker prints `expected` = the goal's
+  left side and `observed` = its right side. For a `%` step it prints
+  `expected` = the actual goal and `observed` = the annotation you wrote. A
+  long `expected`/`observed` pair that looks identical usually means an
+  annotation was transcribed with the wrong sub-term somewhere.
+- **Splitting a law into Nat halves.** When a goal is two independent
+  coordinate equations, prove the coordinates as their own laws and assemble
+  with two `Equal.sym` rewrites; each chain then spells half as much.
+
+### Order to work in
+
+1. `Nat.divmod` correctness (loop invariant) and the `div`/`mod` laws it
+   gives. This blocks everything else.
+2. `Nat.gcd` + `gcd` divides both arguments + `gcd(m*k, d*k) == k*gcd(m,d)`.
+3. `Int.canon.scale`, and `Int.canon.eqv` (the quotient lemma,
+   `canon x == canon y` iff `xp + yn == yp + xn`) if it fits.
+4. `Rat`: the type, `Rat.mk`, canonicality by the scaling route, then the
+   field axioms.
+5. `QExt` over `Rat`: field axioms plus the inverse
+   `1/(a + b*sqrt d) = (a - b*sqrt d)/(a^2 - b^2*d)`.
+
+Commit each unit once its gate is green; do not leave a law stated but
+unfilled, since that turns every dependent gate into `N TODOs found.`
+
 ## Where the trust boundary is
 
 `All terms check.` means the (human-written, per `AGENTS.md`) kernel in
