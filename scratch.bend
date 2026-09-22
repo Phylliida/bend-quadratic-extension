@@ -1,5 +1,6 @@
 import Base
 import ./src/int.bend as I
+import ./src/int_proofs.bend as IP
 
 # smoke: (3 + -5) + 7 == 3 + (-5 + 7)  == 5 ; and the proof term exists
 def three() -> I.Int: I.Int{False{}, 3n}
