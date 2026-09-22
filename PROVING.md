@@ -1726,6 +1726,68 @@ fill actually proves are unambiguous (the coordinate equations give
 at every one of the ten instances checked), but which `Rat.mk` lemma consumes
 it is not settled by the two measurements recorded here.
 
+#### The remeasurement: `mk.eqv.raw` is refuted, and the consumer is the *value* lemma
+
+Both spellings of `mk.eqv.raw` were re-measured at ten canonical instances and
+**both fail, including at the section's own instance** -- this closes the
+question the warning above left open:
+
+- the raw cross product (`Int.mul(xn, numof(M2))` against the RHS's unreduced
+  sum), and
+- the truncated one (`mk.trunc`'s pair on the RHS), and
+- the truncated-on-the-left spelling that had not been tried.
+
+At `X=1/2, Y=-1/3, Z=1/5`, in the four Nats `(numerator pos, numerator neg,
+denominator)`:
+
+    LHS = mk(Int{6,10}, 12)     cross product  Int{360, 720}
+    RHS = mk(Int{6,10}, 60)     cross product  Int{360, 720}
+
+so *this* spelling agrees at the section's instance -- while the spelling the
+recorded recipe names (`mk.trunc` of the RHS numerator, `Int{0,4}`) does **not**:
+it gives `Int{360,720}` against `Int{240,480}`, and it is the truncation that
+breaks it, because the RHS numerator's coordinates `(6,10)` are already the
+truncation-free reading the value equations produce.
+
+**Which lemma consumes the coordinate identity, by structure rather than by a
+numerical probe.** `Int.mul(xn, B)` and `Int.add(Int.mul(..), Int.mul(..))` are
+*already* constructor pairs -- `Int.mul`'s and `Int.add`'s bodies are
+`Int{..}`-headed, so both arguments of the two closing `mk`s are `Int{a, b}`
+terms and **no `Int.mul_scale` arises at the closing step at all**. That is the
+structural fact the earlier rounds missed: the three-spelling trap belongs to
+`Rat.num`'s difference pairs (and to `Rat.mk.scale`), not to mul-distrib, whose
+numerators are ordinary products and sums of pairs. And for two `mk`s whose
+arguments are constructor pairs, the closing lemma that speaks in value terms is
+`Rat.mk.eqv.val` -- `mk.eqv.raw` asks for a *product* equation between the pairs
+and is false whenever the two representatives differ, which is exactly what the
+measurement above shows.
+
+So the corrected recipe is: **`Rat.mk.eqv.val` at the two raw constructor
+pairs**, with the hypothesis being the Nat cross sum of those pair coordinates,
+and the hypothesis is the coordinate identity scaled -- which is why the
+`R.Rat.value.scaled.pos` / `.neg` pair (landed, above) is the right bridge:
+each call hands over exactly one coordinate equation of one value equation, at
+the scale the cross sum needs. What is *not* settled, and is the next
+measurement, is the exact pair of Nat equations the fill has to combine: the
+cross sum is stated over `numof(M2)`'s coordinates, and `numof(M2)` is a
+`div`/`gcd` term, not a difference pair, so the step that replaces it by the
+inner sum's own value pair `(P2, Q2)` is a re-spelling *inside* the cross sum
+and was not measured. Three numerical probes of candidate spellings disagreed
+with each other under a hand-written model of `Rat.mk`, which is a sign the
+model -- not the spelling -- was wrong; the honest state is that the consumer is
+settled and the last re-spelling is not.
+
+One harness note that cost time and generalizes: **a probe cannot import a
+laws-only file at all.** `import ./src/rat.bend` plus a one-line `main` is
+rejected with `Error: 195 TODOs found.` before anything runs, and the same file
+importing `nat.bend` reports `126` -- the CLI counts every law body the parser
+saw as a `?TODO` in the *whole closure* (`main.ts`'s `book_read` sums
+`book.hols + book.open`, and `book.hols` is bumped in the parser, before the
+loader's `done` bookkeeping that keeps a filled file out of `book.open`). So a
+measurement that needs the *definitions* of a laws-only file has to import a
+law-stripped copy of it (`sed` out the `law` blocks; the `def`s are
+self-contained).
+
 **The cross product itself** is then assembled the way `Rat.mul_assoc` and
 `Rat.add.value` assemble theirs: scale both sides of the equation by
 `d2 = Yd*Zd` (the inner sum's own denominator) and use the three value
