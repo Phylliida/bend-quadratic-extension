@@ -302,8 +302,13 @@ and say so in the law comment.
   Under sign-magnitude the same laws were 7–545.
 - `Rat` with gcd normalization needs a division correctness proof — the
   hardest single lemma on the path to the field axioms.
-- Unary `Nat` is O(value) at runtime. Proofs don't care; CAD-sized
-  coordinates will. A binary-nat layer is the right next investment.
+- `Nat` is unary in *proof land* only. A proof-land literal is a tower of `Succ`
+  around `Zero` (`bend.ts:2245`), so literal size is term size and each `Nat`
+  operation recurses over that tower; the compiled lanes are binary already (C:
+  `Nat` is W64, `nat_add`/`nat_mul`/`nat_divmod` are native ops; JS: BigInt).
+  Proofs don't care; CAD-sized coordinates will. A binary-nat layer for proof
+  land is the right next investment. (This bullet said "O(value) at runtime"
+  until the correction that the runtimes are binary.)
 
 ## The Rat route: remaining plan
 
@@ -3395,3 +3400,132 @@ qrat.bend **233** (rat's 223 + 10 QExt -- the LT law is the tenth). All five
 `src/*_proofs.bend` print `All terms check.`, as do `probe.bend` and
 `probe.payoff.bend`, and `scratch.bend` prints the same `Rat.inv` triple it has
 since round three.
+
+## The operations QExt.inv and QExt.div, and the field axiom measured false at non-canonical spellings (measured)
+
+Round six closed the payoff as a *relation*: `x * (conj(x)/norm(d,x)) = 1`, one
+law per sign of the norm, with the norm spelled as a raw rational pair of that
+sign plus `hZ` saying the norm *is* that rational. Nothing in the tree named an
+inverse or a quotient as a `QExt` operation, though, so the pair had no
+consumer that could write `1/x` -- it could only write the product the laws are
+stated over. This round adds the operations and the two law pairs stated over
+them, and measures the boundary of the field axiom.
+
+**The defs** (in `src/qrat.bend`, right after `QExt.norm`):
+
+    QExt.inv(x, q)      = QExt{QExt.re(x)/q, (-QExt.im(x))/q}
+    QExt.div(d, x, y, q) = QExt.mul(d, x, QExt.inv(y, q))
+
+`q` is a *parameter*, not `QExt.norm(d,x)` computed in the body. That is forced
+by round four's wall, one layer up: `Rat.div` needs a constructor-headed divisor
+for the `Nat.cmp` inside `Rat.inv`'s argument list to compute, and
+`QExt.norm(d,x)` is an operation's output, so a computed `q` would put the stuck
+comparison back where no rewrite reaches it. The caller hands over the norm as a
+spelled rational (`R.Rat.of(1n+ap, 0n, dp)` or `R.Rat.of(0n, 1n+bp, dp)`), and
+the laws' `hZ` is what says that rational *is* the norm. `QExt.div`'s `q` is
+*y's* norm spelling -- round five's note that `QExt.inv`'s body is verbatim the
+divisor expression the value laws are stated over now pays off: the operations
+apply those laws by conversion alone, with no bridge.
+
+**The linearity lesson, second instance.** The first attempt was
+`def QExt.inv(x: QExt, q: R.Rat)` and it died with `expected : q / observed : q
+(consumed more than once)`: `q` appears twice in the body, and `x` twice through
+`re`/`im`. `+x, +q` is the fix -- the same shape as `Nat.gcd_self`'s `+a`
+(round two) and `QExt.neg_neg`'s coefficient hypotheses. Worth stating as a rule
+for defs rather than laws: *a parameter used twice in a body must be declared
+implicit*, and an operation whose body destructures its argument twice is
+automatically in that case.
+
+**`QExt.mul_inv.gt`/`.lt`, and why there is no third law.** Each states
+`QExt.mul(d, x, QExt.inv(x, spelled_norm)) = QExt.one()`, with the same `gx`/`hx`
+positivity hypotheses as the value laws and the same `hZ`, and each fill is
+*one call* to `QExt.inv.value.gt`/`.lt`: `QExt.inv(x, q)` unfolds to the
+divisor expression those laws are stated over and `R.Rat.of` unfolds to the
+spelled constructor. The pair exists so the operation and the spelled relation
+cannot drift apart; if a value law is ever restated, these two are what fails.
+The fill's comment says so.
+
+`x/x = 1` is deliberately **not** a law here, and the reason is a measurement
+rather than a preference: `QExt.div(d, x, x, q)` unfolds to
+`QExt.mul(d, x, QExt.inv(x, q))` verbatim, which is exactly the product
+`QExt.mul_inv` concludes, so a caller writes the quotient they want and cites
+that law. `Rat.div_self.gt` is a real Rat law only because Rat's divisor there
+is a raw coordinate spelling; at the operation level the statement collapses
+into the one already present. `probe.payoff.bend` records the collapse from the
+caller's side: `probe.op.div.self.gt`/`.lt` are each one call, at a variable `x`.
+
+**`QExt.div_add.gt`/`.lt`.** `(x+y)/z = x/z + y/z`, six positivity hypotheses
+(the same list `QExt.mul_distrib` takes) and -- unlike `mul_inv` -- **no `hZ`**:
+the law is about dividing by the spelled rational, and what connects a spelling
+to a norm is the caller's business. What makes the fill short is the asymmetry
+with `QExt.mul_distrib`, which needs the *reciprocal's* coordinate positivity as
+hypotheses: here it is not a hypothesis but a derivation, because the reciprocal
+of a spelled rational is a constructor whose denominator is `1n+ap` (positive by
+`{==}`) and `Rat.mul.den.pos` lifts the divisor's positivity to the quotient's.
+So the fill is four steps: `+rp = R.Rat.of(1n+dp, 0n, ap)` (the reciprocal's raw
+pair, the one `probe.unfold.div.pos` records), two `R.Rat.mul.den.pos` calls --
+the second under `R.Rat.neg`, so it is fed `R.Rat.neg.den.pos(zb, hz)` -- and
+then `qext.mul_add_left` at the reciprocal. The LT twin is the same with
+`of(0n, 1n+bp, dp)` / `of(0n, 1n+dp, bp)`, all witnesses still `{==}`.
+
+`qext.mul_add_left` is a bare *helper*, not a law: `QExt.mul_distrib` is stated
+on the left (`(y+z)*x`), the mirror is `QExt.mul_comm` + that law + two
+`QExt.mul_comm`s under a cong, and both `div_add` branches share it. The Rat
+layer keeps the same mirror as a *law* (`Rat.mul_add_left.arb`) because there it
+is a fact about multiplication that consumers may want; here its only consumer
+is the fill, and the layer's habit is to keep bare helpers bare (as
+`qext.re`/`qext.im` are).
+
+**The `+rp` let, and a gotcha that reappeared in a new position.** The first
+version wrote `+rp = R.Rat{R.Rat.num(1n+dp, 0n), 1n+ap}` and died with
+`expected : an annotated term (cannot infer) / observed : rat.Rat{int.Int{1n+dp,
+0n}, 1n+ap}` -- the long-recorded rule that a constructor literal cannot head a
+`let`, which is the whole reason `Rat.of` exists. `R.Rat.of(1n+dp, 0n, ap)` is
+the fix, in both branches.
+
+**The field axiom `(x/y)*y = x` is out of reach, and the probes say why.** Three
+measurements, in this order, each one run before any proof was attempted:
+
+1. At a variable `x`, `QExt.mul(d, x, QExt.one()) = x` filled with `{==}` fails:
+   `expected : QExt.mul(...) / observed : x`. Not definitional -- `QExt.mul`
+   destructures its arguments and its coordinates are sums of products, so there
+   is real work here, and `QExt.mul_one` is the law that would do it.
+2. At a canonical literal instance (`x = y = 2 + sqrt 2`, `d = 2`, norm 2,
+   divisor `R.Rat.of(1n+1n, 0n, 0n)`), the axiom closes with `{==}`: `All terms
+   check.` So the equation is *true* -- what is missing is a proof at a variable,
+   not a counterexample.
+3. At a **non-canonical** dividend it is *false*: with real coordinate
+   `Rat{Int{2n,0n}, 2n}` (the value 1, spelled unreduced), `x * QExt.one()`
+   fails with `expected : Rat{Int{1n,0n},1n} / observed : Rat{Int{2n,0n},2n}`
+   -- the product comes back normalized while `x` keeps the unreduced spelling --
+   and the axiom at that dividend with `y = QExt.one()` fails the same way.
+
+So no law can state the field axiom at arbitrary values: `==` on `Rat` is
+structural and `QExt.one()`'s own coordinates are canonical, so the conclusion is
+canonical whether or not the dividend is. The variable form has to be presented
+over canonical spellings (canonicality hypotheses, exactly the shape
+`Rat.mul_one(n, d, fx)` uses, where `fx : Rat.mk(n,d) == Rat{n,d}` is the
+bridge), and it therefore waits on a presentation-level `QExt.mul_one` rather
+than on any positivity fact. That is the next unit. The route is stated as a
+route, not as a result: measurement 1 is what says `mul_one` is needed at all,
+and the canonicality restriction is a restriction on the *proof*, since
+measurement 2 shows the equation itself holds.
+
+**The consumer probe grew the operation surface.** `probe.payoff.bend` gains
+six defs (twelve in the file now, from the six of round six): `probe.op.unfold.inv` (that `QExt.inv` is its own body by conversion,
+at a variable value and a variable rational), `probe.op.div.self.gt`/`.lt` (the
+collapse above, one call each), `probe.op.div_add.gt`/`.lt` (the new pair at
+variables), and `probe.op.instance`
+(`(2 + sqrt 2)/(2 + sqrt 2) = 1` at literals -- `{==}`, as the rest of the
+literal instances are). The defs are written against the published names at
+their own telescopes, so an implicit argument that stops being inferable fails
+here first.
+
+**Counts, measured.** Laws-only: nat.bend 128, int.bend 32, qext.bend 34,
+rat.bend 223, qrat.bend **237** (rat's 223 + 14 QExt: the ten of round six, the
+two `mul_inv` operation laws, the two `div_add` operation laws). All five
+`src/*_proofs.bend` print `All terms check.`, as do `probe.bend` and
+`probe.payoff.bend`; `scratch.bend` prints the same triple it has since round
+three. The defs themselves do not move the count -- laws-only was still 233
+after `QExt.inv` and `QExt.div` were added, and `qrat_proofs.bend` checked
+immediately.

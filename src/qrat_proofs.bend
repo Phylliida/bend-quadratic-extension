@@ -1339,3 +1339,94 @@ def Q.QExt.inv.value.lt(d, x, gx, hx, bp, dp, hZ):
         qext.im(R.Rat.one(), Li, R.Rat.zero(),
           QExt.inv.value.lt.im(d, xa, xb, gx, hx, bp, dp, hZ)))
 
+# --- the inverse as an operation ---
+#
+# QExt.mul_inv.gt / .lt are the operation-level form of the two payoff fills
+# above, and each fill is one call: QExt.inv is a def whose body is verbatim the
+# payoff's divisor expression, and R.Rat.of unfolds to the constructor the payoff
+# spells, so the goal *is* the payoff's conclusion by conversion. Nothing is
+# re-derived -- if these two ever fail while the value pair checks, the operation
+# and the spelled relation have drifted apart, which is the one thing the pair
+# exists to prevent.
+
+def Q.QExt.mul_inv.gt(d, x, gx, hx, ap, dp, hZ):
+  Q.QExt.inv.value.gt(d, x, gx, hx, ap, dp, hZ)
+
+def Q.QExt.mul_inv.lt(d, x, gx, hx, bp, dp, hZ):
+  Q.QExt.inv.value.lt(d, x, gx, hx, bp, dp, hZ)
+
+# --- division ---
+#
+# qext.mul_add_left: (x + y)*z = x*z + y*z, the mirror QExt.mul_distrib does not
+# state. Rat has the same pair (Rat.mul_distrib.arb / Rat.mul_add_left.arb) and
+# rat.bend's comment on the latter records that the mirror is not proved
+# separately either: QExt.mul_comm to turn the product around -- it is
+# unconditional, which is why this mirror needs nothing the stated law does not
+# -- then the stated law, then QExt.mul_comm under a cong on each summand.
+#
+# It is a helper rather than a law because it is not itself a fact about
+# division: what QExt.div_add needs is exactly this, and the two branch fills
+# below share it.
+def qext.mul_add_left(+d: Nat, +x: Q.QExt, +y: Q.QExt, +z: Q.QExt,
+                      +gx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(x))) == LT{} : Cmp},
+                      +hx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(x))) == LT{} : Cmp},
+                      +gy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(y))) == LT{} : Cmp},
+                      +hy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(y))) == LT{} : Cmp},
+                      +gz: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(z))) == LT{} : Cmp},
+                      +hz: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(z))) == LT{} : Cmp})
+  -> {Q.QExt.mul(d, Q.QExt.add(x, y), z)
+      == Q.QExt.add(Q.QExt.mul(d, x, z), Q.QExt.mul(d, y, z)) : Q.QExt}:
+  Equal.trans(Q.QExt,
+    Q.QExt.mul(d, Q.QExt.add(x, y), z),
+    Q.QExt.mul(d, z, Q.QExt.add(x, y)),
+    Q.QExt.add(Q.QExt.mul(d, x, z), Q.QExt.mul(d, y, z)),
+    Q.QExt.mul_comm(d, Q.QExt.add(x, y), z),
+    Equal.trans(Q.QExt,
+      Q.QExt.mul(d, z, Q.QExt.add(x, y)),
+      Q.QExt.add(Q.QExt.mul(d, z, x), Q.QExt.mul(d, z, y)),
+      Q.QExt.add(Q.QExt.mul(d, x, z), Q.QExt.mul(d, y, z)),
+      Q.QExt.mul_distrib(d, z, x, y, gz, hz, gx, hx, gy, hy),
+      Equal.trans(Q.QExt,
+        Q.QExt.add(Q.QExt.mul(d, z, x), Q.QExt.mul(d, z, y)),
+        Q.QExt.add(Q.QExt.mul(d, x, z), Q.QExt.mul(d, z, y)),
+        Q.QExt.add(Q.QExt.mul(d, x, z), Q.QExt.mul(d, y, z)),
+        Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.add(u, Q.QExt.mul(d, z, y)),
+          Q.QExt.mul(d, z, x), Q.QExt.mul(d, x, z), Q.QExt.mul_comm(d, z, x)),
+        Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.add(Q.QExt.mul(d, x, z), u),
+          Q.QExt.mul(d, z, y), Q.QExt.mul(d, y, z), Q.QExt.mul_comm(d, z, y)))))
+
+# QExt.div_add.gt / .lt: the quotient of a sum, one law per sign of the divisor's
+# spelling.
+#
+# The whole fill is qext.mul_add_left at the reciprocal, because the goal and the
+# helper's conclusion are the same term once QExt.div unfolds: the quotient
+# x/z *is* mul(d, x, QExt.inv(z, q)), by the definition and not by a law.
+#
+# The two positivity hypotheses the helper needs for its right factor -- the
+# quotient's own coordinates -- are built here rather than asked for: the
+# reciprocal of a spelled rational is a constructor, so its denominator is
+# positive by computation ({==}), and Rat.mul.den.pos lifts z's positivity
+# through the division. That is the one piece of work the branch adds, and it is
+# the reason the law's hypothesis list is the same six QExt.mul_distrib takes
+# while nothing about reciprocals appears in its statement.
+
+def Q.QExt.div_add.gt(d, x, y, z, gx, hx, gy, hy, gz, hz, ap, dp):
+  match z:
+    case Q.QExt{za, zb}:
+      +q = R.Rat.of(1n+ap, 0n, dp)
+      +rp = R.Rat.of(1n+dp, 0n, ap)
+      +i = Q.QExt.inv(Q.QExt{za, zb}, q)
+      +gi = R.Rat.mul.den.pos(za, rp, gz, {==})
+      +hi = R.Rat.mul.den.pos(R.Rat.neg(zb), rp, R.Rat.neg.den.pos(zb, hz), {==})
+      qext.mul_add_left(d, x, y, i, gx, hx, gy, hy, gi, hi)
+
+def Q.QExt.div_add.lt(d, x, y, z, gx, hx, gy, hy, gz, hz, bp, dp):
+  match z:
+    case Q.QExt{za, zb}:
+      +q = R.Rat.of(0n, 1n+bp, dp)
+      +rp = R.Rat.of(0n, 1n+dp, bp)
+      +i = Q.QExt.inv(Q.QExt{za, zb}, q)
+      +gi = R.Rat.mul.den.pos(za, rp, gz, {==})
+      +hi = R.Rat.mul.den.pos(R.Rat.neg(zb), rp, R.Rat.neg.den.pos(zb, hz), {==})
+      qext.mul_add_left(d, x, y, i, gx, hx, gy, hy, gi, hi)
+
