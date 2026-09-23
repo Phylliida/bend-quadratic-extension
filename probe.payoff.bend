@@ -343,3 +343,75 @@ def probe.add_zero.instance()
                  Q.QExt.zero())
       == Q.QExt{R.Rat{I.Int{2n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}} : Q.QExt}:
   {==}
+
+# The negation and conjugation laws, from the caller's side -- qrat.bend's own
+# statements in the same spellings, each body one call, so an implicit argument
+# that stops being inferable fails here first. These five are the arbitrary-value
+# laws, and the hypotheses they take are the ones the Rat laws underneath them
+# need, not more: the sum laws ask for their *summands*' positivity and never for
+# the sum's, and the conjugate's involution asks for the imaginary coordinate's
+# coprimality alone (the real coordinate is carried through untouched).
+def probe.neg_add(+x: Q.QExt, +y: Q.QExt,
+                  +gx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(x))) == LT{} : Cmp},
+                  +gy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(y))) == LT{} : Cmp},
+                  +hx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(x))) == LT{} : Cmp},
+                  +hy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(y))) == LT{} : Cmp})
+  -> {Q.QExt.neg(Q.QExt.add(x, y)) == Q.QExt.add(Q.QExt.neg(x), Q.QExt.neg(y)) : Q.QExt}:
+  Q.QExt.neg_add(x, y, gx, gy, hx, hy)
+
+# The same law read backwards, which is how a caller who *has* a sum of negations
+# reaches the negation of the sum: one Equal.sym, since the law is an equation and
+# not a rewrite. Nothing else here -- the point is that the orientation a caller
+# needs is not baked into the statement.
+def probe.neg_add.out(+x: Q.QExt, +y: Q.QExt,
+                      +gx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(x))) == LT{} : Cmp},
+                      +gy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(y))) == LT{} : Cmp},
+                      +hx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(x))) == LT{} : Cmp},
+                      +hy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(y))) == LT{} : Cmp})
+  -> {Q.QExt.add(Q.QExt.neg(x), Q.QExt.neg(y)) == Q.QExt.neg(Q.QExt.add(x, y)) : Q.QExt}:
+  Equal.sym(Q.QExt, Q.QExt.neg(Q.QExt.add(x, y)),
+    Q.QExt.add(Q.QExt.neg(x), Q.QExt.neg(y)),
+    Q.QExt.neg_add(x, y, gx, gy, hx, hy))
+
+def probe.mul_neg(+d: Nat, +x: Q.QExt, +y: Q.QExt,
+                  +gx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(x))) == LT{} : Cmp},
+                  +hx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(x))) == LT{} : Cmp},
+                  +gy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(y))) == LT{} : Cmp},
+                  +hy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(y))) == LT{} : Cmp})
+  -> {Q.QExt.mul(d, x, Q.QExt.neg(y)) == Q.QExt.neg(Q.QExt.mul(d, x, y)) : Q.QExt}:
+  Q.QExt.mul_neg(d, x, y, gx, hx, gy, hy)
+
+def probe.neg_mul(+d: Nat, +x: Q.QExt, +y: Q.QExt,
+                  +gx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(x))) == LT{} : Cmp},
+                  +hx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(x))) == LT{} : Cmp},
+                  +gy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(y))) == LT{} : Cmp},
+                  +hy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(y))) == LT{} : Cmp})
+  -> {Q.QExt.mul(d, Q.QExt.neg(x), y) == Q.QExt.neg(Q.QExt.mul(d, x, y)) : Q.QExt}:
+  Q.QExt.neg_mul(d, x, y, gx, hx, gy, hy)
+
+def probe.conj_add(+x: Q.QExt, +y: Q.QExt,
+                   +hx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(x))) == LT{} : Cmp},
+                   +hy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(y))) == LT{} : Cmp})
+  -> {Q.QExt.conj(Q.QExt.add(x, y))
+      == Q.QExt.add(Q.QExt.conj(x), Q.QExt.conj(y)) : Q.QExt}:
+  Q.QExt.conj_add(x, y, hx, hy)
+
+# The involution at the law's own presentation, and the caller's-side statement of
+# what a downstream file has: coprimality of the imaginary coordinate, which
+# Rat.mk.fixed turns into the bridge that spelling needs -- not asked for here,
+# exactly as in qrat.bend, because the real coordinate never enters a gcd.
+def probe.conj_conj(+np: Nat, +nn: Nat, +dp: Nat,
+                    +mq: Nat, +mn: Nat, +dq: Nat,
+                    +h: {N.Nat.gcd(R.Rat.mag(mq, mn), 1n+dq) == 1n : Nat})
+  -> {Q.QExt.conj(Q.QExt.conj(Q.QExt.of(np, nn, dp, mq, mn, dq)))
+      == Q.QExt.of(np, nn, dp, mq, mn, dq) : Q.QExt}:
+  Q.QExt.conj_conj(np, nn, dp, mq, mn, dq, h)
+
+# The arithmetic at 1 + sqrt 2: conj(conj(x)) = x with every implicit argument
+# inferred at a concrete instance (dq = 1 makes the imaginary denominator 1 + 1,
+# so the coprimality gcd(1, 2) = 1 computes and the evidence is {==}).
+def probe.conj_conj.instance()
+  -> {Q.QExt.conj(Q.QExt.conj(
+        Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}))
+      == Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}} : Q.QExt}:
+  {==}

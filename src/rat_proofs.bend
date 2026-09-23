@@ -4551,6 +4551,36 @@ def R.Rat.neg_mul(x, y, px, py):
       Equal.cong(R.Rat, R.Rat, u => R.Rat.neg(u),
         R.Rat.mul(y, x), R.Rat.mul(x, y), R.Rat.mul_comm(y, x))))
 
+# Rat.neg_add.arb: the same three-step shape as Rat.mul_neg, one operation over.
+# Negation is multiplication by -1, distributivity carries it across the sum, and
+# the two products come back as negations by the same bridge. No destructuring,
+# no value law, no cross product: this is the rewriting rung of the additive
+# negation, and the reason the QExt negation laws do not have to touch mk.
+def R.Rat.neg_add.arb(x, y, px, py):
+  +A = R.Rat.neg(R.Rat.one())
+  +s = R.Rat.add(x, y)
+  +m1 = R.Rat.mul(A, x)
+  +m2 = R.Rat.mul(A, y)
+  Equal.trans(R.Rat,
+    R.Rat.neg(s),
+    R.Rat.mul(A, s),
+    R.Rat.add(R.Rat.neg(x), R.Rat.neg(y)),
+    Rat.neg_eq_mul_negone(s),
+    Equal.trans(R.Rat,
+      R.Rat.mul(A, s),
+      R.Rat.add(m1, m2),
+      R.Rat.add(R.Rat.neg(x), R.Rat.neg(y)),
+      R.Rat.mul_distrib.arb(A, x, y, {==}, px, py),
+      Equal.trans(R.Rat,
+        R.Rat.add(m1, m2),
+        R.Rat.add(R.Rat.neg(x), m2),
+        R.Rat.add(R.Rat.neg(x), R.Rat.neg(y)),
+        Equal.cong(R.Rat, R.Rat, u => R.Rat.add(u, m2), m1, R.Rat.neg(x),
+          Equal.sym(R.Rat, R.Rat.neg(x), m1, Rat.neg_eq_mul_negone(x))),
+        Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.neg(x), u), m2,
+          R.Rat.neg(y),
+          Equal.sym(R.Rat, R.Rat.neg(y), m2, Rat.neg_eq_mul_negone(y))))))
+
 # Rat.add_neg
 # ===========
 #

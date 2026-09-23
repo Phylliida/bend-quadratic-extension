@@ -332,6 +332,56 @@ law QExt.mul_conj:
   for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
   {QExt.mul(d, x, QExt.conj(x)) == QExt{QExt.norm(d, x), R.Rat.zero()} : QExt}
 
+# QExt.conj_add: conj(x + y) = conj(x) + conj(y) -- the conjugate is additive.
+# One Rat.neg_add.arb on the imaginary coordinate and nothing else: QExt.conj
+# touches the imaginary coefficient alone, addition is componentwise, and the real
+# coordinate is the *same term* on both sides, so no congruence is even needed.
+# The positivity hypotheses are the imaginary coefficients', for the same reason
+# as in QExt.neg_add.
+law QExt.conj_add:
+  for +x: QExt
+  for +y: QExt
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  {QExt.conj(QExt.add(x, y)) == QExt.add(QExt.conj(x), QExt.conj(y)) : QExt}
+
+# QExt.conj_conj: conj(conj(x)) = x -- the conjugate is an involution, so the
+# additive law above plus this one say conj is an additive automorphism of QExt.
+#
+# Conditional, and only on the imaginary coordinate: conj(conj(x)) has the real
+# coefficient re(x) unchanged and the imaginary one neg(neg(im x)), so the gap is
+# one Rat.neg_neg -- the Rat law that is false unconditionally (rat.bend records
+# np = 4, nn = 0, dp = 1 as a witness) and needs the imaginary coefficient to be
+# a spelled value with coprime numerator and denominator. It is the same
+# hypothesis as QExt.neg_neg's, minus the real coordinate's, which this law does
+# not touch.
+#
+# What is deliberately *not* here is multiplicativity, conj(x*y) = conj(x)*conj(y).
+# It does not fail on presentation -- it fails on an identity this presentation
+# cannot state: the real coordinate of conj(x)*conj(y) is
+# mul(xa,ya) + d*mul(neg xb, neg yb) and conj(x*y)'s is
+# mul(xa,ya) + d*mul(xb,yb), so the law needs mul(neg xb, neg yb) = mul(xb, yb)
+# at *variables* -- an identity no chain of the Rat laws in rat.bend reaches,
+# because the only route to it is double negation at an operation's own output
+# (neg(neg U) = U for U = mul(xb,yb)), and Rat.neg_neg is stated over the
+# canonical spelling, which a product is not -- measured, `{==}` cannot close
+# neg(neg(mul(a,b))) = mul(a,b) and Rat.neg_neg does not apply to it. Both
+# literals-are-true and variables-are-stuck are recorded in PROVING.md; what
+# would unblock it is a Rat law about mk's own output being reduced, which is a
+# Nat-level gcd fact (the coprimality of the numerator and denominator mk
+# produces) rather than a rearrangement.
+law QExt.conj_conj:
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +mq: Nat
+  for +mn: Nat
+  for +dq: Nat
+  for +h: {N.Nat.gcd(R.Rat.mag(mq, mn), 1n+dq) == 1n : Nat}
+  {QExt.conj(QExt.conj(QExt{R.Rat{R.Rat.num(np, nn), 1n+dp},
+                           R.Rat{R.Rat.num(mq, mn), 1n+dq}}))
+   == QExt{R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat{R.Rat.num(mq, mn), 1n+dq}} : QExt}
+
 # QExt.mul_one: x * 1 = x, at the canonical presentation.
 #
 # Stated over QExt.of's six coordinates and not over an arbitrary value, because
@@ -419,6 +469,56 @@ law QExt.add_neg:
   for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
   for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
   {QExt.add(x, QExt.neg(x)) == QExt.zero() : QExt}
+
+# QExt.neg_add: -(x + y) = (-x) + (-y) -- the distribution of the negation over
+# the sum, and the additive half of "conj is a ring homomorphism" below. It is
+# Rat.neg_add.arb per coordinate, which is the rung-2 form: the coordinates of an
+# arbitrary QExt are operation outputs, and the canonical Rat.neg_add the earlier
+# unit added cannot be applied there.
+#
+# Note which hypotheses are there and why: the negation is componentwise, so
+# *both* coordinates are negated sums and both need their summands' positivity --
+# the real coordinate's for its own Rat.neg_add.arb, the imaginary coordinate's
+# for its. The sum of two reals is formed (as it is on both sides of the law), but
+# its positivity is not needed: Rat.neg_add.arb asks for its summands' only.
+law QExt.neg_add:
+  for +x: QExt
+  for +y: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +gy: {Nat.cmp(0n, R.Rat.denof(QExt.re(y))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  {QExt.neg(QExt.add(x, y)) == QExt.add(QExt.neg(x), QExt.neg(y)) : QExt}
+
+# QExt.mul_neg / QExt.neg_mul: -(x*y) = x*(-y) = (-x)*y -- the negation laws of
+# the product, the multiplicative twins of QExt.neg_add, and both stated over
+# *arbitrary* values. Each coordinate is the corresponding Rat law (Rat.mul_neg
+# for the first, Rat.neg_mul for the second) plus the same law under a
+# congruence, because a product's coordinates are sums of two products and a
+# negation has to be pushed to whichever factor carries it.
+#
+# The full positivity telescope: every coefficient of both factors, as in
+# QExt.add_assoc and QExt.mul_assoc, because every coordinate's product is fed to
+# a Rat law that asks for its factors' denominators.
+law QExt.mul_neg:
+  for +d: Nat
+  for +x: QExt
+  for +y: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +gy: {Nat.cmp(0n, R.Rat.denof(QExt.re(y))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  {QExt.mul(d, x, QExt.neg(y)) == QExt.neg(QExt.mul(d, x, y)) : QExt}
+
+law QExt.neg_mul:
+  for +d: Nat
+  for +x: QExt
+  for +y: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +gy: {Nat.cmp(0n, R.Rat.denof(QExt.re(y))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  {QExt.mul(d, QExt.neg(x), y) == QExt.neg(QExt.mul(d, x, y)) : QExt}
 
 # QExt.inv.value.gt
 # =================

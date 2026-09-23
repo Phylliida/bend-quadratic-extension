@@ -1340,6 +1340,30 @@ law Rat.neg_mul:
   for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
   {Rat.mul(Rat.neg(x), y) == Rat.neg(Rat.mul(x, y)) : Rat}
 
+# Rat.neg_add.arb: -(x + y) = (-x) + (-y) for *arbitrary* values -- the rung-2
+# twin of Rat.neg_add, which is stated over the canonical spelling
+# Rat{num(np,nn), 1n+dp} because its own fill pushes the negation through mk one
+# coordinate at a time.
+#
+# The gap this fills is real rather than cosmetic: Rat.neg_add cannot be applied
+# where the summands are operation outputs (a QExt coordinate, say, where the sum
+# is an Int.add of two scaled difference pairs), and the QExt negation laws are
+# exactly such a place. The route is the one Rat.mul_neg uses -- negation *is*
+# multiplication by -1 -- and it needs no value law at all:
+#
+#   -(x+y) = (-1)*(x+y) = (-1)*x + (-1)*y = (-x) + (-y)
+#
+# Rat.neg_eq_mul_negone, Rat.mul_distrib.arb, and then that same law under two
+# congruences. The only hypotheses are the positivity of x and y, which
+# Rat.mul_distrib.arb asks for; the -1 factor's own denominator is 1, so its
+# positivity is `{==}` by computation, and the sum's is not needed.
+law Rat.neg_add.arb:
+  for +x: Rat
+  for +y: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
+  {Rat.neg(Rat.add(x, y)) == Rat.add(Rat.neg(x), Rat.neg(y)) : Rat}
+
 # Rat.add_neg
 # ===========
 #

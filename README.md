@@ -63,10 +63,12 @@ law of its sibling via `def <alias>.<name>(...)`:
   `add`/`neg`/`sub`/`mul`/`conj`/`norm`, `QExt.of` (the six-coordinate
   abbreviation the composing law is stated with), the two operations
   `QExt.inv`/`QExt.div` (`x/y = x * inv(y, q)`, the divisor handed in as a
-  spelled rational for the reason every Rat division law does it), and twenty
-  laws: `add_comm`/`mul_comm`/`sub_eq_add_neg`/`neg_neg`/`add_assoc`/
-  `mul_assoc`/`mul_distrib`/`mul_conj`, then the two value laws, the field
-  axioms and the three pairs stated over the operations. First `QExt.inv.value.gt` and `QExt.inv.value.lt` — the division
+  spelled rational for the reason every Rat division law does it), and
+  twenty-five laws: `add_comm`/`mul_comm`/`sub_eq_add_neg`/`neg_neg`/
+  `add_assoc`/`mul_assoc`/`mul_distrib`/`mul_conj`, then the two value laws, the
+  field axioms, the three pairs stated over the operations, and the negation and
+  conjugation block `neg_add`/`mul_neg`/`neg_mul`/`conj_add`/`conj_conj` (round
+  ten). First `QExt.inv.value.gt` and `QExt.inv.value.lt` — the division
   payoff `1/x = conj(x)/norm(d,x)`, stated once per sign of the norm, each with
   the norm spelled as a raw pair of that sign plus `hZ` saying the norm *is*
   that rational (PROVING.md, rounds five and six). Then the operation-level
@@ -114,7 +116,11 @@ law of its sibling via `def <alias>.<name>(...)`:
   including the two `Rat.mul_inv` branches, the ten division laws, whose
   statements put the divisor's sign in its *spelling* (PROVING.md, round four),
   and the two denominator/multiplication closure laws `Rat.neg.den.pos` and
-  `Rat.neg_mul` the payoff's rearrangements need.
+  `Rat.neg_mul` the payoff's rearrangements need. `Rat.neg_add.arb` is the
+  rung-2 form of the additive negation, `-(x+y) = (-x)+(-y)` at arbitrary
+  values -- the law the `QExt` negation block reaches for, because there the
+  summands are operation outputs and the canonical `Rat.neg_add` cannot apply to
+  them.
 - `src/rat_proofs.bend` — fills every rat.bend law.
 - `probe.bend` — consumer check for the ten division laws.
 - `probe.payoff.bend` — consumer check for the payoff and the operations: the
@@ -130,7 +136,11 @@ law of its sibling via `def <alias>.<name>(...)`:
   the additive identity and inverse: `add_zero`/`zero_add`/`add_neg` from the
   caller's side, `x - x = 0` stated with `QExt.sub` (which the law reaches by
   conversion, so a caller writing a difference needs nothing), and
-  `(2 + sqrt 2) + 0 = 2 + sqrt 2` at literals.
+  `(2 + sqrt 2) + 0 = 2 + sqrt 2` at literals. Last, the negation and
+  conjugation laws from the caller's side: the five, one call each, plus
+  `neg_add` read *backwards* through `Equal.sym` (the orientation a caller with a
+  sum of negations needs is not baked into the statement) and `conj(conj(x)) = x`
+  at literals.
 - `scratch.bend` — smoke test with a `main`.
 
 Check with `node bend2/main.ts <file>` from a bend checkout. The five
@@ -141,9 +151,9 @@ laws-only files intentionally fail with
 is the smoke test -- it has a `main`, so it prints the `Rat.inv` triple it
 computes instead of that line. The count is
 transitive over imports: nat.bend 128, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 223 = 128 Nat + 32 Int + 63 Rat, qrat.bend 243 = 128 Nat +
-32 Int + 63 Rat + 20 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own twenty laws).
+QExt, rat.bend 224 = 128 Nat + 32 Int + 64 Rat, qrat.bend 249 = 128 Nat +
+32 Int + 64 Rat + 25 QExt (it imports rat.bend itself, so its count is
+rat.bend's plus its own twenty-five laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -527,15 +537,31 @@ Known gaps, in dependency order:
    `mul_one`, and measured false at an unreduced coordinate — the same
    measurement, one operation over) and `QExt.add_neg` (`x + (-x) = 0` at an
    *arbitrary* value, because `Rat.add_neg` is unconditional in the spelling and
-   `QExt.neg` produces no `mk`). There is deliberately no `QExt.neg_add`: in this
-   tree `Rat.neg_add` is the distribution law `-(x+y) = (-x)+(-y)`, so the name
-   would mean something else than its Rat namesake, and the flipped inverse is
-   `QExt.add_comm` followed by `QExt.add_neg`. What is still open on this side is
-   the *structure*, not the laws: the norm is multiplicative — `norm(d, x*y) =
-   norm(d,x) * norm(d,y)`, which is what makes "no zero divisors when the norm is
-   non-zero" reachable — and `conj` is a ring homomorphism. Both are algebra over
-   the coordinate chains that already exist, and both are larger units than the
-   ones above.
+   `QExt.neg` produces no `mk`). The negation and conjugation block landed after
+   that (round ten): `QExt.neg_add` (`-(x+y) = (-x)+(-y)` — the same *distribution*
+   law its Rat namesake is, which is why the name could be used at all),
+   `QExt.mul_neg`/`neg_mul` (the negation pulled out of a product, one factor at a
+   time) and `QExt.conj_add`/`conj_conj`, whose pair says `conj` is an additive
+   automorphism. All five are stated over *arbitrary* values: `QExt.neg` is
+   componentwise and produces no `mk`, so no canonical presentation is needed, and
+   the hypotheses are exactly the ones the Rat laws underneath want — both
+   coordinates' positivity for `neg_add` (`QExt.neg` negates the real coordinate
+   too, unlike `QExt.conj`), the imaginary coordinate's coprimality alone for
+   `conj_conj`. The flipped additive inverse still has no law of its own: it is
+   `QExt.add_comm` followed by `QExt.add_neg`, two steps, and naming *that*
+   `neg_add` is the confusion the Rat files' names rule out.
+   What is still open on this side is the *structure*: the norm is
+   multiplicative — `norm(d, x*y) = norm(d,x) * norm(d,y)`, which is what makes
+   "no zero divisors when the norm is non-zero" reachable. The other half of the
+   homomorphism statement, `conj(x*y) = conj(x)*conj(y)`, is *out of reach at this
+   presentation* rather than merely unproved: its real coordinate needs
+   `mul(neg xb, neg yb) = mul(xb, yb)` at variables, whose only route is double
+   negation at a product's own output, and `Rat.neg_neg` is stated over the
+   canonical spelling a product is not (measured: `{==}` closes that identity at
+   literals and cannot close it at variables). What would unblock it is a Rat law
+   about the coprimality of what `mk` produces — Nat-level gcd work, not a
+   rearrangement. The exclusion, the route and both measurements are in qrat.bend's
+   `conj_conj` comment and PROVING.md, round ten.
 3. A binary-nat layer for proof land. The compiled lanes are already binary -- the
    C lane maps `Nat` to W64 with native `nat_add`/`nat_mul`/`nat_divmod`
    (`comp.ts:161`, `comp.ts:255`), and the JS lane uses BigInt -- but in proof
