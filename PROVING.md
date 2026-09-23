@@ -4114,3 +4114,71 @@ triple unchanged. Law counts, transitive over imports: nat 128, int 32, qext 34,
 rat 226, qrat.bend **253** (+1: `QExt.norm.mul`, so the file's own QExt inventory
 is 27). What is still open on this side is "no zero divisors when the norm is
 non-zero".
+
+## Where qrat_proofs.bend's five and a half seconds live: a bisect, a profile, and a 4 MB normal form (measured)
+
+Round twelve ended with the fill free and the file still at ~5.5 s. This round
+finds out where that time is, because the one-second rule is a rule about the
+checker and not about one fill.
+
+**The profile.** `node --cpu-prof` over a full check of src/qrat_proofs.bend:
+5,639 ms sampled, of which `term_wnf` (weak head normal form) **2,325 ms**,
+`term_compare` **2,187 ms**, garbage collector 309 ms, and every remaining
+entry under 200 ms -- `term_higher` 199, `parse_term_ops` 35, `term_check` 25,
+`term_infer` 18. So essentially the whole file's cost is conversion: normalizing
+terms and comparing them. Nothing else is worth optimizing.
+
+**The bisect.** Prefix cuts of the file at def boundaries, checked as
+`src/pr_tmp_cut.bend` (a prefix reports its unfilled laws as TODOs, but the term
+checks still run -- the run that first showed this printed `Error: 1 TODO found.`
+after 5.92 s, i.e. after the work):
+
+| cut at | elapsed | what it adds |
+| --- | --- | --- |
+| line 56 (imports only) | 1.65 s | the floor |
+| line 1084 (all 33 head defs) | 2.05 s | ~0.4 s for the whole head block |
+| line 1032 vs 951 (`mul_one`) | +0.35 s | the canonical-spelling fill |
+| line 1378 (`conj_mul` complete) | 5.35 s | **+3.33 s: `Q.QExt.conj_mul` alone** |
+| line 1548 (`norm.mul` complete) | 5.56 s | +0.2 s |
+| end (inv/div fills) | 5.66 s | +0.2 s |
+
+The floor is not this file at all: 1.65 s is what it costs to check the import
+graph, and `src/rat_proofs.bend` checked alone is 1.61 s. So of qrat_proofs.bend's
+5.66 s, 1.65 s is rat.bend's fills, 3.33 s is one law (`QExt.conj_mul`), 0.35 s is
+`QExt.mul_one`, and about 0.35 s is everything else.
+
+**The mechanism.** A deliberately false `{==}` on `QExt.conj_mul`'s conclusion --
+x and y at `QExt.of`'s spelled coordinates -- makes the checker print both normal
+forms: **4,272,977 bytes of dump**, two sides of one equation. The same file with
+a trivial def instead of the false goal takes 0.40 s; with the false goal it takes
+1.36 s. One conversion of that pair costs about a second, and the fill has several:
+its trans endpoints are written as reduced `QExt{...}` values, so each leg has to
+convert a spelled `QExt.mul` application into its normal form.
+
+The normal form is large because `Rat.mul` and `Rat.add` on *constructor*
+arguments reduce through `mk`, and each `mk` layer mentions its own gcd,
+numerator and denominator several times over. Stack a few of those (`add(mul A B)
+(mul p (mul C D))`, which is one QExt.mul coordinate) and the term is megabytes.
+At *variables* none of it reduces, and the conversion is a short structural walk.
+
+**What is not the problem.** Citing a spelled law is cheap when the slot's
+spelling matches the law's conclusion: `Rat.mul.neg_neg.reduced` cited at two
+`Rat{Rat.num(..), 1n+dp}` factors costs **+0.08 s** over the import floor
+(1.64 s to 1.72 s). So the fix is not to stop using the reduced laws -- it is to
+stop *converting into their normal forms*.
+
+**A measurement lesson.** A `{==}` probe whose two sides are written the same way
+short-circuits: three shapes (a spelled `Rat.mul`, a stuck one, a product of two
+negated spelled pairs) each cost under 0.03 s that way, which says nothing about
+what they cost when they differ. The false-`==` dump is the measurement; identical
+sides are not. Related: a probe file at the repo root needs root-relative imports
+(`./src/nat.bend`), while a file inside `src/` needs sibling ones (`./nat.bend`) --
+copying a `src/` file to the root breaks on `no such file` in 0.25 s.
+
+**The plan this measures out.** Restate the expensive laws the way round twelve
+restated `QExt.norm.mul` -- arbitrary QExt values, the spelled coordinates supplied
+as hypotheses, so every term in the statement and the fill stays stuck:
+`conj_mul` first (3.33 s, and its content is already one citation of a reduced law),
+then `mul_one` (0.35 s). That projects qrat_proofs.bend to roughly 2.2 s. Below
+one second needs the floor too: `rat_proofs.bend`'s own 1.6 s is the next bisect,
+and it is 5,511 lines of fills this file imports.
