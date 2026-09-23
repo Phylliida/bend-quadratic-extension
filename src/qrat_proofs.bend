@@ -1345,6 +1345,187 @@ def Q.QExt.conj_mul(d, np, nn, dp, mq, mn, dq, rp, rn, dr, sp, sn, ds, h1, h2):
     qext.re(R.Rat.neg(L0), R.Rat.add(R.Rat.mul(xr, yr), Q), R.Rat.add(P, QN), reL),
     qext.im(R.Rat.add(P, QN), R.Rat.neg(L0), IM1, imL))
 
+# QExt.norm.mul's fill: five legs, every one of them a congruence over one of
+# the law's own hypotheses or a call to a multiplicativity law.
+#
+#   (1) QExt{nxy, 0} = QExt{norm(d,XY), 0} = XY*conj(XY)   hnxy under a
+#                                                          congruence, then
+#                                                          QExt.mul_conj read
+#                                                          backwards
+#   (2) XY*conj(XY) = XY*(conj x * conj y)                 hc under a
+#                                                          congruence
+#   (3) XY*(conj x * conj y) = (x*conj x)*(y*conj y)       QExt.mul_assoc and
+#                                                          QExt.mul_comm
+#   (4) (x*conj x)*(y*conj y) = (norm x + 0)(norm y + 0)   QExt.mul_conj twice,
+#                                                          one congruence each
+#   (5) (norm x + 0)(norm y + 0) = (nx + 0)(ny + 0)        hnx and hny under
+#                                                          congruences
+#
+# Leg (3) is the only one with length: the classic four-step reassociation --
+# associate to the left, commute y past conj x inside, associate back. Each
+# QExt.mul_assoc call asks for the positivity of its three arguments' four
+# coefficients, so the compound arguments' facts are built here by
+# Rat.mul.den.pos / Rat.add.den.pos, and a conjugate's imaginary coefficient
+# needs Rat.neg.den.pos: Rat.neg destructures its argument, so at a stuck term no
+# other law reaches that fact. The radicand coefficient QExt.nat(d) is
+# Rat{Rat.num(d,0), 1}, so its denominator's positivity is `{==}`.
+#
+# Nothing below reduces. x and y are arbitrary QExt values, so XY and the
+# conjugates are stuck terms, and every mention of a norm is the same stuck term.
+# That is what holds the check where the tree requires it: writing these terms
+# out at QExt.of's spelled coordinates is what made a first draft of this fill
+# uncheckable (killed past four minutes).
+def Q.QExt.norm.mul(d, x, y, nx, ny, nxy, gx, hx, gy, hy, gxy, hxy, hnx, hny, hnxy, hc):
+  match x y:
+    case Q.QExt{xa, xb} Q.QExt{ya, yb}:
+    +XY = Q.QExt.mul(d, x, y)
+    +CX = Q.QExt.conj(x)
+    +CY = Q.QExt.conj(y)
+    +CXY = Q.QExt.conj(XY)
+    # The three products that land in a positivity slot of a QExt.mul_assoc call,
+    # and X*Y. They are stuck terms as written -- but the `match x y` below puts a
+    # constructor in place of each variable, so every one of them reduces, and so
+    # does the slot type a QExt.mul_assoc hypothesis instantiates to. That is what
+    # the positivity witnesses below are built against.
+    +MCX = Q.QExt.mul(d, CX, CY)
+    +MXCX = Q.QExt.mul(d, x, CX)
+    +MYCY = Q.QExt.mul(d, y, CY)
+    +NX = Q.QExt.norm(d, x)
+    +NY = Q.QExt.norm(d, y)
+    +NXY = Q.QExt.norm(d, XY)
+    +E1 = Q.QExt.emb(NX)
+    +E2 = Q.QExt.emb(NY)
+    +O1 = Q.QExt.emb(nx)
+    +O2 = Q.QExt.emb(ny)
+    # the positivities QExt.mul_assoc asks for at its compound arguments
+    +iCX = R.Rat.neg.den.pos(Q.QExt.im(x), hx)
+    +iCY = R.Rat.neg.den.pos(Q.QExt.im(y), hy)
+    +pMCXa = R.Rat.add.den.pos(
+      R.Rat.mul(Q.QExt.re(CX), Q.QExt.re(CY)),
+      R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(Q.QExt.im(CX), Q.QExt.im(CY))),
+      R.Rat.mul.den.pos(Q.QExt.re(CX), Q.QExt.re(CY), gx, gy),
+      R.Rat.mul.den.pos(Q.QExt.nat(d), R.Rat.mul(Q.QExt.im(CX), Q.QExt.im(CY)),
+                        {==}, R.Rat.mul.den.pos(Q.QExt.im(CX), Q.QExt.im(CY), iCX, iCY)))
+    +pMCXb = R.Rat.add.den.pos(
+      R.Rat.mul(Q.QExt.re(CX), Q.QExt.im(CY)),
+      R.Rat.mul(Q.QExt.im(CX), Q.QExt.re(CY)),
+      R.Rat.mul.den.pos(Q.QExt.re(CX), Q.QExt.im(CY), gx, iCY),
+      R.Rat.mul.den.pos(Q.QExt.im(CX), Q.QExt.re(CY), iCX, gy))
+    +pMXCXa = R.Rat.add.den.pos(
+      R.Rat.mul(Q.QExt.re(x), Q.QExt.re(CX)),
+      R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(Q.QExt.im(x), Q.QExt.im(CX))),
+      R.Rat.mul.den.pos(Q.QExt.re(x), Q.QExt.re(CX), gx, gx),
+      R.Rat.mul.den.pos(Q.QExt.nat(d), R.Rat.mul(Q.QExt.im(x), Q.QExt.im(CX)),
+                        {==}, R.Rat.mul.den.pos(Q.QExt.im(x), Q.QExt.im(CX), hx, iCX)))
+    +pMXCXb = R.Rat.add.den.pos(
+      R.Rat.mul(Q.QExt.re(x), Q.QExt.im(CX)),
+      R.Rat.mul(Q.QExt.im(x), Q.QExt.re(CX)),
+      R.Rat.mul.den.pos(Q.QExt.re(x), Q.QExt.im(CX), gx, iCX),
+      R.Rat.mul.den.pos(Q.QExt.im(x), Q.QExt.re(CX), hx, gx))
+    +pMYCYa = R.Rat.add.den.pos(
+      R.Rat.mul(Q.QExt.re(y), Q.QExt.re(CY)),
+      R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(Q.QExt.im(y), Q.QExt.im(CY))),
+      R.Rat.mul.den.pos(Q.QExt.re(y), Q.QExt.re(CY), gy, gy),
+      R.Rat.mul.den.pos(Q.QExt.nat(d), R.Rat.mul(Q.QExt.im(y), Q.QExt.im(CY)),
+                        {==}, R.Rat.mul.den.pos(Q.QExt.im(y), Q.QExt.im(CY), hy, iCY)))
+    +pMYCYb = R.Rat.add.den.pos(
+      R.Rat.mul(Q.QExt.re(y), Q.QExt.im(CY)),
+      R.Rat.mul(Q.QExt.im(y), Q.QExt.re(CY)),
+      R.Rat.mul.den.pos(Q.QExt.re(y), Q.QExt.im(CY), gy, iCY),
+      R.Rat.mul.den.pos(Q.QExt.im(y), Q.QExt.re(CY), hy, gy))
+    # (1) the product's norm by its name, and QExt.mul_conj read backwards
+    +leg1 = Equal.trans(Q.QExt,
+      Q.QExt{nxy, R.Rat.zero()},
+      Q.QExt{NXY, R.Rat.zero()},
+      Q.QExt.mul(d, XY, CXY),
+      Equal.cong(R.Rat, Q.QExt, u => Q.QExt.emb(u), nxy, NXY, hnxy),
+      Equal.sym(Q.QExt, Q.QExt.mul(d, XY, CXY), Q.QExt{NXY, R.Rat.zero()},
+                Q.QExt.mul_conj(d, XY, gxy, hxy)))
+    # (2) the conjugate is multiplicative -- the law's own hypothesis
+    +leg2 = Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.mul(d, XY, u), CXY, MCX, hc)
+    # (3) the reassociation
+    +s3b = Equal.sym(Q.QExt,
+      Q.QExt.mul(d, Q.QExt.mul(d, y, CX), CY),
+      Q.QExt.mul(d, y, MCX),
+      Q.QExt.mul_assoc(d, y, CX, CY, gy, hy, gx, iCX, gy, iCY))
+    +s3c = Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.mul(d, x, Q.QExt.mul(d, u, CY)),
+      Q.QExt.mul(d, y, CX), Q.QExt.mul(d, CX, y),
+      Q.QExt.mul_comm(d, y, CX))
+    +s3d = Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.mul(d, x, u),
+      Q.QExt.mul(d, Q.QExt.mul(d, CX, y), CY),
+      Q.QExt.mul(d, CX, MYCY),
+      Q.QExt.mul_assoc(d, CX, y, CY, gx, iCX, gy, hy, gy, iCY))
+    +s3e = Equal.sym(Q.QExt,
+      Q.QExt.mul(d, MXCX, MYCY),
+      Q.QExt.mul(d, x, Q.QExt.mul(d, CX, MYCY)),
+      Q.QExt.mul_assoc(d, x, CX, MYCY, gx, hx, gx, iCX, pMYCYa, pMYCYb))
+    +leg3 = Equal.trans(Q.QExt,
+      Q.QExt.mul(d, XY, MCX),
+      Q.QExt.mul(d, x, Q.QExt.mul(d, y, MCX)),
+      Q.QExt.mul(d, MXCX, MYCY),
+      Q.QExt.mul_assoc(d, x, y, MCX, gx, hx, gy, hy, pMCXa, pMCXb),
+      Equal.trans(Q.QExt,
+        Q.QExt.mul(d, x, Q.QExt.mul(d, y, MCX)),
+        Q.QExt.mul(d, x, Q.QExt.mul(d, Q.QExt.mul(d, y, CX), CY)),
+        Q.QExt.mul(d, MXCX, MYCY),
+        Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.mul(d, x, u),
+          Q.QExt.mul(d, y, MCX),
+          Q.QExt.mul(d, Q.QExt.mul(d, y, CX), CY),
+          s3b),
+        Equal.trans(Q.QExt,
+          Q.QExt.mul(d, x, Q.QExt.mul(d, Q.QExt.mul(d, y, CX), CY)),
+          Q.QExt.mul(d, x, Q.QExt.mul(d, Q.QExt.mul(d, CX, y), CY)),
+          Q.QExt.mul(d, MXCX, MYCY),
+          s3c,
+          Equal.trans(Q.QExt,
+            Q.QExt.mul(d, x, Q.QExt.mul(d, Q.QExt.mul(d, CX, y), CY)),
+            Q.QExt.mul(d, x, Q.QExt.mul(d, CX, MYCY)),
+            Q.QExt.mul(d, MXCX, MYCY),
+            s3d,
+            s3e))))
+    # (4) each factor's own product is its norm
+    +leg4 = Equal.trans(Q.QExt,
+      Q.QExt.mul(d, MXCX, MYCY),
+      Q.QExt.mul(d, E1, MYCY),
+      Q.QExt.mul(d, E1, E2),
+      Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.mul(d, u, MYCY), MXCX, E1,
+                 Q.QExt.mul_conj(d, x, gx, hx)),
+      Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.mul(d, E1, u), MYCY, E2,
+                 Q.QExt.mul_conj(d, y, gy, hy)))
+    # (5) the two norms by the names the law gave them
+    +leg5 = Equal.trans(Q.QExt,
+      Q.QExt.mul(d, E1, E2),
+      Q.QExt.mul(d, O1, E2),
+      Q.QExt.mul(d, O1, O2),
+      Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.mul(d, u, E2), E1, O1,
+                 Equal.cong(R.Rat, Q.QExt, u => Q.QExt.emb(u), NX, nx,
+                            Equal.sym(R.Rat, nx, NX, hnx))),
+      Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.mul(d, O1, u), E2, O2,
+                 Equal.cong(R.Rat, Q.QExt, u => Q.QExt.emb(u), NY, ny,
+                            Equal.sym(R.Rat, ny, NY, hny))))
+    Equal.trans(Q.QExt,
+      Q.QExt{nxy, R.Rat.zero()},
+      Q.QExt.mul(d, XY, CXY),
+      Q.QExt.mul(d, O1, O2),
+      leg1,
+      Equal.trans(Q.QExt,
+        Q.QExt.mul(d, XY, CXY),
+        Q.QExt.mul(d, XY, MCX),
+        Q.QExt.mul(d, O1, O2),
+        leg2,
+        Equal.trans(Q.QExt,
+          Q.QExt.mul(d, XY, MCX),
+          Q.QExt.mul(d, MXCX, MYCY),
+          Q.QExt.mul(d, O1, O2),
+          leg3,
+          Equal.trans(Q.QExt,
+            Q.QExt.mul(d, MXCX, MYCY),
+            Q.QExt.mul(d, E1, E2),
+            Q.QExt.mul(d, O1, O2),
+            leg4,
+            leg5))))
+
+
 # The division payoff
 # ===================
 #

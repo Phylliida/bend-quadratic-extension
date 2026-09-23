@@ -108,6 +108,16 @@ def QExt.sub(x: QExt, y: QExt) -> QExt:
 def QExt.of(+np: Nat, +nn: Nat, +dp: Nat, +mq: Nat, +mn: Nat, +dq: Nat) -> QExt:
   QExt{R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat{R.Rat.num(mq, mn), 1n+dq}}
 
+# QExt.emb(r): the rational r as a QExt value, r + 0*sqrt(d). It is the shape the
+# norm's multiplicativity is stated in -- norm(d,x)*norm(d,y) is a product of two
+# rationals, and to meet QExt.mul it has to be spelled as a QExt value. A plain
+# abbreviation like QExt.of, and it exists for the same reason Rat.of/QExt.of do:
+# a bare QExt{r, R.Rat.zero()} cannot infer its type arguments when r is an
+# operation's output rather than a variable, so an embedding with a declared
+# return type is what a fill can write in a `let`.
+def QExt.emb(+r: R.Rat) -> QExt:
+  QExt{r, R.Rat.zero()}
+
 # QExt.mul(d, x, y) = (xa + xb*sqrt d)(ya + yb*sqrt d)
 #                   = (xa*ya + d*xb*yb) + (xa*yb + xb*ya)*sqrt d
 def QExt.mul(+d: Nat, x: QExt, y: QExt) -> QExt:
@@ -420,6 +430,79 @@ law QExt.conj_mul:
   {QExt.conj(QExt.mul(d, QExt.of(np, nn, dp, mq, mn, dq),
                          QExt.of(rp, rn, dr, sp, sn, ds)))
    == QExt.mul(d, QExt.conj(QExt.of(np, nn, dp, mq, mn, dq)), QExt.conj(QExt.of(rp, rn, dr, sp, sn, ds))) : QExt}
+
+# QExt.norm.mul: the norm is multiplicative -- norm(d, x*y) = norm(d,x)*norm(d,y)
+#
+# Written as an equation of QExt *values*, each norm in the real coordinate with
+# a zero imaginary part: QExt{norm(d, x*y), 0} = (norm x + 0*sqrt d)*(norm y +
+# 0*sqrt d). That is not decoration. The Rat-level spelling
+# Rat.mul(QExt.norm(d,x), QExt.norm(d,y)) is exactly one zero-elimination away:
+# the product of the two embedded norms has real coordinate
+# add(mul(nx, ny), mul(QExt.nat(d), mul(zero, zero))), whose second summand is
+# zero and whose first is a *stuck* Rat.mul -- and removing it needs
+# Rat.add(x, 0) = x at a non-canonical x. That law does not exist here and
+# cannot: Rat.add_zero / Rat.zero_add are stated over Rat{n,d} (with the
+# canonicality bridge fx) and are false at raw spellings, measured in round
+# three. So the identity is stated where the two norms multiply as QExt values
+# and the junk never has to be removed.
+#
+# Measured, this round: at the spelled presentation the Rat-level comparison
+# cannot even be *normalized*. A {==} probe on it at these twelve coordinates
+# exhausts the checker's heap (4 GB, 41 s: "Ineffective mark-compacts near heap
+# limit"), while the same probe at literals closes. The obstruction is the
+# presentation, not the identity.
+#
+# The route is the one the conjugate makes available: x*conj(x) = norm
+# (QExt.mul_conj), the conjugate is multiplicative (QExt.conj_mul, last round),
+# so
+#
+#   norm(x*y) = (x*y)*conj(x*y) = (x*y)*(conj x * conj y) = (x*conj x)*(y*conj y)
+#
+# and the last term is the product of the two norms. Everything else in the fill
+# is QExt.mul_assoc and QExt.mul_comm at the *arbitrary* values those
+# intermediates are, plus the coefficient positivities those two laws ask for at
+# compound terms (Rat.mul.den.pos / Rat.add.den.pos / Rat.neg.den.pos). No Rat
+# arithmetic appears anywhere in it, and no new Rat law is needed.
+#
+# The presentation rule, measured this round and now a rule of the tree: every
+# term in this law and in its fill is a *stuck* term, and checking stays under a
+# second. x and y are arbitrary QExt values, so QExt.mul(d, x, y) does not reduce
+# at all, and the three norms are named by hypotheses (hnx, hny, hnxy) instead of
+# being written out. A first draft did write them out -- x and y as QExt.of's
+# twelve coordinates, the norms as QExt.norm of those -- and the file stopped
+# checking: killed past four minutes, no output. Spelling the factors canonically
+# makes each norm's body Rat.sub/Rat.mul over *canonical* coefficients, so any
+# conversion question that reaches one normalizes an mk-chain, and the fill asks
+# hundreds of them. (The same draft's Rat-level probe, a single {==} on the whole
+# identity at those twelve coordinates, exhausts the heap: 4 GB in 41 s.) The
+# identity is not the obstruction -- at literals it closes -- and this stuck-term
+# form checks in under a second.
+#
+# What a spelled caller supplies is therefore one QExt.conj_mul call for hc
+# (conj is multiplicative only at a reduced pair, so at an arbitrary x there is no
+# such fact to call) and `{==}` for the three norm hypotheses, which are equations
+# between two copies of the same term, plus the coefficient positivities. gxy and
+# hxy are hypotheses because re(mul(d, x, y)) is stuck at variables: nothing
+# computes the product's denominators' signs.
+law QExt.norm.mul:
+  for +d: Nat
+  for +x: QExt
+  for +y: QExt
+  for +nx: R.Rat
+  for +ny: R.Rat
+  for +nxy: R.Rat
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +gy: {Nat.cmp(0n, R.Rat.denof(QExt.re(y))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  for +gxy: {Nat.cmp(0n, R.Rat.denof(QExt.re(QExt.mul(d, x, y)))) == LT{} : Cmp}
+  for +hxy: {Nat.cmp(0n, R.Rat.denof(QExt.im(QExt.mul(d, x, y)))) == LT{} : Cmp}
+  for +hnx: {nx == QExt.norm(d, x) : R.Rat}
+  for +hny: {ny == QExt.norm(d, y) : R.Rat}
+  for +hnxy: {nxy == QExt.norm(d, QExt.mul(d, x, y)) : R.Rat}
+  for +hc: {QExt.conj(QExt.mul(d, x, y)) == QExt.mul(d, QExt.conj(x), QExt.conj(y)) : QExt}
+  {QExt{nxy, R.Rat.zero()}
+   == QExt.mul(d, QExt{nx, R.Rat.zero()}, QExt{ny, R.Rat.zero()}): QExt}
 
 # QExt.mul_one: x * 1 = x, at the canonical presentation.
 #
