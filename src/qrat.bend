@@ -362,6 +362,64 @@ law QExt.mul_one:
   {QExt.mul(d, QExt.of(np, nn, dp, mq, mn, dq), QExt.one())
    == QExt.of(np, nn, dp, mq, mn, dq) : QExt}
 
+# QExt.add_zero: x + 0 = x, at the canonical presentation -- the additive twin
+# of QExt.mul_one, and the same restriction for the same reason. Measured, at the
+# unreduced real coordinate Rat{Int{2,0}, 2}: x + 0 comes back Rat{Int{1,0}, 1},
+# so == cannot compare the two and no variable form of this law exists. The two
+# bridges are Rat.add_zero's own hypothesis, the same pair QExt.mul_one takes.
+#
+# What makes this law short is that addition is componentwise: each coordinate is
+# Rat.add(Rat{n, 1n+dp}, Rat.zero()) and there is no radicand coefficient in
+# sight, so the fill is one Rat.add_zero call per coordinate and no helper is
+# needed (QExt.mul_one's real coordinate needed qext.nat.mul_zero for the base
+# denominator of QExt.nat(d), a term that never appears here). It is also why this
+# law takes no `d`: the radicand is QExt.mul's parameter, not QExt.add's.
+law QExt.add_zero:
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +mq: Nat
+  for +mn: Nat
+  for +dq: Nat
+  for +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp) == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat}
+  for +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq) == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat}
+  {QExt.add(QExt.of(np, nn, dp, mq, mn, dq), QExt.zero())
+   == QExt.of(np, nn, dp, mq, mn, dq) : QExt}
+
+# QExt.zero_add: 0 + x = x -- Rat.zero_add per coordinate, the mirror of the law
+# above with the same two bridges, the same canonical presentation and the same
+# reason for it.
+law QExt.zero_add:
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +mq: Nat
+  for +mn: Nat
+  for +dq: Nat
+  for +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp) == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat}
+  for +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq) == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat}
+  {QExt.add(QExt.zero(), QExt.of(np, nn, dp, mq, mn, dq))
+   == QExt.of(np, nn, dp, mq, mn, dq) : QExt}
+
+# QExt.add_neg: x + (-x) = 0, for an *arbitrary* value -- one Rat.add_neg per
+# coordinate. No canonical presentation and no bridges, unlike the two laws above:
+# Rat.add_neg is unconditional in the spelling (its own hypothesis is the
+# denominator's positivity, which is what lets Rat.neg's output, an mk, meet
+# Rat.zero), and QExt.neg is componentwise and produces no mk of its own, so ==
+# compares the two sides directly here. The positivity of the two coefficients is
+# the rung-2 hypothesis, as everywhere in these two layers.
+#
+# There is deliberately no QExt.neg_add for (-x) + x = 0. In this tree Rat.neg_add
+# is the *distribution* law -(x + y) = (-x) + (-y) -- not the flipped inverse --
+# so a QExt law with that name would mean something else than its Rat namesake,
+# and the flipped form is QExt.add_comm followed by this law, two steps any caller
+# can take.
+law QExt.add_neg:
+  for +x: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  {QExt.add(x, QExt.neg(x)) == QExt.zero() : QExt}
+
 # QExt.inv.value.gt
 # =================
 #

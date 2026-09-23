@@ -63,7 +63,7 @@ law of its sibling via `def <alias>.<name>(...)`:
   `add`/`neg`/`sub`/`mul`/`conj`/`norm`, `QExt.of` (the six-coordinate
   abbreviation the composing law is stated with), the two operations
   `QExt.inv`/`QExt.div` (`x/y = x * inv(y, q)`, the divisor handed in as a
-  spelled rational for the reason every Rat division law does it), and seventeen
+  spelled rational for the reason every Rat division law does it), and twenty
   laws: `add_comm`/`mul_comm`/`sub_eq_add_neg`/`neg_neg`/`add_assoc`/
   `mul_assoc`/`mul_distrib`/`mul_conj`, then the two value laws, the field
   axioms and the three pairs stated over the operations. First `QExt.inv.value.gt` and `QExt.inv.value.lt` — the division
@@ -75,7 +75,14 @@ law of its sibling via `def <alias>.<name>(...)`:
   Then `QExt.mul_one` (`x * 1 = x`, stated over canonical spellings — `==` is
   structural, so a non-canonical `x` does not survive the product) and
   `QExt.div_mul_cancel.gt`/`.lt`, the field axiom `(x/y) * y = x` at a canonical
-  dividend, one law per sign of the norm (PROVING.md, round eight). Its
+  dividend, one law per sign of the norm (PROVING.md, round eight). The
+  additive identity and inverse close the operation surface: `QExt.add_zero`/
+  `zero_add` (`x + 0 = x`, the same canonical presentation and the same two
+  bridges `QExt.mul_one` takes — measured false at an unreduced coordinate, and
+  there is no `d` parameter because the radicand belongs to `QExt.mul`) and
+  `QExt.add_neg` (`x + (-x) = 0`, at an *arbitrary* value with the coefficients'
+  positivity, since `QExt.neg` is componentwise and produces no `mk`) — PROVING.md,
+  round nine. Its
   coefficients are rat.bend's `Rat` (`import ./rat.bend as R`); there is no
   second copy of the Rat layer.
 - `src/qrat_proofs.bend` — fills every qrat.bend law, and only those: the two
@@ -85,7 +92,11 @@ law of its sibling via `def <alias>.<name>(...)`:
   and the six operation-law fills — five of them one call each, while the
   `div_mul_cancel` pair is the one place in this file where a fill is a
   composition rather than a call (`mul_assoc`, then `mul_comm` under a cong,
-  then `mul_inv`, then `QExt.mul_one`). It also hosts `qext.nat.mul_zero` (the
+  then `mul_inv`, then `QExt.mul_one`) — and the three additive fills, which are
+  the shortest in the layer: `add_zero`/`zero_add` are one `Rat.add_zero` /
+  `Rat.zero_add` call per coordinate with nothing in between (addition is
+  componentwise, so the coordinate goal *is* the Rat law's statement), and
+  `add_neg` is one `Rat.add_neg` per coordinate at an arbitrary value. It also hosts `qext.nat.mul_zero` (the
   radicand's coefficient against zero, which `Rat.mul_zero` cannot state) and `qext.mul_add_left`, the bare helper for
   right-distributivity (`QExt.mul_distrib` is stated on the left; the mirror is
   `QExt.mul_comm`, that law, and two `QExt.mul_comm`s under a cong, and both
@@ -115,7 +126,11 @@ law of its sibling via `def <alias>.<name>(...)`:
   call each, the reason no third law exists), `div_add` at variables on each
   side of zero, `(2 + sqrt 2)/(2 + sqrt 2) = 1` at literals, and then the field
   axiom: `QExt.mul_one` and both `div_mul_cancel` branches from the caller's side
-  at a variable `y`, plus `1/(2 + sqrt 2) * (2 + sqrt 2) = 1` at literals.
+  at a variable `y`, plus `1/(2 + sqrt 2) * (2 + sqrt 2) = 1` at literals. Last,
+  the additive identity and inverse: `add_zero`/`zero_add`/`add_neg` from the
+  caller's side, `x - x = 0` stated with `QExt.sub` (which the law reaches by
+  conversion, so a caller writing a difference needs nothing), and
+  `(2 + sqrt 2) + 0 = 2 + sqrt 2` at literals.
 - `scratch.bend` — smoke test with a `main`.
 
 Check with `node bend2/main.ts <file>` from a bend checkout. The five
@@ -126,9 +141,9 @@ laws-only files intentionally fail with
 is the smoke test -- it has a `main`, so it prints the `Rat.inv` triple it
 computes instead of that line. The count is
 transitive over imports: nat.bend 128, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 223 = 128 Nat + 32 Int + 63 Rat, qrat.bend 240 = 128 Nat +
-32 Int + 63 Rat + 17 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own seventeen laws).
+QExt, rat.bend 223 = 128 Nat + 32 Int + 63 Rat, qrat.bend 243 = 128 Nat +
+32 Int + 63 Rat + 20 QExt (it imports rat.bend itself, so its count is
+rat.bend's plus its own twenty laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -507,6 +522,20 @@ Known gaps, in dependency order:
    cong, `mul_inv`, then that law. What stays out of reach is the *branch-free*
    form at a variable dividend: `==` is structural on `QExt`, so there is no
    presentation-free statement of it to prove.
+   The additive identity and inverse are in too, which closes the operation
+   surface: `QExt.add_zero`/`zero_add` (canonical, the same two bridges as
+   `mul_one`, and measured false at an unreduced coordinate — the same
+   measurement, one operation over) and `QExt.add_neg` (`x + (-x) = 0` at an
+   *arbitrary* value, because `Rat.add_neg` is unconditional in the spelling and
+   `QExt.neg` produces no `mk`). There is deliberately no `QExt.neg_add`: in this
+   tree `Rat.neg_add` is the distribution law `-(x+y) = (-x)+(-y)`, so the name
+   would mean something else than its Rat namesake, and the flipped inverse is
+   `QExt.add_comm` followed by `QExt.add_neg`. What is still open on this side is
+   the *structure*, not the laws: the norm is multiplicative — `norm(d, x*y) =
+   norm(d,x) * norm(d,y)`, which is what makes "no zero divisors when the norm is
+   non-zero" reachable — and `conj` is a ring homomorphism. Both are algebra over
+   the coordinate chains that already exist, and both are larger units than the
+   ones above.
 3. A binary-nat layer for proof land. The compiled lanes are already binary -- the
    C lane maps `Nat` to W64 with native `nat_add`/`nat_mul`/`nat_divmod`
    (`comp.ts:161`, `comp.ts:255`), and the JS lane uses BigInt -- but in proof
