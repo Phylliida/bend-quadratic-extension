@@ -416,10 +416,12 @@ def probe.conj_conj.instance()
       == Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}} : Q.QExt}:
   {==}
 
-# The multiplicativity law, reached from the caller's side at the law's own
-# presentation: both imaginary coefficients carry their coprimality, the real
-# coordinates need nothing -- the same asymmetry conj_conj has, and the reason
-# the law is stated at a reduced pair instead of at a stuck product.
+# The multiplicativity law, reached from the caller's side. The statement below is
+# the spelled one the law used to carry, which is now its instance: x and y are
+# QExt.of's six-coordinate values, so the law's four positivity hypotheses and the
+# two naming its imaginary coefficients are all `{==}`, and only the coprimality
+# carries over. That is what the restatement buys -- the same fact, at a price the
+# checker can pay (PROVING.md, round thirteen).
 def probe.conj_mul(+d: Nat, +np: Nat, +nn: Nat, +dp: Nat,
                    +mq: Nat, +mn: Nat, +dq: Nat,
                    +rp: Nat, +rn: Nat, +dr: Nat,
@@ -430,7 +432,10 @@ def probe.conj_mul(+d: Nat, +np: Nat, +nn: Nat, +dp: Nat,
                                Q.QExt.of(rp, rn, dr, sp, sn, ds)))
       == Q.QExt.mul(d, Q.QExt.conj(Q.QExt.of(np, nn, dp, mq, mn, dq)),
                        Q.QExt.conj(Q.QExt.of(rp, rn, dr, sp, sn, ds))) : Q.QExt}:
-  Q.QExt.conj_mul(d, np, nn, dp, mq, mn, dq, rp, rn, dr, sp, sn, ds, h1, h2)
+  Q.QExt.conj_mul(d, Q.QExt.of(np, nn, dp, mq, mn, dq),
+    Q.QExt.of(rp, rn, dr, sp, sn, ds),
+    mq, mn, dq, sp, sn, ds,
+    {==}, {==}, {==}, {==}, {==}, {==}, h1, h2)
 
 # The arithmetic at 1 + sqrt 2: same instance as conj_conj.instance, with the
 # radicand 2 and both operands equal. mag(1, 0) = 1 against the denominator
@@ -443,7 +448,9 @@ def probe.conj_mul.instance()
       == Q.QExt.mul(2n,
         Q.QExt.conj(Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}),
         Q.QExt.conj(Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}})) : Q.QExt}:
-  Q.QExt.conj_mul(2n, 1n, 0n, 0n, 1n, 0n, 1n, 1n, 0n, 0n, 1n, 0n, 1n, {==}, {==})
+  Q.QExt.conj_mul(2n, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}},
+      1n, 0n, 1n, 1n, 0n, 1n,
+      {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==})
 
 # The norm's multiplicativity, reached from the caller's side. This law's
 # hypotheses are the point of its statement: x and y arbitrary, the three norms
@@ -484,4 +491,6 @@ def probe.norm.mul.instance()
     Q.QExt.norm(2n, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}),
     Q.QExt.norm(2n, Q.QExt.mul(2n, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}})),
     {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==},
-    Q.QExt.conj_mul(2n, 1n, 0n, 0n, 1n, 0n, 1n, 1n, 0n, 0n, 1n, 0n, 1n, {==}, {==}))
+    Q.QExt.conj_mul(2n, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}},
+      1n, 0n, 1n, 1n, 0n, 1n,
+      {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}))

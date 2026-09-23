@@ -4182,3 +4182,63 @@ as hypotheses, so every term in the statement and the fill stays stuck:
 then `mul_one` (0.35 s). That projects qrat_proofs.bend to roughly 2.2 s. Below
 one second needs the floor too: `rat_proofs.bend`'s own 1.6 s is the next bisect,
 and it is 5,511 lines of fills this file imports.
+
+## conj_mul restated at stuck terms: the same statement, 3.3 seconds cheaper (measured)
+
+Round thirteen found where the time was (one law: `Q.QExt.conj_mul`, 3.33 s, from
+conversions into megabyte normal forms) and why (spelled Rat arithmetic normalizes
+through `mk`, and each `mk` layer repeats its own gcd and coordinates). This round acts
+on it. No law is added, removed or weakened: the same fact is stated over arbitrary
+values, and the spelled statement becomes its instance.
+
+**The restatement.** `QExt.conj_mul` now takes arbitrary x and y with the spelling the
+identity needs supplied as hypotheses: `hix`/`hiy` name the two *imaginary* coefficients
+as the spelled pairs `Rat.of(mq,mn,dq)` and `Rat.of(sp,sn,ds)`, `h1`/`h2` are their
+coprimality -- exactly what `Rat.mul.neg_neg.reduced` asks for -- and `gx`/`hx`/`gy`/`hy`
+are the four denominators' positivity, the only hypothesis the arbitrary-value Rat laws
+in the imaginary lane want. The spelled statement it replaces is its instance:
+x := `QExt.of(np,nn,dp,mq,mn,dq)`, y := `QExt.of(rp,rn,dr,sp,sn,ds)`, where the four
+positivities and the two namings are all `{==}` and only the coprimality carries over. So
+the old statement follows from the new one, and `probe.payoff.bend` is written that way:
+`probe.conj_mul` still states the spelled conclusion, and its body now calls the law with
+six `{==}` hypotheses and h1/h2.
+
+**The fill.** The same two Rat lanes at arbitrary values. The `match` puts constructors in
+place of x and y, so both sides reduce to their coordinates and every `Rat.mul` among them
+is *stuck*: that is what makes the term cheap. The real lane transports the product of the
+imaginary coefficients into the spelled spelling (two congs along hix/hiy), spends the
+reduced law on the bracket `mul(neg xi, neg yi) = mul(xi, yi)`, and replays the transport
+backwards so the lane ends on the spelling the goal uses. The imaginary lane is the
+neg_add/mul_neg chain as before, with gx/hx/gy/hy in the slots that were `{==}` when the
+coefficients were spelled. The only spelled terms left in the fill are the two the reduced
+law is stated about -- and citing it there is cheap, which round thirteen measured
+separately (+0.08 s).
+
+**One checker detail this cost a run.** `Equal.trans`'s first leg needs the middle
+endpoint to be what that leg *concludes*, not the normal form of the left endpoint.
+Writing `QExt{add(P,Q), neg(L0)}` -- the left side's own reduction -- as the middle made
+the checker demand an evidence of type `{X == X}` (it had unified the two endpoints),
+while the `qext.re` witness proves `{X == Y}`: `expected : {X == X}` against
+`observed : {X == Y}`. The old spelled fill had the same shape and passed because its left
+endpoint was `conj(mul(d, QExt.of(..), QExt.of(..)))`, whose normal form *is* the first
+half of the lane rather than the middle. Spelling the middle as the lane's result fixed it.
+
+**Measured after.** `src/qrat_proofs.bend` **2.29 s** (was 5.66), `probe.payoff.bend`
+**2.96 s** (was 6.59), and conj_mul's own contribution is now **+0.03 s** by the same
+prefix cut that used to read +3.33 s (cut before the def 2.04 s, cut after it 2.07 s).
+Every other gate unchanged: nat_proofs 0.57, int_proofs 0.47, qext_proofs 0.48,
+rat_proofs 1.58, probe 1.75, and `scratch.bend` prints its triple. Law counts unmoved --
+nat 128, int 32, qext 34, rat 226, qrat 253 -- because a restatement changes what a
+statement is stated over, not how many there are.
+
+**Where the remaining 2.3 s is.** Now the floor dominates: 1.65 s of qrat_proofs.bend is
+its import graph, and `src/rat_proofs.bend` checked alone is 1.58 s. A coarse prefix
+bisect of that file (single runs, and the deltas are noisy -- cuts in one region read
+1.86 to 2.29 s -- so treat this map as plus or minus 0.3 s): imports only 0.63 s, then
+about 0.4 s in the region around line 2288 (`Rat.add.arb.coords`), about 0.9 s between
+lines 3075 and 4282, about 0.4 s around line 4908, and not much in the other four
+thousand lines. Sub-second for the qrat layer therefore means work on those Rat fills
+rather than more QExt restatements. `QExt.mul_one` (0.35 s) is the last qrat law worth
+restating, with the caveat its own comment records: at an arbitrary value `x * 1 = x` is
+*false* -- the product comes back normalized -- so its stuck form has to carry the
+canonical presentation as a hypothesis, exactly as this round did for conj_mul.

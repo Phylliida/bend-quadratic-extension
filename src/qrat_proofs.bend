@@ -1273,77 +1273,99 @@ def Q.QExt.conj_conj(np, nn, dp, mq, mn, dq, h):
 # Q.QExt.conj_mul
 # ===============
 #
-# Two Rat lanes, composed by the two-step idiom the other QExt fills use: the
-# real lane runs first, with the imaginary coordinate still spelled the way the
-# left side has it, and then the imaginary lane runs against the already-rewritten
-# real one -- which is why the first witness keeps neg(L0) as its other
-# coordinate rather than the lane's own end.
+# The same two Rat lanes as at the spelled presentation, at arbitrary values: the
+# match puts constructors in place of x and y, so both sides reduce to their
+# coordinates and every Rat.mul among them is stuck -- which is what makes this
+# check in milliseconds instead of seconds (PROVING.md, round thirteen for the
+# measurement).
 #
-# Real: the bracket mul(neg xi, neg yi) -> mul(xi, yi) is one call to
-# Rat.mul.neg_neg.reduced under the congruence that puts it back inside the
-# radicand product. Nothing else moves, because mul(xr,yr) is a variable here: no
-# normalization is in play, so both sides spell the first summand identically.
+# Real: the product of the two imaginary coefficients is transported into the
+# spelled spelling (hix/hiy), the reduced law closes the bracket
+# mul(neg xi, neg yi) = mul(xi, yi), and the transport is replayed backwards so the
+# lane ends on the spelling the goal uses. That is the only place the hypotheses are
+# needed, and it is exactly what the spelled statement had built in. Nothing else
+# moves: mul(xa,ya) is a variable here, so both sides spell the first summand
+# identically, and the surrounding sum needs no step at all.
 #
-# Imaginary: the left side's neg(add(mul(xr,yi), mul(xi,yr))) is split by
-# Rat.neg_add.arb -- whose two summands are *products*, which is exactly why that
-# rung-2 law was added this unit -- and each half is then negated one factor at a
-# time by Rat.mul_neg and Rat.neg_mul. Both of those are cited through Equal.sym:
-# mul_neg states mul(x, neg y) = neg(mul(x, y)) and neg_mul its mirror
-# mul(neg x, y) = neg(mul(x, y)), while both legs here run from the negated
-# product back to the negated factor. Every positivity hypothesis in the lane is
-# `{==}`: a QExt.of coefficient has a successor denominator, and the products
-# Rat.mul.den.pos is asked about are built from those.
-def Q.QExt.conj_mul(d, np, nn, dp, mq, mn, dq, rp, rn, dr, sp, sn, ds, h1, h2):
-  +p = Q.QExt.nat(d)
-  +X = Q.QExt.of(np, nn, dp, mq, mn, dq)
-  +Y = Q.QExt.of(rp, rn, dr, sp, sn, ds)
-  +xr = R.Rat.of(np, nn, dp)
-  +xi = R.Rat.of(mq, mn, dq)
-  +yr = R.Rat.of(rp, rn, dr)
-  +yi = R.Rat.of(sp, sn, ds)
-  +P = R.Rat.mul(xr, yr)
-  +Q = R.Rat.mul(p, R.Rat.mul(xi, yi))
-  +QN = R.Rat.mul(p, R.Rat.mul(R.Rat.neg(xi), R.Rat.neg(yi)))
-  +L0 = R.Rat.add(R.Rat.mul(xr, yi), R.Rat.mul(xi, yr))
-  +NXY = R.Rat.neg(R.Rat.mul(xr, yi))
-  +NYX = R.Rat.neg(R.Rat.mul(xi, yr))
-  +IM1 = R.Rat.add(R.Rat.mul(xr, R.Rat.neg(yi)), R.Rat.mul(R.Rat.neg(xi), yr))
-  +reL = Equal.trans(R.Rat,
-    R.Rat.add(R.Rat.mul(xr, yr), Q),
-    R.Rat.add(P, Q),
-    R.Rat.add(P, QN),
-    {==},
-    Equal.cong(R.Rat, R.Rat, u => R.Rat.add(P, u), Q, QN,
-      Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(p, v),
-        R.Rat.mul(xi, yi), R.Rat.mul(R.Rat.neg(xi), R.Rat.neg(yi)),
-        Equal.sym(R.Rat, R.Rat.mul(R.Rat.neg(xi), R.Rat.neg(yi)),
-          R.Rat.mul(xi, yi),
-          R.Rat.mul.neg_neg.reduced(mq, mn, dq, sp, sn, ds, h1, h2)))))
-  +imL = Equal.trans(R.Rat,
-    R.Rat.neg(L0),
-    R.Rat.add(NXY, NYX),
-    IM1,
-    R.Rat.neg_add.arb(R.Rat.mul(xr, yi), R.Rat.mul(xi, yr),
-      R.Rat.mul.den.pos(xr, yi, {==}, {==}),
-      R.Rat.mul.den.pos(xi, yr, {==}, {==})),
-    Equal.trans(R.Rat,
-      R.Rat.add(NXY, NYX),
-      R.Rat.add(R.Rat.mul(xr, R.Rat.neg(yi)), NYX),
-      IM1,
-      Equal.cong(R.Rat, R.Rat, u => R.Rat.add(u, NYX), NXY,
-        R.Rat.mul(xr, R.Rat.neg(yi)),
-        Equal.sym(R.Rat, R.Rat.mul(xr, R.Rat.neg(yi)), NXY,
-          R.Rat.mul_neg(xr, yi, {==}, {==}))),
-      Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.mul(xr, R.Rat.neg(yi)), u),
-        NYX, R.Rat.mul(R.Rat.neg(xi), yr),
-        Equal.sym(R.Rat, R.Rat.mul(R.Rat.neg(xi), yr), NYX,
-          R.Rat.neg_mul(xi, yr, {==}, {==})))))
-  Equal.trans(Q.QExt,
-    Q.QExt.conj(Q.QExt.mul(d, X, Y)),
-    Q.QExt{R.Rat.add(P, QN), R.Rat.neg(L0)},
-    Q.QExt.mul(d, Q.QExt.conj(X), Q.QExt.conj(Y)),
-    qext.re(R.Rat.neg(L0), R.Rat.add(R.Rat.mul(xr, yr), Q), R.Rat.add(P, QN), reL),
-    qext.im(R.Rat.add(P, QN), R.Rat.neg(L0), IM1, imL))
+# Imaginary: the left side's neg(add(mul(xa,yb), mul(xb,ya))) is split by
+# Rat.neg_add.arb -- whose two summands are *products*, which is why that rung-2 law
+# exists -- and each half is then negated one factor at a time by Rat.mul_neg and
+# Rat.neg_mul. Both are cited through Equal.sym: mul_neg states
+# mul(x, neg y) = neg(mul(x, y)) and neg_mul its mirror mul(neg x, y) = neg(mul(x,y)),
+# while both legs here run from the negated product back to the negated factor. The
+# positivity slots are the law's own gx/hx/gy/hy -- at spelled coefficients they
+# were `{==}`, since a spelled pair has a successor denominator.
+def Q.QExt.conj_mul(d, x, y, mq, mn, dq, sp, sn, ds, gx, hx, gy, hy, hix, hiy, h1, h2):
+  match x y:
+    case Q.QExt{xa, xb} Q.QExt{ya, yb}:
+      +p = Q.QExt.nat(d)
+      +Xi = R.Rat.of(mq, mn, dq)
+      +Yi = R.Rat.of(sp, sn, ds)
+      +P = R.Rat.mul(xa, ya)
+      +Q = R.Rat.mul(p, R.Rat.mul(xb, yb))
+      +QE = R.Rat.mul(p, R.Rat.mul(R.Rat.neg(xb), R.Rat.neg(yb)))
+      +L0 = R.Rat.add(R.Rat.mul(xa, yb), R.Rat.mul(xb, ya))
+      +NXY = R.Rat.neg(R.Rat.mul(xa, yb))
+      +NYX = R.Rat.neg(R.Rat.mul(xb, ya))
+      +IM1 = R.Rat.add(R.Rat.mul(xa, R.Rat.neg(yb)), R.Rat.mul(R.Rat.neg(xb), ya))
+      # the product of the imaginary coefficients: in to the spelled spelling
+      # (hix/hiy), one call to the reduced law, and back out to the goal's spelling
+      +pte = Equal.trans(R.Rat,
+        R.Rat.mul(xb, yb),
+        R.Rat.mul(Xi, Yi),
+        R.Rat.mul(R.Rat.neg(xb), R.Rat.neg(yb)),
+        Equal.trans(R.Rat,
+          R.Rat.mul(xb, yb),
+          R.Rat.mul(Xi, yb),
+          R.Rat.mul(Xi, Yi),
+          Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(u, yb), xb, Xi, hix),
+          Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(Xi, u), yb, Yi, hiy)),
+        Equal.trans(R.Rat,
+          R.Rat.mul(Xi, Yi),
+          R.Rat.mul(R.Rat.neg(Xi), R.Rat.neg(Yi)),
+          R.Rat.mul(R.Rat.neg(xb), R.Rat.neg(yb)),
+          Equal.sym(R.Rat, R.Rat.mul(R.Rat.neg(Xi), R.Rat.neg(Yi)), R.Rat.mul(Xi, Yi),
+            R.Rat.mul.neg_neg.reduced(mq, mn, dq, sp, sn, ds, h1, h2)),
+          Equal.trans(R.Rat,
+            R.Rat.mul(R.Rat.neg(Xi), R.Rat.neg(Yi)),
+            R.Rat.mul(R.Rat.neg(xb), R.Rat.neg(Yi)),
+            R.Rat.mul(R.Rat.neg(xb), R.Rat.neg(yb)),
+            Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(R.Rat.neg(u), R.Rat.neg(Yi)),
+              Xi, xb, Equal.sym(R.Rat, xb, Xi, hix)),
+            Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(R.Rat.neg(xb), R.Rat.neg(u)),
+              Yi, yb, Equal.sym(R.Rat, yb, Yi, hiy)))))
+      +reL = Equal.trans(R.Rat,
+        R.Rat.add(P, Q),
+        R.Rat.add(P, R.Rat.mul(p, R.Rat.mul(xb, yb))),
+        R.Rat.add(P, QE),
+        {==},
+        Equal.cong(R.Rat, R.Rat, u => R.Rat.add(P, R.Rat.mul(p, u)),
+          R.Rat.mul(xb, yb), R.Rat.mul(R.Rat.neg(xb), R.Rat.neg(yb)), pte))
+      +imL = Equal.trans(R.Rat,
+        R.Rat.neg(L0),
+        R.Rat.add(NXY, NYX),
+        IM1,
+        R.Rat.neg_add.arb(R.Rat.mul(xa, yb), R.Rat.mul(xb, ya),
+          R.Rat.mul.den.pos(xa, yb, gx, hy),
+          R.Rat.mul.den.pos(xb, ya, hx, gy)),
+        Equal.trans(R.Rat,
+          R.Rat.add(NXY, NYX),
+          R.Rat.add(R.Rat.mul(xa, R.Rat.neg(yb)), NYX),
+          IM1,
+          Equal.cong(R.Rat, R.Rat, u => R.Rat.add(u, NYX), NXY,
+            R.Rat.mul(xa, R.Rat.neg(yb)),
+            Equal.sym(R.Rat, R.Rat.mul(xa, R.Rat.neg(yb)), NXY,
+              R.Rat.mul_neg(xa, yb, gx, hy))),
+          Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.mul(xa, R.Rat.neg(yb)), u),
+            NYX, R.Rat.mul(R.Rat.neg(xb), ya),
+            Equal.sym(R.Rat, R.Rat.mul(R.Rat.neg(xb), ya), NYX,
+              R.Rat.neg_mul(xb, ya, hx, gy)))))
+      Equal.trans(Q.QExt,
+        Q.QExt.conj(Q.QExt.mul(d, x, y)),
+        Q.QExt{R.Rat.add(P, QE), R.Rat.neg(L0)},
+        Q.QExt.mul(d, Q.QExt.conj(x), Q.QExt.conj(y)),
+        qext.re(R.Rat.neg(L0), R.Rat.add(P, Q), R.Rat.add(P, QE), reL),
+        qext.im(R.Rat.add(P, QE), R.Rat.neg(L0), IM1, imL))
 
 # QExt.norm.mul's fill: five legs, every one of them a congruence over one of
 # the law's own hypotheses or a call to a multiplicativity law.
