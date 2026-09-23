@@ -3529,3 +3529,172 @@ two `mul_inv` operation laws, the two `div_add` operation laws). All five
 three. The defs themselves do not move the count -- laws-only was still 233
 after `QExt.inv` and `QExt.div` were added, and `qrat_proofs.bend` checked
 immediately.
+
+## QExt.mul_one and the field axiom on both signs: the canonical presentation is part of the statement (measured)
+
+Round seven measured the field axiom `(x/y)*y = x` out of reach and named the
+reason: every route passes through `x * 1 = x`, which is false at non-canonical
+dividends, so the axiom waits on a presentation-level `QExt.mul_one`. This round
+adds that law and then the axiom itself, one law per sign of the norm.
+
+**`QExt.mul_one` is stated over bridges, not over coprimality.**
+
+    law QExt.mul_one:
+      for +d, np, nn, dp, mq, mn, dq
+      for +f1: {Rat.mk(Rat.num(np,nn), 1n+dp) = Rat{Rat.num(np,nn), 1n+dp}}
+      for +f2: {Rat.mk(Rat.num(mq,mn), 1n+dq) = Rat{Rat.num(mq,mn), 1n+dq}}
+      {QExt.mul(d, QExt.of(np,nn,dp,mq,mn,dq), QExt.one()) = QExt.of(np,nn,dp,mq,mn,dq)}
+
+The two bridges are exactly `Rat.mul_one`'s own hypothesis, so the law passes
+them straight through instead of re-deriving them; a bridge is strictly weaker
+than coprimality, and a `neg_neg`-style caller who *has* coprimality reaches
+these with one `Rat.mk.fixed` call per coordinate and nothing new to prove
+(`probe.mul_one.fixed` is that caller, written out). The `QExt.of` spelling is
+the same canonical presentation `QExt.neg_neg` and `QExt.add_assoc` use.
+
+**The real coordinate is where the work is, and it is the radicand's fault.**
+`QExt.nat(d) = Rat{Rat.num(d,0n), 1n}` has base denominator `1n`, while
+`Rat.mul_zero` is stated at `Rat{n, 1n+dp}` -- there is no way to feed the
+radicand's coefficient to it. So the file gains one bare helper,
+`qext.nat.mul_zero`, the same move `qext.re`/`qext.im` make: a fact about a
+narrow spelling that only a fill consumes stays a helper. With it, the real
+coordinate is four steps (`mul_zero` on the imaginary product, `qext.nat.mul_zero`
+on the radicand term, `Rat.mul_one` on the surviving product, `Rat.add_zero` at
+the end) and the imaginary coordinate is three (`mul_zero`, `Rat.mul_one`,
+`Rat.zero_add`); the composing fill is two `qext.re`/`qext.im` trans steps. The
+law's own left-hand side reduces to `QExt{Lr, Li}` after `match x`, so no
+bridging step is needed at the top -- the same fact the payoff laws rest on.
+
+**Four probes ran before any of it was written**, on the pattern that has worked
+since round two -- one file per question, each a deliberately-false `{==}` whose
+error prints both endpoints in full SNF:
+
+- the real coordinate of `QExt.mul(d, x, QExt.one())` at a canonical
+  `x = QExt{Rat{n1,1n+p1}, Rat{n2,1n+p2}}` is
+  `Rat.add(Rat.mk(Int.mul(n1, Int{1n,0n}), 1n+Nat.mul(p1,1n)),
+   Rat.mul(QExt.nat(d), Rat.mk(Int.mul(n2, Int{0n,0n}), 1n+Nat.mul(p2,1n))))`
+  -- the first summand already `mk`-headed, the second still `mul`-headed with
+  the radicand factor *unfolded*. Writing the intermediates in this spelling,
+  rather than in the `Rat.mul(XA, one())` spelling one would expect, is what made
+  the fill short.
+- `Rat.add(Rat{n,1n+p}, zero)` reduces to
+  `mk(Int.add(Int.mul(n, Int{1n,0n}), Int{0n,0n}), 1n+Nat.mul(p,1n))` -- exactly
+  `Rat.add_zero`'s `fx` input, so that law applies with `{==}` for its bridge.
+- `Rat.mul(Rat{n,1n+p}, zero)` and `Rat.mul(Rat{n,1n+p}, one)` likewise reduce to
+  exactly `Rat.mul_zero`'s and `Rat.mul_one`'s inputs.
+- `Rat.mk(Int.zero(), 1n)` is `Rat.zero()` by conversion, and `Nat.mul(1n,1n)` is
+  `1n` -- the base cases the fills lean on.
+
+**One failure with no location line, diagnosed by bisection rather than by
+reading.** The first version of the fill failed with an error whose text was
+65537 bytes of one unfolded `Rat.mk` normalization -- `Nat.divmod`/`gcd` towers
+over `Nat.sub(np,nn)`, `Nat.sub(mq,mn)`, `Nat.sub(0n,d)`, `Nat.mul(1n+dq,1n)`.
+`grep -c 'Location'` over the capture returned **0**: a giant-term error has no
+location line at all, so "read the head of the error" is not available and
+`head -30` lands mid-term (lines are enormous). What worked was a three-way
+bisection written as a script: back the file up, extract the new block, and
+rebuild the file keeping any subset of the three pieces -- `.re` alone, `.im`
+alone, the composing fill alone -- running the gate on each. `im` alone checked
+(`Error: 1 TODO found.`, the unfilled law); the fill alone failed with
+`expected : a defined name / observed : QExt.mul_one.re` (it calls a def that
+isn't there); `re` alone produced the giant term. That named the culprit in three
+runs without reading a byte of the 64 KB. A botched python edit in the middle of
+this produced a parse error at lines 979-981 and was fixed by restoring the
+backup wholesale -- **full restore, then patch**, never incremental repair of a
+mangled edit.
+
+**Two bugs in the real coordinate, both about the endpoint a rewrite meets.**
+
+1. `+e1` was the *sub-term* equality `mul(D, mul(XB, zero)) = mul(D, zero)` fed
+   to a `Equal.trans` whose endpoints were the whole sums. Fix: wrap it, i.e.
+   make e1 an outer `Equal.cong` over `u => Rat.add(Rat.mul(XA, one()), u)` whose
+   evidence is that inner `cong`. (The checker's first complaint, after the
+   wrapping, moved up a level -- which is itself the signal that the level was
+   wrong.)
+2. In the composing fill, `Equal.trans`'s middle term was `QExt{A1, B1}` -- the
+   chain's internal intermediate name -- but the first leg concludes at
+   `QExt{XA, B1}`, the rewritten coordinate. `trans`'s `b` is the term both legs
+   must *meet* at; it is not a name of convenience. This is the second time this
+   exact mistake appeared (round three, `QExt{A1,B1}` → `QExt{XA,B1}` in the
+   payoff's compose), so it is worth a rule: **write `trans`'s middle term as the
+   exact endpoint of the first leg, copying it out of the first leg's evidence,
+   not out of the chain's list of names.**
+
+**The field axiom, `QExt.div_mul_cancel.gt`/`.lt`.** `(x/y)*y = x` with a
+canonical dividend, one law per sign of the norm's spelling. Three deliberate
+choices, each measured rather than preferred:
+
+- `x` is canonical (the `QExt.of` spelling plus `mul_one`'s two bridges). Nothing
+  branch-free can exist: `==` on `QExt` is structural and the product comes back
+  normalized, which is round seven's measurement 3 and the reason `QExt.mul_one`
+  had to be stated this way in the first place.
+- `x`'s positivity is **not** a hypothesis, though `mul_assoc` needs it: the
+  spelled `x` has successor denominators, so `Nat.cmp(0n, 1n+dp)` computes and the
+  fill passes `{==}` -- the same derivation-not-hypothesis move `div_add`'s fill
+  makes.
+- `y` is arbitrary, so both of its coordinates' positivity and the spelled norm
+  with `hZ` are hypotheses -- exactly what `QExt.mul_inv` asks for, because the
+  fill ends by calling it.
+
+The fill is the composition the design was waiting for: `QExt.div` unfolds to
+`mul(d, x, inv(y,q))` by definition; `mul_assoc` regroups it to
+`mul(d, x, mul(d, inv(y,q), y))`; one `cong` with `mul_comm` inside moves the
+reciprocal to the right; one `cong` with `QExt.mul_inv.gt` (which states
+`y * inv(y) = one()`, hence the `mul_comm` *first* -- assoc leaves `inv(y) * y`)
+collapses the pair; and `QExt.mul_one` finishes. Five lets, three derived
+positivity facts, no new helper. The three bugs hit while writing it, in order:
+
+1. `+Y = Q.QExt{ya, yb}` -- the constructor-cannot-head-a-`let` rule, fourth
+   instance in this project. The fix here was not `QExt.of` but deletion: the
+   `match y` binder already exists, so use `y` itself.
+2. `gi`/`hi` were built from `x`'s coordinates with `{==}`. They are the
+   *reciprocal's* positivity, so they must come from `y`:
+   `Rat.mul.den.pos(ya, rp, gy, {==})` and
+   `Rat.mul.den.pos(Rat.neg(yb), rp, Rat.neg.den.pos(yb, hy), {==})`. The error
+   printed the type it wanted, `{Nat.cmp(0n, denof(mul(ya, rp))) == LT{}}`, which
+   named the operand.
+3. The giant mismatch (expected and observed both 2614 characters, first
+   difference at character 1530, pure `mul`-grouping with no spelling
+   difference): the outer `Equal.trans`'s middle term was `L2`, but its legs
+   prove `{L1 = L3}` and `{L3 = X}` -- it had to be `L1, L3, X`. Same rule as
+   above, one level out.
+
+**Localizing a 2614-character term diff, and reading `base.bend` instead of
+guessing.** Two cheap techniques carried bug 3: (a) a token-level `difflib`
+diff, tokenizing on `mul(|add(|neg(|{,|},|,` plus words, so the opcodes say
+whether the difference is grouping or spelling -- here every opcode was
+`mul`-grouping, which ruled out the whole class of spelling bugs in one step;
+(b) replacing a single evidence term with `{==}` so the checker prints the type
+it *demands* at that position (that is how bug 2's wanted type was read, and how
+the `mul(mul(ya,q),ya)` vs `mul(ya,mul(ya,q))` orientation was settled). And
+`base.bend:355-396` gives the three `Equal` fills exactly: `cong(A,B,f,a,b,e)`
+fills `%e : {f(a) = f(_)}` with `{==}`, `sym(A,a,b,e)` fills `%e : {_ = a}` with
+`{==}`, and `trans(A,a,b,c,ab,bc)` fills `%bc : {a = _}` with `ab` -- so `b` is
+the shared middle term and nothing else.
+
+**The LT twin was generated, not written.** Five substitutions on the GT def text
+(`.gt(` → `.lt(`, the parameter list, the two `R.Rat.of(...)` spellings, the
+closing `QExt.mul_inv` call), each applied with an assertion and a printed count
+(all ×1), followed by a scan for leftovers (`1n+ap`, `, ap,`, `mul_inv.gt`),
+then appended as `gt_text + "\n" + lt_text`. It checked on the first run. Round
+six's lesson repeats: a mirror *claimed* to be a relabelling can be produced by
+relabelling, and the checker is the proof the claim was right -- which held here
+only because the GT text was still in the file. (In round six the first script
+overwrote the original instead of following it, and the checker caught it as a
+missing TODO.)
+
+**Counts, measured.** Laws-only: nat 128, int 32, qext 34, rat 223, qrat.bend
+**240** = 128 Nat + 32 Int + 63 Rat + **17 QExt** (the ten of round six, the four
+operation laws of round seven, `QExt.mul_one`, and the two `div_mul_cancel`
+laws). All five `src/*_proofs.bend` print `All terms check.`, as do
+`probe.bend` and `probe.payoff.bend`; `scratch.bend` prints the same triple it
+has since round three. `probe.payoff.bend` grew from the twelve defs of the last
+commit to eighteen -- three for `QExt.mul_one`, then `probe.div_mul_cancel.gt`/`.lt` from the caller's side at a variable `y`, and
+`probe.div_mul_cancel.instance`, `1/(2 + sqrt 2) * (2 + sqrt 2) = 1` at literals,
+where every hypothesis is `{==}` and -- as with `probe.mul_one.instance` -- the
+product also reduces on its own, so the instance is the arithmetic check and the
+variable defs are what exercise the law.
+
+**Temp probes, deleted.** The five scratch probe files this round needed
+(`probe.field.a.bend` through `probe.field.d.bend`, `probe.mulone.bend`) were
+removed before the commit; their measurements are the four bullets above.
