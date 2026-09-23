@@ -37,7 +37,7 @@ case analysis, and that case analysis is what the switch removed. See
 Laws and proofs live in separate files; each `*_proofs.bend` fills every
 law of its sibling via `def <alias>.<name>(...)`:
 
-- `src/nat.bend` — the 127 Nat/Cmp laws (including the `Nat.divmod` and
+- `src/nat.bend` — the 128 Nat/Cmp laws (including the `Nat.divmod` and
   `Nat.gcd` blocks, the exact-division block, the difference-pair helpers, the
   scaling/divisibility bridges, `div_cross` -- the exact-division cross
   product the Rat value lemma is built from -- the cross-sum lemmas the Int
@@ -72,17 +72,22 @@ law of its sibling via `def <alias>.<name>(...)`:
   `int_proofs.bend` uses for nat.bend.
 - `src/rat.bend` — `Rat{num, den}` with the field projections `Rat.numof` /
   `Rat.denof`, `Rat.mk` (gcd normalization, match-free),
-  `Rat.add`/`neg`/`sub`/`mul`/`zero`/`one`, and the laws.
+  `Rat.add`/`neg`/`sub`/`mul`/`zero`/`one`, `Rat.inv` (the reciprocal, split
+  three ways on the numerator comparison) and `Rat.div`, and the laws --
+  including the two `Rat.mul_inv` branches and the ten division laws, whose
+  statements put the divisor's sign in its *spelling* (PROVING.md, round four).
 - `src/rat_proofs.bend` — fills every rat.bend law.
 - `scratch.bend` — smoke test with a `main`.
 
 Check with `node bend2/main.ts <file>` from a bend checkout. The five
-`*_proofs.bend` files and `scratch.bend` are the gates and print
-`All terms check.`; the laws-only files intentionally fail with
-`Error: N TODOs found.` (an open law is an unfilled TODO). The count is
-transitive over imports: nat.bend 127, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 208 = 127 Nat + 32 Int + 49 Rat, qrat.bend 216 = 127 Nat +
-32 Int + 49 Rat + 8 QExt (it imports rat.bend itself, so its count is
+`*_proofs.bend` files are the gates and print `All terms check.`; the
+laws-only files intentionally fail with
+`Error: N TODOs found.` (an open law is an unfilled TODO), and `scratch.bend`
+is the smoke test -- it has a `main`, so it prints the `Rat.inv` triple it
+computes instead of that line. The count is
+transitive over imports: nat.bend 128, int.bend 32, qext.bend 34 = 32 Int + 2
+QExt, rat.bend 221 = 128 Nat + 32 Int + 61 Rat, qrat.bend 229 = 128 Nat +
+32 Int + 61 Rat + 8 QExt (it imports rat.bend itself, so its count is
 rat.bend's plus its own eight laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
@@ -275,8 +280,11 @@ Known gaps, in dependency order:
    spelling, by one `pos_witness` rewrite that the divisibility witness is
    transported along. No projection bridge and no `Rat.mk_idem`-shaped step is
    needed anywhere in it.
-   Still open: the `QExt` block below -- both distributive laws are now in, so
-   the remaining Rat-side work is the field axioms and the inverse.
+   Still open: the `QExt` block below -- both distributive laws are now in, the
+   multiplicative inverse is in, and the laws of `Rat.div` are in as well, so
+   what the Rat side still lacks is the field axioms stated over `div` at an
+   arbitrary divisor (the ten division laws are stated at a spelled-out sign,
+   which is what makes them provable; see PROVING.md, round four).
 2. `QExt` over `Rat` — landed so far:
    `src/qrat.bend` + `src/qrat_proofs.bend` carry the type, the operations, the
    two coefficient projections (`QExt.re`/`QExt.im`, which the general
@@ -364,14 +372,43 @@ Known gaps, in dependency order:
    no canonical statement can be instantiated at, and with the raw coordinates
    in hand no coprimality is needed at all. PROVING.md's last section records
    the measurements.
-   What is left on the Rat side of the inverse is the field axioms minus the
-   multiplicative inverse itself. On the QExt side the division-free
+   The **multiplicative inverse is in**: `Rat.inv` splits on
+   `Nat.cmp(np, nn)` and returns `d/(np-nn)` -- spelled as the raw constructor,
+   which is one pair and needs no coprimality -- `Rat.div` is `mul` by it, and
+   both branch laws `Rat.mul_inv.gt`/`Rat.mul_inv.lt` are proved in
+   `rat_proofs.bend`. Both were *false as first stated*: the numerator was
+   spelled out of `np`/`nn` and dropped `d`, so the reciprocal's value was 1 for
+   every non-zero input and no proof could have existed; the fix is the `d` in
+   the numerator slot. What makes the branches cheap is that the product's
+   coordinates come out as `div(T,T)`, `div(0,T)`, `div(T,T)` with `T = d'*|np-nn|`
+   -- so the closing is `div_self` twice and `div_zero` once, and the *only*
+   gcd work is showing the divisor is `T`, which is `Nat.gcd_scale` (plus the
+   new `Nat.gcd_self`). Those two were the last unfilled laws in the tree, and
+   there are none left: every `*_proofs.bend` file checks. PROVING.md's
+   round-two and round-three sections record the measurements (including the two
+   Nat laws this rests on).
+   The laws of `Rat.div` are **in**: ten of them, stated at a divisor whose sign
+   is in the *spelling* (`Rat{Rat.num(1n+ap, 0n), 1n+dp}` for positive,
+   `Rat{Rat.num(0n, 1n+bp), 1n+dp}` for negative, `Rat{Rat.num(0n, 0n), 1n+dp}`
+   for the zero case, where the comparison computes and `Rat.div` reduces to a
+   product by the reciprocal). Three value forms
+   (`Rat.div.value.gt`/`.lt`/`.eq`, the last being the division-by-zero case),
+   the two `Rat.div_self` branches and `Rat.div_one`, the field axiom
+   `Rat.div_mul_cancel` (`(x/y)*y = x`) and
+   `Rat.div_add` (`(x+y)/z = x/z + y/z`), each with a gt and an lt branch where
+   the branch matters. All ten apply from a downstream module -- `probe.bend`
+   calls every one of them and derives `(x + y)/1 = x + y` from two of them.
+   What is still out of reach is a *branch-free* statement at a variable
+   divisor: `Nat.cmp(bp,bnn)` is stuck there and sits inside `Rat.inv`'s
+   argument list next to the `{==}` whose type mentions it, where no `%` step
+   can reach it. PROVING.md's round-four section has the measurement. On the
+   QExt side the division-free
    rationalization is **in**: `QExt.conj` and `QExt.norm` are two cheap defs
    (`conj(x) = (re, -im)`, `norm(d,x) = a^2 - b^2 d` as a `Rat`), and
    `QExt.mul_conj` states `x * conj(x) = norm(d,x) + 0*sqrt d`, filled by two
    Rat chains over the coefficients -- `Rat.mul_neg` twice in the real
    coordinate, once in the imaginary one, then `Rat.mul_comm`/`Rat.add_comm`
    and `Rat.add_neg` to reach zero. The literal division form
-   `1/(a + b*sqrt d) = conj(x)/norm(d,x)` is one Rat division away, and that
-   operation with its field laws is the unit after this one.
+   `1/(a + b*sqrt d) = conj(x)/norm(d,x)` is now one `Rat.div` *call* away; the
+   division laws it would need are the unit after this one.
 3. Binary nats for performance (unary `Nat` is O(value)).

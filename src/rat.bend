@@ -151,11 +151,11 @@ def Rat.mul(x: Rat, y: Rat) -> Rat:
 def Rat.inv(+np: Nat, +nn: Nat, +d: Nat, c: Cmp, +e: {c == Nat.cmp(np, nn) : Cmp}) -> Rat:
   match c:
     case LT{}:
-      Rat{Rat.num(nn, np), Nat.sub(nn, np)}
+      Rat{Rat.num(0n, d), Nat.sub(nn, np)}
     case EQ{}:
       Rat{Rat.num(np, nn), Nat.sub(np, nn)}
     case GT{}:
-      Rat{Rat.num(np, nn), Nat.sub(np, nn)}
+      Rat{Rat.num(d, 0n), Nat.sub(np, nn)}
 
 def Rat.div(a: Rat, b: Rat) -> Rat:
   match b:
@@ -1363,3 +1363,182 @@ law Rat.mul_add_left:
            Rat{Rat.num(np3, nn3), 1n+dp3})
    == Rat.add(Rat.mul(Rat{Rat.num(np1, nn1), 1n+dp1}, Rat{Rat.num(np3, nn3), 1n+dp3}),
               Rat.mul(Rat{Rat.num(np2, nn2), 1n+dp2}, Rat{Rat.num(np3, nn3), 1n+dp3})) : Rat}
+
+# Rat.mul_inv
+# ===========
+#
+# x * x^-1 = 1, stated per branch of the comparison Rat.inv splits on. The two
+# branch laws are the two halves of the claim, and between them they carry what
+# "x is non-zero" means here: the branch that applies *is* the evidence that
+# np != nn, so nothing has to be said about it and no c != EQ side condition has
+# to be spelled (this language has no natural form for one).
+#
+# GT is stated first because that is the branch QExt.inv consumes: the norm
+# a^2 - b^2*d of a non-zero extension is positive, and a caller that has decided
+# that hands over the GT case.
+#
+# The hypothesis is {GT{} == Nat.cmp(np, nn)}, not the reverse: Rat.inv's own
+# parameter is {c == Nat.cmp(np,nn)}, so this is the orientation its caller
+# wants, and it is also the one this checker can consume -- a law parameter is
+# read by rewriting the goal's RHS-of-e occurrences with the LHS (PROVING.md),
+# so {Nat.cmp(np,nn) == GT{}} cannot produce the {GT{} == Nat.cmp(np,nn)} that
+# instantiating Rat.inv needs. Same for LT and Nat.cmp_lt_of_gt.
+law Rat.mul_inv.gt:
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +e: {GT{} == Nat.cmp(np, nn) : Cmp}
+  {Rat.mul(Rat{Rat.num(np, nn), 1n+dp},
+           Rat.inv(np, nn, 1n+dp, GT{}, e))
+   == Rat.one() : Rat}
+
+law Rat.mul_inv.lt:
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +e: {LT{} == Nat.cmp(np, nn) : Cmp}
+  {Rat.mul(Rat{Rat.num(np, nn), 1n+dp},
+           Rat.inv(np, nn, 1n+dp, LT{}, e))
+   == Rat.one() : Rat}
+
+# Division
+# ========
+#
+# Rat.div(a, b) is Rat.mul(a, Rat.inv(..)) with the comparison Nat.cmp(bp, bnn)
+# computed from b's numerator coordinates and handed to Rat.inv *inside that
+# call*. That single argument decides the shape of every law below.
+#
+# It only reduces when it is a computation on constructors. For a divisor
+# spelled Rat{Rat.num(np, nn), 1n+dp} with variables np and nn the comparison is
+# stuck -- and it is stuck inside Rat.inv's argument list, next to the {==} whose
+# type mentions it, so no `%` step can move it: the pattern would have to rebuild
+# that argument list, and Rat.inv's evidence slot wants {x == Nat.cmp(np,nn)}
+# while the pattern's own evidence binder has type {GT{} == x}. A derived
+# evidence term typechecks in the pattern but fails the goal fit (the fit
+# compares the two evidence terms and {==} is not the same term), and {==}
+# itself does not typecheck against a stuck equation. Measured, not assumed.
+#
+# So the divisor's *sign sits in the spelling*: positive is written
+# Rat{Rat.num(1n+ap, 0n), 1n+dp} (coordinates 1+ap against 0n), negative is
+# Rat{Rat.num(0n, 1n+bp), 1n+dp}. Both make Nat.cmp compute, so Rat.div reduces
+# to a plain product by the reciprocal and each law below is a statement about
+# that product. This is the mirror of the branch split Rat.mul_inv already makes:
+# the spelling *is* the branch evidence, which is why no law needs a c != EQ
+# side condition -- and why the two branches must be stated separately.
+#
+# The reciprocals differ in sign as well as in shape: for a positive divisor y
+# the reciprocal reduces to Rat{Rat.num(1n+dp, 0n), 1n+ap}, for a negative one
+# to Rat{Rat.num(0n, 1n+dp), 1n+bp}. (Getting that wrong is the one error the
+# checker catches only after the whole chain is written.)
+
+# Rat.div.value.gt: the value form, positive divisor, at raw coordinates
+law Rat.div.value.gt:
+  for +ap: Nat
+  for +dp: Nat
+  for +Zp: Nat
+  for +Zn: Nat
+  for +D: Nat
+  {Rat.div(Rat{I.Int{Zp, Zn}, D}, Rat{Rat.num(1n+ap, 0n), 1n+dp})
+   == Rat.mk(I.Int.mul(I.Int{Zp, Zn}, Rat.num(1n+dp, 0n)),
+             Nat.mul(D, 1n+ap)) : Rat}
+
+# Rat.div.value.lt: the same for a negative divisor
+law Rat.div.value.lt:
+  for +bp: Nat
+  for +dp: Nat
+  for +Zp: Nat
+  for +Zn: Nat
+  for +D: Nat
+  {Rat.div(Rat{I.Int{Zp, Zn}, D}, Rat{Rat.num(0n, 1n+bp), 1n+dp})
+   == Rat.mk(I.Int.mul(I.Int{Zp, Zn}, Rat.num(0n, 1n+dp)),
+             Nat.mul(D, 1n+bp)) : Rat}
+
+# Rat.div.value.eq: the divisor is zero -- numerator coordinates 0n against 0n,
+# the canonical spelling of a zero divisor -- so the comparison computes to EQ
+# and the value is 0/0 written out: Rat.mk(0, 0). That is the value zero, but it
+# is *not* the term Rat.zero() (= Rat{Int{0,0}, 1n}), measured: a structural
+# x/0 = 0 law cannot exist, and a caller who wants the constructor has to go
+# through the value laws (Rat.mk.eqv), not through {==}.
+law Rat.div.value.eq:
+  for +dp: Nat
+  for +Zp: Nat
+  for +Zn: Nat
+  for +D: Nat
+  {Rat.div(Rat{I.Int{Zp, Zn}, D}, Rat{Rat.num(0n, 0n), 1n+dp})
+   == Rat.mk(I.Int.mul(I.Int{Zp, Zn}, Rat.num(0n, 0n)),
+             Nat.mul(D, 0n)) : Rat}
+
+# Rat.div_self.gt / Rat.div_self.lt: x / x = 1. The branches are what "x is
+# non-zero" means here, exactly as for Rat.mul_inv: the branch that applies is
+# the evidence of it.
+law Rat.div_self.gt:
+  for +ap: Nat
+  for +dp: Nat
+  {Rat.div(Rat{Rat.num(1n+ap, 0n), 1n+dp},
+           Rat{Rat.num(1n+ap, 0n), 1n+dp})
+   == Rat.one() : Rat}
+
+law Rat.div_self.lt:
+  for +bp: Nat
+  for +dp: Nat
+  {Rat.div(Rat{Rat.num(0n, 1n+bp), 1n+dp},
+           Rat{Rat.num(0n, 1n+bp), 1n+dp})
+   == Rat.one() : Rat}
+
+# Rat.div_one: x / 1 = x. Branch-free: 1 is the literal Rat.one(), its
+# coordinates are 1n and 0n, so Nat.cmp computes to GT with nothing to say.
+law Rat.div_one:
+  for +n: I.Int
+  for +d: Nat
+  for +fx: {Rat.mk(n, d) == Rat{n, d} : Rat}
+  {Rat.div(Rat{n, d}, Rat.one()) == Rat{n, d} : Rat}
+
+# Rat.div_mul_cancel.gt / Rat.div_mul_cancel.lt: (x / y) * y = x, the field
+# axiom, for a positive resp. negative y. px is the positivity of x's
+# denominator, which the three-factor associativity law needs.
+law Rat.div_mul_cancel.gt:
+  for +ap: Nat
+  for +dp: Nat
+  for +n: I.Int
+  for +d: Nat
+  for +fx: {Rat.mk(n, d) == Rat{n, d} : Rat}
+  for +pd: {Nat.cmp(0n, d) == LT{} : Cmp}
+  {Rat.mul(Rat.div(Rat{n, d}, Rat{Rat.num(1n+ap, 0n), 1n+dp}),
+           Rat{Rat.num(1n+ap, 0n), 1n+dp})
+   == Rat{n, d} : Rat}
+
+law Rat.div_mul_cancel.lt:
+  for +bp: Nat
+  for +dp: Nat
+  for +n: I.Int
+  for +d: Nat
+  for +fx: {Rat.mk(n, d) == Rat{n, d} : Rat}
+  for +pd: {Nat.cmp(0n, d) == LT{} : Cmp}
+  {Rat.mul(Rat.div(Rat{n, d}, Rat{Rat.num(0n, 1n+bp), 1n+dp}),
+           Rat{Rat.num(0n, 1n+bp), 1n+dp})
+   == Rat{n, d} : Rat}
+
+# Rat.div_add.gt / Rat.div_add.lt: (x + y) / z = x / z + y / z -- division
+# distributes over addition, and with the divisor's sign in the spelling both
+# sides are products by the same reciprocal, so this is Rat.mul_add_left.arb.
+law Rat.div_add.gt:
+  for +ap: Nat
+  for +dp: Nat
+  for +x: Rat
+  for +y: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
+  {Rat.div(Rat.add(x, y), Rat{Rat.num(1n+ap, 0n), 1n+dp})
+   == Rat.add(Rat.div(x, Rat{Rat.num(1n+ap, 0n), 1n+dp}),
+              Rat.div(y, Rat{Rat.num(1n+ap, 0n), 1n+dp})) : Rat}
+
+law Rat.div_add.lt:
+  for +bp: Nat
+  for +dp: Nat
+  for +x: Rat
+  for +y: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
+  {Rat.div(Rat.add(x, y), Rat{Rat.num(0n, 1n+bp), 1n+dp})
+   == Rat.add(Rat.div(x, Rat{Rat.num(0n, 1n+bp), 1n+dp}),
+              Rat.div(y, Rat{Rat.num(0n, 1n+bp), 1n+dp})) : Rat}

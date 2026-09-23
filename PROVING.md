@@ -174,7 +174,8 @@ verified empirically on this checkout:
   rewriting).
 - **Parsing**: `1n+x` is sugar for `Succ{x}` and chains (`1n+1n+x`).
   `-`/`+` glued to a name starts a binder, not an operator; space your
-  operators.
+  operators. A parameterless `def` still needs its empty list: `def f() -> T:`
+  parses, `def f -> T:` fails with `expected : '('` / `observed : '-'`.
 
 ## Int.add_assoc campaign (historical: sign-magnitude `Int`)
 
@@ -2827,3 +2828,395 @@ the two spellings are one conversion apart.
 needs a `Rat` inverse: the operation, its laws, and the `Rat` division that
 consumes it. That is the field-axioms-and-inverse unit the README already names,
 and nothing in this round shortens it.
+
+## The inverse unit, round one: the operation and the two orientation rules
+
+`Rat.inv` and `Rat.div` are in (commit `bbbef5f`), the GT branch of
+`Rat.mul_inv` is stated and its arithmetic is in place -- `Rat.mul.num.coords`,
+`Rat.mul.mag.coords`, `Rat.mul_inv.gt.pw`, `Rat.mul_inv.gt.divself`,
+`Rat.mul_inv.gt.hT`, `Rat.mul_inv.gt.chain` all check -- and the one step still
+red is `Rat.mul_inv.gt.gT`, which is `gcd(T, T) = T`. Everything below was
+measured, not reasoned about; two of the statements contradict the earlier
+notes in this file, so they are worth folding back into the gotchas.
+
+**`Equal.sym(A, a, b, e)` for `e : {a == b}` gives `{a == b}`** -- it does *not*
+flip. `Equal.sym(Nat, p, Nat.mul(p, 1n), N.mul_one(p))` is `{p == Nat.mul(p,1n)}`,
+the same as its argument, and swapping `a` and `b` gives the other direction.
+The `%`-ascription convention is likewise the reverse of what earlier rounds
+recorded: `%e : {_ == a : A}` rewrites occurrences of `a` (the LHS inside the
+ascription) with `b`, so a rewrite fires *left-to-right* by its own statement.
+
+**`Equal.cong(f, a, b, e)` for `e : {a == b}` gives `f(b) == f(a)`.** Measured
+twice: with `f = u => Nat.add(p, u)`, `a = p*dp`, `b = dp*p` and
+`Nat.mul_comm(p,dp) : {a == b}`, the result is `add(p, dp*p) == add(p, p*dp)`.
+This is the orientation the fills have to be written in, and it is why the
+`cong` at a goal whose arguments are *not* abstract variables wants its evidence
+oriented the other way round.
+
+**`Nat.mul_one` in this repo is stated flipped.** `nat.bend` has
+`law mul_one: {a == Nat.mul(a, 1n)}` with an explicit note that it is stated
+flipped so rewrites fire left-to-right. A fill that wants `mul(a,1n) == a` has
+to build it, and one that wants `a == mul(a,1n)` takes the law as it is.
+
+**`Nat.div` and `Nat.gcd` arguments cannot be reached by a `%` rewrite at all.**
+Both are defs whose bodies call `.fin`/`.go`, so a goal's occurrence shows up as
+`div.fin(divmod(..))` or `gcd.go(..)` while the rewrite's pattern is the
+abbreviated call -- the matcher has nothing to match on. `Nat.mul` arguments are
+worse than that: they sometimes reduce and sometimes do not, depending on how
+much of the surrounding context is already constructor-headed, so a proof that
+leans on that reduction at one site and not another is fragile. The reliable
+route is `Equal.cong` at each position, with the two orientations above, and
+`Equal.trans` with the middle endpoint spelled exactly as the first half's
+result rather than as something merely equal to it.
+
+**What is left for `Rat.mul_inv.gt`.** `gT` is the only red step: with
+`hT : {T == Nat.add(Nat.mul(p,1n), Nat.mul(p,dp))}`, the goal is
+`gcd(T,T) = T`, and the pieces are `mul_one` to put both arguments at `T*1`,
+`hT` to turn the second into `mul(p*1 + p*dp, 1)`, `Nat.mul_comm(1n+dp,p)` to
+order that one as `mul(p, 1n+dp)`, the outer `gcd_scale` to factor out `p`, and
+the inner `gcd(d',d') = d'` from `gcd_scale` at `k = 0`. Each of those five
+steps is a three-line `Equal.trans` once the orientations above are applied;
+what is red is the composition, not the arithmetic. The `T = mul(1n+dp, p)`
+call site is where the two spellings of the argument (`mul(T,1n)` and
+`1n + add(dp,0)`) have to be reconciled, which is the last `cong` in the chain.
+
+**The LT branch and `Rat.div_mul_cancel` are untouched.** `Rat.mul_inv.lt` is
+stated (with the hypothesis `{LT{} == Nat.cmp(np,nn)}`, the orientation
+`Rat.inv` consumes) and has no fill; `rat.bend` reports 210 TODOs, i.e. the two
+branch laws and nothing else.
+
+**Gate state at the end of this round: red, by design of the checkpoint.** The
+two branch laws `Rat.mul_inv.gt` and `Rat.mul_inv.lt` are *stated* in `rat.bend`
+and their fills are not in `rat_proofs.bend` -- the GT fill is parked in
+`wip-inv.bend`, which nothing imports, because a red fill takes every gate down
+with it. So the counts are now nat 127, int 32, qext 34, **rat 210**, **qrat
+218**, and the five proofs files plus `scratch.bend` fail with
+`Error: 2 TODOs found.` (the two stated laws) until the fills land. The counts
+before this round were rat 208 / qrat 216, and the earlier note in this file
+that says "208" belongs to that state.
+
+**What is measured and what is not.** In `wip-inv.bend`: `Rat.mul.num.coords`,
+`Rat.mul.mag.coords`, `Rat.mul_inv.gt.pw`, `Rat.mul_inv.gt.divself`,
+`Rat.mul_inv.gt.hT` and `Rat.mul_inv.gt.chain` all check; `Rat.mul_inv.gt.gT`
+does not, and it is the only red def in the file. The LT branch has no fill at
+all. To go back to a green tree without finishing the law, delete the two `law
+Rat.mul_inv.*` blocks from `rat.bend`; the defs from `bbbef5f` are independent.
+
+### The rewrite and orientation rules, measured (supersedes the earlier notes)
+
+Four rules, each measured directly in this repo with a two-line probe rather
+than read off a proof; the earlier gotchas in this file state two of them the
+other way round, which cost several failed rounds.
+
+- **`%e : P` rewrites left-to-right by `e`'s statement.** With
+  `e : {a == b}`, a goal containing `a` becomes the goal with `a` replaced by
+  `b`. The `_` in an ascription such as `%e : {_ == a : A}` is the *occurrence*
+  side, not a wildcard for the produced type: `{_ == a}` marks the position the
+  matcher searches, and the replacement is `e`'s other side. So the spelling
+  `%e : {_ == Nat.div(T, T) : Nat}` is what you want when the goal's occurrence
+  is `Nat.div(T,T)` and `e` says `div(T,T) == q`.
+- **`Equal.sym(A, a, b, e)` returns `{a == b}`** for `e : {a == b}` -- it does
+  not flip. To flip, swap the two middle arguments:
+  `Equal.sym(A, b, a, e) : {b == a}`. A probe confirms both directions; the
+  consequence is that a `sym` whose result is not used in the same orientation
+  as its argument's statement is a no-op on the type.
+- **`Equal.cong(f, a, b, e)` for `e : {a == b}` returns `f(b) == f(a)`.** With
+  `f = u => Nat.add(p, u)`, `a = Nat.mul(p,dp)`, `b = Nat.mul(dp,p)` and
+  `Nat.mul_comm(p,dp) : {a == b}`, the result is
+  `add(p, dp*p) == add(p, p*dp)`. The `a` and `b` arguments are *the endpoints*
+  -- passing them in the order you want the equation is what produces the
+  reversed equation, which is where most of the failed rounds went.
+- **`Nat.mul_one` is stated flipped**: `nat.bend` has
+  `law mul_one: {a == Nat.mul(a, 1n)}` with a note that this is deliberate so
+  rewrites fire left-to-right. A fill wanting `mul(a,1n) == a` has to flip it.
+
+Two structural facts that decide what is even writable:
+
+- **A `%` rewrite cannot reach an argument of a def whose body is a nested
+  call.** The goal's `Nat.div(a,b)` shows up to the matcher as
+  `Nat.div.fin(Nat.divmod(a,b))` and the goal's `Nat.gcd(a,b)` as
+  `Nat.gcd.go(...)`, while a lemma's statement is the abbreviated call; the
+  matcher has nothing to match on. Reach those positions with `Equal.cong` at
+  that exact position instead. `Nat.mul` arguments are worse: they reduce or do
+  not depending on how constructor-headed the rest of the context already is,
+  so a fill that relies on that reduction at one site and not at another is
+  fragile, and the fix is to write the lemma's own spelling out.
+- **`Nat.gcd_scale` is stated at `gcd(mul(m, 1+kp), mul(d, 1+kp))`**, not at
+  `gcd(m, d)` -- a caller whose gcd argument is `t` has to write `t` as
+  `mul(t, 1n)` first (`Nat.mul_one` flipped), and the endpoints of that rewrite
+  are the *go-form* of the gcd, so `{==}` opens the chain and the stated type is
+  reachable only through the abbreviation. This is where `Rat.mul_inv.gt.gT`
+  stood red until round two, where a Nat-level law replaced the in-file
+  reconstruction.
+
+## The inverse unit, round two: gcd_self as a law, and a false statement under the first red (measured)
+
+Round one ended by saying that everything in `wip-inv.bend` except `gT` checks.
+That was read off "the first error is in `gT`", and the checker reports only the
+first error in file order -- so it was an inference, not a measurement. Carrying
+out the `gT` recipe with a Nat-level law instead of the in-file reconstruction
+removed that error, and the defs underneath it were not in the state the
+inference described.
+
+**`Nat.gcd_self` is a law now, and it is what `gT` needed.** `nat.bend` carries
+
+    law gcd_self:
+      for +a: Nat
+      {Nat.gcd(a, a) == a : Nat}
+
+filled in `nat_proofs.bend`: `match a`, `0n` is `{==}`, and the successor case is
+two lines -- `%NL.add_zero(1n+ap) : {NL.Nat.gcd(_, _) == _ : Nat}` and then
+`NL.gcd_scale(1n, 1n, ap)`. One `gcd_scale`, not two: `Nat.mul(1n, 1n+ap)`
+reduces to `Nat.add(1n+ap, 0n)`, which is the `mul(m, 1+kp)` spelling
+`gcd_scale` is stated at, and `Nat.gcd(1n, 1n)` reduces to `1n` on its own, so
+that instance's statement *is* the case goal. The law's `for +a` is also what
+lets the bare-name fill read `ap` twice: a linear `def g(a)` fails with
+"ap (consumed more than once)".
+
+The generality is the whole reason the law exists. At the *variable* `p` the
+in-file version was stuck -- `Nat.cmp(p, p)` is stuck, so the loop cannot start
+-- and a lemma stated at `1n+dp` is a different, non-convertible type. Measured
+as the error it produced: `Nat.gcd(p, p) == p` expected against
+`Nat.gcd.go(1n+Nat.add(p, 1n+p), 1n+p, Nat.cmp(p, p), 1n+p) == 1n+p` observed.
+`Rat.mul_inv.gt.gself` is gone from `wip-inv.bend`; `gT` reaches `Nat.gcd_self(p)`
+through one `Equal.cong` over `u => Nat.mul(u, 1n+dp)` and checks.
+
+Counts after the law: nat 127 -> **128**, rat 210 -> **211**, qrat 218 -> **219**
+(int 32, qext 34 unchanged), all six gates in their expected states.
+
+**`Rat.inv`'s LT and GT branches dropped `d`, so both laws were false as
+stated.** Both branches spelled the numerator out of `np`/`nn` --
+`Rat{Rat.num(np, nn), Nat.sub(np, nn)}` on GT, the mirror on LT -- where the
+reciprocal needs `d` in that slot: the branch's own comment says the result is
+`d/(np-nn)`, "the pair `(d, |np - nn|)` is already reduced", and the header of
+`wip-inv.bend` assumes exactly that shape (`Int{p*d', 0}` over `d'*p`). As
+committed, `Rat.inv` returned the *value* 1 for every non-zero input. Measured
+with the law's instance as a `{==}` goal: GT at np=5, nn=3, dp=0 gives
+`Rat{Int{2n,0n}, 1n}` expected against `Rat{Int{1n,0n}, 1n}` observed (2 = 1);
+LT at np=3, nn=5, dp=0 gives `Rat{Int{0n,2n}, 1n}` against `Rat{Int{1n,0n}, 1n}`
+(-2 = 1). Fixed to `Rat{Rat.num(d, 0n), Nat.sub(np, nn)}` (GT) and
+`Rat{Rat.num(0n, d), Nat.sub(nn, np)}` (LT); the same three instances then check
+by `{==}` alone (np=5, nn=3 at dp=0 and dp=2; np=3, nn=5 at dp=0), including
+`Rat.num(1n + 2n, 0n)` -- the `sub` terms inside `Rat.num` reduce on their own at
+a successor `d`. All six gates are unchanged by the fix, and inside `src/` the
+only caller is `Rat.div`.
+
+**What the tail of `wip-inv.bend` actually is.** With `gT` green the first error
+is `chain`, and it is a statement error: `Rat.mul_inv.gt.chain` states
+`R.Rat{R.Rat.num(T, T), Nat.div(T, T)} == R.Rat.one()`, whose left endpoint
+reduces to `R.Rat{Int{0n,0n}, Nat.div(T,T)}` -- the diagonal pair is zero, so the
+goal asserts 0 = 1. `Rat.num(T, T)` is not the product's numerator at that
+position; the mk-output shape is `Int{T, 0}`, with `T = d'*p` in the first slot
+and the two `div(T, T)`s still to be carried to 1. `coords` fails for two further
+reasons: it calls `Rat.mul.num.coords` and `Rat.mul.mag.coords`, neither of which
+is defined here or in `src/` (measured: "expected: a defined name / observed:
+Rat.mul.num.coords") -- the comments at the top of the file about "the two halves
+of the pair gcd_divides returns" and "the two div coordinates of the GT branch"
+are what is left of them; and every `%` pattern in it carries more than one `_`,
+which cannot work, because `bend.ts` types the pattern under a `Lone()` binder
+(the two-hole `{Nat.gcd(_, _) == 1n+dp}` of the erased `gself` was accepted
+precisely because both holes are the *same* term). Its call
+`%Rat.mul_inv.gt.gT(T, {==}, p, dp)` also contradicts `gT`'s telescope
+`(T, p, dp, hT)`, and `{==}` cannot be that `hT` anyway: `T` is the let
+`Nat.mul(1n+dp, p)` and `Nat.mul(p, 1n+dp)` is `Rat.mul_inv.gt.hT`'s job, not a
+conversion.
+
+So the state is: `pw`, `divself`, `hT`, `gT` check; `chain`'s statement has to
+be restated on the product's real numerator before its body means anything; the
+two coord helpers have to be written again; `coords`' rewrite steps have to be
+one hole each.
+
+*Round three supersedes that paragraph: both branches landed, and the closing
+turn out not to need the coord helpers as separate defs at all.*
+
+## The inverse unit, round three: both branches landed, and the LT half is a mirror image (measured)
+
+`Rat.mul_inv.gt` and `Rat.mul_inv.lt` are proved. `src/rat_proofs.bend` checks
+-- `All terms check.`, not a TODO count -- and so does `src/qrat_proofs.bend`,
+whose 2 TODOs were exactly these two laws. All five `*_proofs.bend` files are
+green, and the tree now has no unfilled law. The workbench `wip-inv.bend` is
+gone: its content is the ported block, and keeping the file would have been a
+second definition of `R.Rat.mul_inv.gt`.
+
+**What round two's ending got right, and what it guessed wrong.** `chain`'s
+statement *was* wrong (it asserted 0 = 1) and it *was* restated -- but not on
+the clean `Int{T, 0}` the paragraph above guessed. `Rat.mul` expands to
+`Int.mul(Rat.num(np, nn), Int{1n+dp, 0n})` before `Rat.mk` normalizes, and
+`Int.mul` is a four-product sum, so what the checker shows is
+
+    ca = mul(np-nn, 1n+dp) + mul(nn-np, 0n)     cb = mul(np-nn, 0n) + mul(nn-np, 1n+dp)
+
+with mk's denominator argument `add(np-nn, mul(dp, np-nn))`. The probe that
+printed it is the technique that made this round mechanical: a `{==}` at the
+*law's own instance*, which forces the checker to print both endpoints in SNF.
+Measured that way, `chain` is
+
+    def Rat.mul_inv.chain(+T: Nat, +pT: {Nat.cmp(0n, T) == LT{} : Cmp})
+      -> {R.Rat{I.Int{Nat.div(T, T), Nat.div(0n, T)}, Nat.div(T, T)}
+          == R.Rat.one() : R.Rat}
+
+and its body is three `Equal.cong` steps -- `divself`, then `div_zero`, then
+`divself` again -- with no `Nat.divides` witness and no destructure of the pair
+`gcd_divides` returns. The old route took `Pair.fst(N.gcd_divides(T, T))`
+because an anonymous pair cannot be destructured by its caller; `div_self`
+reaches `div(T, T) = 1` at the opaque dividend the goal has, so that witness was
+never needed for this.
+
+**The Nat algebra under the coordinates.** With `s = sub(np, nn)`,
+`t = sub(nn, np)`, the two raw coordinates and their difference reduce to `T`
+and `0` (`coordA`/`coordB`, then `subAB`/`subBA`), the magnitude to `mul(T, 1)`
+(`magT`), and the divisor `gcd(mag, add(s, mul(dp, s)))` to `T` (`gcdT`) -- which
+is `gT` at `T := mul(1n+dp, s)`, `p := s`. The coordinates are then
+`div(T,T)`, `div(0,T)`, `div(T,T)`: `chain`'s goal. The branch hypothesis is
+consumed exactly once, in `coordB` (`np > nn` means `nn-np` is zero, through
+`sub_of_lt` at `cmp(nn, np) = LT`); by the time the coordinates are stated, it
+has been spent.
+
+**The LT branch is the GT branch with the two raw products swapped -- measured
+before a line was written.** The probe on the LT law's instance printed
+`A_lt = add(mul(s, 0n), mul(t, 1n+dp))`, `B_lt = add(mul(s, 1n+dp), mul(t, 0n))`
+and `D_lt = add(t, mul(dp, t))`: the same terms as GT with `A`/`B` exchanged and
+`s` replaced by `t` in `D`. So `lt.coordA`/`lt.coordB`/`lt.subAB`/`lt.subBA`/
+`lt.magT`/`lt.gcdT` are mirror statements, `lt.pb` flips the hypothesis with
+`cmp_gt_of_lt` before `sub_pos`, and `lt.coords` is `gt.coords` with the
+spellings substituted. Nothing structural differs; both branches close on the
+same `chain`.
+
+**Two rules this round paid for, both about spelling at a variable.**
+
+- The one design that failed: a branch-agnostic wrapper
+  `pos_mul(a, b, pb) -> {cmp(0n, mul(a, b)) == LT{}}` calling
+  `N.mul_pos(a, b, {==}, pb)` is rejected -- `expected : Nat.cmp(0n, a)` against
+  `observed : LT{}` -- because `Nat.cmp(0n, a)` is stuck at a variable, so
+  `{==}` can only discharge `mul_pos`'s first-factor evidence when that factor
+  is *literally* a successor. This is the `Nat.gcd_self` lesson one level down:
+  a law stated at a variable cannot be reached by a proof step that only runs at
+  a constructor. The fix is a per-branch `pb` plus the direct
+  `N.mul_pos(1n+dp, q, {==}, pb)` at the call site, where the term is a
+  successor.
+- The `%` patterns. Every rewrite in `coords` is written **one hole per step**,
+  with the other slots spelled at the goal's own SNF terms -- that is what the
+  probe is for: the second numerator slot has to be written
+  `Nat.div(Nat.sub(B, A), G)`, not `Nat.div(B, G)`. Round two's claim that a
+  multi-hole pattern cannot be accepted stays untested in the direction that
+  matters, because this round never needed one: a *distinct-term* multi-hole
+  pattern is still an open question, and the working rule is the measured one --
+  one hole per rewrite, everything else spelled exactly as the checker prints
+  it.
+
+**Naming.** `pw`, `divself`, `hT`, `gT` and `chain` lost the `gt.` prefix once
+LT needed them (`Rat.mul_inv.pw` and so on); the coordinate helpers keep their
+`gt.`/`lt.` prefixes, because those statements are branch-specific. `gt.pT`
+split into `gt.pb`/`lt.pb` plus the direct `mul_pos` call above.
+
+**Technique that carried the round.** The deliberately-false `{==}` at a law's
+own instance, run *before* writing any proof: one run pinned the GT SNF and one
+pinned the LT shapes, after which the whole LT half was written by substitution
+rather than by derivation. One probe per run -- the checker stops at the first
+error. `probe.bend` holds the last probe; `scratch.bend` prints the fixed
+`Rat.inv` triple, `(Rat{Int{7,0}, 2n}, Rat{Int{0,7}, 2n}, Rat{Int{0,0}, 0n})`
+at `(5,3,7)`/`(3,5,7)`/`(3,3,7)` -- `7/2`, `-7/2`, and the `EQ` branch's zero
+numerator over `sub(np, nn)`, which is 0 at that branch. That third component is
+what a zero input can get: no law is stated for `np = nn`, and the two laws are
+`gt` and `lt` only.
+
+**Left on this side of the layer.** The inverse *operation* and its two laws
+are in. The division laws (`Rat.div`'s value form, and the field axioms stated
+over `div`) are the next unit on the Rat side, and `QExt`'s
+`1/(a + b*sqrt d) = conj(x)/norm(d,x)` is now one `Rat.div` call away.
+
+## The division laws landed: the sign goes in the spelling, and the branch-free statement is out of reach (measured)
+
+Ten laws of `Rat.div` are stated and proved, all five `*_proofs.bend` gates are
+green, and the counts are rat.bend 221 = 128 Nat + 32 Int + 61 Rat, qrat.bend
+229 (it imports rat.bend, so it moved with it). The new laws are
+`Rat.div.value.gt`/`.lt`/`.eq` (the value form, one per branch of `Rat.inv`'s
+split), `Rat.div_self.gt`/`.lt`, `Rat.div_one`, `Rat.div_mul_cancel.gt`/`.lt`
+(`(x/y)*y = x`) and `Rat.div_add.gt`/`.lt` (`(x+y)/z = x/z + y/z`).
+
+**The design decision, and the wall behind it.** `Rat.div(a, b)` is
+`Rat.mul(a, Rat.inv(bp, bnn, bd, Nat.cmp(bp, bnn), {==}))`. At a *variable*
+divisor that fifth argument is stuck, and it is stuck in the worst place: inside
+`Rat.inv`'s argument list, next to the `{==}` whose type mentions it. A `%` step
+cannot reach it. The pattern would have to rebuild that argument list, and the
+obligation it must satisfy is the type `{x == Nat.cmp(bp,bnn)}` that `Rat.inv`
+puts on its evidence slot, while a pattern's own evidence binder has type
+`{GT{} == x}` -- the opposite orientation, hole on the opposite side. A derived
+term -- `Equal.trans(Cmp, _, GT{}, Nat.cmp(bp,bnn), Equal.sym(Cmp, GT{}, _, e), e)`
+-- does typecheck *inside* the pattern, and then dies one check later: `Rwt`'s
+fit compares the evidence terms (or at least refuses a trans chain against
+`{==}`), so `expected` prints the goal with `{==}` where `observed` has the
+chain. Three probes, one run each; the fit is the third throw in check-rwt and
+its message names the `%` span, which is how the two were told apart. So a law
+*stated* with a chain-spelled instance is not the answer either: a goal that
+contains `Rat.div` SNFs to the `{==}` spelling, and no equation between the two
+spellings can be built.
+
+**Therefore the sign goes in the spelling.** A positive divisor is written
+`Rat{Rat.num(1n+ap, 0n), 1n+dp}` (numerator coordinates `1+ap` against `0n`), a
+negative one `Rat{Rat.num(0n, 1n+bp), 1n+dp}`, and the zero divisor
+`Rat{Rat.num(0n, 0n), 1n+dp}`. `Nat.cmp` then computes on constructors, `Rat.inv`
+matches, and all of `Rat.div` reduces to a product by the reciprocal -- with no
+rewrite at all, which is why the fills are as short as they are: the three value
+laws are `{==}`, `div_self.*` is one `Rat.mul_inv` call each, `div_one` is
+`Rat.mul_one`, `div_add.*` is one `Rat.mul_add_left.arb`, and only the field
+axiom needs a chain (associativity, then the reciprocal pair under a `cong`,
+then `mul_one`). The spelling *is* the branch evidence, exactly as in
+`Rat.mul_inv` -- which is also why the branches are separate laws and no law
+carries a `c != EQ` side condition.
+
+**The one trap in the mirror.** For a negative divisor the reciprocal is
+`Rat{Rat.num(0n, 1n+dp), 1n+bp}`, not `Rat{Rat.num(1n+dp, 0n), 1n+bp}` -- it is
+negative too. Copying the GT spelling into the LT chain (the natural error, since
+only the first coordinate of `Rat.num` differs) fails with the mismatch reported
+on the *first factor of the goal's product*, not on the reciprocal:
+`expected : Rat.mul(Rat.mk(Int.mul(n, Int{0n, 1n+dp}), Nat.mul(d, 1n+bp)), ..)`
+against the same term with `Int{1n+dp, 0n}`. The value laws had the sign right
+and the mirror did not, which is the argument for probing *both* branches with a
+`{==}` value form before writing either chain.
+
+**`x / 0` is zero, but it is not the term `Rat.zero()` -- measured.**
+`Rat.div.value.eq` was written last, on the guess that the EQ branch behaves like
+the other two. It does -- the comparison computes and `{==}` closes it -- but
+what it says is worth recording: `x / 0` reduces to
+`Rat.mk(Int.mul(xn, Rat.num(0n, 0n)), Nat.mul(D, 0n))`, the value zero in the
+degenerate spelling `Rat{Int{0,0}, 0n}`, whose denominator is 0. It is not
+`Rat.zero()` (= `Rat{Int{0,0}, 1n}`), and no structural `x/0 = 0` law can exist:
+`{Rat.div(Rat{n, 1n+dp}, Rat.zero()) == Rat.zero()}` was run as a deliberately
+false def and failed with `expected : Rat.mk(Int.mul(n, Int{0,0}),
+Nat.mul(dp, 0n))` against `observed : Rat{Int{0,0}, 1n}`. A caller who wants the
+constructor has to go through the value laws (`Rat.mk.eqv`), not through `{==}`.
+
+**The laws are usable, and that was checked rather than assumed.** `probe.bend`
+is now a consumer file: it imports `rat.bend` and `rat_proofs.bend`, states each
+of the ten laws from the caller's side, and applies them by name -- including at
+literals, which is the only way to see that the implicit arguments really are
+inferable, and at variables with the branch facts as hypotheses, which is the
+realistic case. It also derives a fact that is not one of the ten,
+
+    (x + y) / 1 = x + y
+
+by `Rat.div_add.gt` at `ap = dp = 0n` followed by two `Rat.div_one` under
+congruences. The first step is the interesting one: it reaches a goal stated
+with `Rat.one()` only because `Rat{Rat.num(1n+0n, 0n), 1n+0n}` is convertible to
+`Rat.one()`, i.e. a law stated at the spelled-out divisor does apply to a goal
+stated with the constructor. Every consumer of this block depends on that.
+
+**What is still out of reach, and the alternative that was dropped.** There is
+no branch-free law at a variable divisor: `Rat.div(x, Rat{Rat.num(np,nn),
+1n+dp})` does not reduce, and the evidence wall says no rewrite opens it. A
+consumer with a symbolic divisor must carry the branch as a hypothesis and use
+the branch law -- the discipline `Rat.mul_inv` already imposes. The alternative
+considered and dropped was to delete `Rat.inv`'s `+e` parameter, so that
+`Rat.div`'s body would contain no `{==}` to compare against. It is not needed
+for these ten laws, and it would not buy a variable-divisor law anyway: the
+`Nat.cmp(bp,bnn)` handed to `Rat.inv` as its `c` argument is still stuck at a
+variable, so `Rat.inv`'s own `match c` still cannot fire. The wall is the
+comparison, not the evidence.
+
+**Two corrections to round three's record.** Its closing paragraph says "no law
+is stated for `np = nn`, and the two laws are `gt` and `lt` only" -- true of the
+inverse then, and no longer true of `div`, which now has `Rat.div.value.eq`. And
+its "left on this side" list carries the `Rat.inv` signature edit as the route to
+a variable-divisor law; the measurements above say the sign-in-the-spelling route
+is the one that works and the signature is untouched.
