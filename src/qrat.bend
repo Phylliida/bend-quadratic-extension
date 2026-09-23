@@ -390,46 +390,61 @@ law QExt.conj_conj:
    == QExt{R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat{R.Rat.num(mq, mn), 1n+dq}} : QExt}
 
 # QExt.conj_mul: conj(x*y) = conj(x)*conj(y) -- the multiplicativity of the
-# conjugate, and with QExt.conj_add the pair that makes conj a ring
-# automorphism of QExt.
+# conjugate, and with QExt.conj_add the pair that makes conj a ring automorphism
+# of QExt.
 #
-# Conditional, and only on the two *imaginary* coefficients: the real coordinate
-# of the identity reads
+# Stated at arbitrary QExt values, with the spelling the identity needs supplied as
+# hypotheses. It is the same statement as the spelled one it replaces -- that one is
+# the instance x := QExt.of(np,nn,dp,mq,mn,dq), y := QExt.of(rp,rn,dr,sp,sn,ds),
+# where every hypothesis below is `{==}` -- but at arbitrary values both sides of
+# the conclusion are stuck terms, so a conversion is a short walk, while at
+# QExt.of's coordinates each side normalizes to a megabyte of mk chain and a single
+# conversion costs about a second (PROVING.md, round thirteen).
 #
-#     mul(xr,yr) + d*mul(neg xi, neg yi)  ==  mul(xr,yr) + d*mul(xi, yi)
+# The two hypotheses that carry real content:
 #
-# and the surrounding sum cancels, so the whole gap is the bracket -- one call to
-# Rat.mul.neg_neg.reduced (rat.bend) under the radicand congruence. The
-# imaginary coordinate needs no hypothesis at all: it is the neg_add/mul_neg
-# chain QExt.neg_add and QExt.mul_neg already use, over products rather than
-# spelled pairs.
+#   hix/hiy  x's and y's *imaginary* coefficients are the spelled pairs
+#            (mq - mn)/(1+dq) and (sp - sn)/(1+ds). The real coordinate of the
+#            identity reads
 #
-# The hypotheses are the coprimality of each imaginary coefficient, and they are
-# not cosmetic: measured this round, `{==}` on the identity at the unreduced pair
-# Rat{Rat.num(4n,0n), 2n} prints expected Rat{Int{0,2},1} against observed
-# Rat{Int{0,4},2} -- the left side goes through mk, which cancels the common
-# factor, the right is a raw spelling. The real coefficients need nothing: they
-# meet inside Rat.add, whose own normalization absorbs whatever spelling they
-# carry, and Rat.neg.reduced's hypotheses are spent inside the one Rat law.
+#              mul(xr,yr) + d*mul(neg xi, neg yi)  ==  mul(xr,yr) + d*mul(xi, yi)
+#
+#            and the surrounding sum cancels, so the whole gap is the bracket --
+#            one call to Rat.mul.neg_neg.reduced (rat.bend) under the radicand
+#            congruence. That law is about spelled pairs, which is why the two
+#            coefficients have to be named as such; the real coefficients need
+#            nothing, since they meet inside Rat.add, whose own normalization
+#            absorbs whatever spelling they carry.
+#   h1/h2    their coprimality, which is what Rat.mul.neg_neg.reduced asks for, and
+#            it is not cosmetic: measured, `{==}` on the identity at the unreduced
+#            pair Rat{Rat.num(4n,0n), 2n} prints expected Rat{Int{0,2},1} against
+#            observed Rat{Int{0,4},2} -- the left side goes through mk, which
+#            cancels the common factor, the right is a raw spelling.
+#
+# The imaginary coordinate needs no spelling hypothesis at all: it is the
+# neg_add/mul_neg chain QExt.neg_add and QExt.mul_neg already use, over products of
+# arbitrary values -- which is why gx/hx/gy/hy, the four denominators' positivity
+# and the only hypothesis every Rat law in that chain asks for, are all it takes
+# there.
 law QExt.conj_mul:
   for +d: Nat
-  for +np: Nat
-  for +nn: Nat
-  for +dp: Nat
+  for +x: QExt
+  for +y: QExt
   for +mq: Nat
   for +mn: Nat
   for +dq: Nat
-  for +rp: Nat
-  for +rn: Nat
-  for +dr: Nat
   for +sp: Nat
   for +sn: Nat
   for +ds: Nat
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +gy: {Nat.cmp(0n, R.Rat.denof(QExt.re(y))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  for +hix: {QExt.im(x) == R.Rat.of(mq, mn, dq) : R.Rat}
+  for +hiy: {QExt.im(y) == R.Rat.of(sp, sn, ds) : R.Rat}
   for +h1: {N.Nat.gcd(R.Rat.mag(mq, mn), 1n+dq) == 1n : Nat}
   for +h2: {N.Nat.gcd(R.Rat.mag(sp, sn), 1n+ds) == 1n : Nat}
-  {QExt.conj(QExt.mul(d, QExt.of(np, nn, dp, mq, mn, dq),
-                         QExt.of(rp, rn, dr, sp, sn, ds)))
-   == QExt.mul(d, QExt.conj(QExt.of(np, nn, dp, mq, mn, dq)), QExt.conj(QExt.of(rp, rn, dr, sp, sn, ds))) : QExt}
+  {QExt.conj(QExt.mul(d, x, y)) == QExt.mul(d, QExt.conj(x), QExt.conj(y)) : QExt}
 
 # QExt.norm.mul: the norm is multiplicative -- norm(d, x*y) = norm(d,x)*norm(d,y)
 #

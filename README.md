@@ -553,9 +553,15 @@ Known gaps, in dependency order:
    `neg_add` is the confusion the Rat files' names rule out.
    The other half of the homomorphism statement, `conj(x*y) = conj(x)*conj(y)`,
    landed in round eleven as `QExt.conj_mul` — but not for free: it is *false* at
-   an arbitrary pair of spellings, so it is stated at `QExt.of`'s six coordinates
-   and conditional on the two imaginary coefficients being reduced (the same
-   coprimality hypothesis `conj_conj` asks for). Its real coordinate is the Rat
+   an arbitrary pair of spellings, so its spelling conditions travel as
+   hypotheses: the two imaginary coefficients named as spelled pairs (the same
+   coprimality hypothesis `conj_conj` asks for) and the four denominators'
+   positivity. Round thirteen measured what stating it at `QExt.of`'s six
+   coordinates cost — each side of the conclusion normalizes to 4.3 MB of `mk`
+   chain, one conversion took about a second, and the law was 3.3 s of the file's
+   5.5 — and round fourteen restated it at arbitrary values with those spellings
+   supplied as hypotheses: the same statement, with the spelled one as its
+   instance, and 3.3 s became 0.03 s. Its real coordinate is the Rat
    identity `mul(neg a, neg b) = mul(a, b)` at a reduced pair, which no law had
    reached: `Rat.mul.neg_neg.reduced` (rat.bend), the rung-2 twin of the canonical
    `Rat.neg_neg`, whose fill rewrites each negation through `Rat.neg.reduced` and
