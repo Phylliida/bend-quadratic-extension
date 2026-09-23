@@ -1364,6 +1364,55 @@ law Rat.neg_add.arb:
   for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
   {Rat.neg(Rat.add(x, y)) == Rat.add(Rat.neg(x), Rat.neg(y)) : Rat}
 
+# Rat.neg.reduced: on a *reduced* spelled value, negation is the flipped
+# spelling -- neg(Rat{num(np,nn), 1+dp}) = Rat{num(nn,np), 1+dp}.
+#
+# Rat.neg_neg's fill already makes exactly this step, but only as the inner half
+# of a double negation. Stated on its own it is the rung the product laws were
+# missing: it puts neg(X) back in *constructor* form, so that Rat.mul can
+# destructure it and see the raw difference pair instead of the div/gcd-headed
+# output mk produces -- which is what a product of two negations needs before any
+# Int-level law can reach it.
+#
+# The one hypothesis is coprimality, the same one Rat.mk.fixed and Rat.neg_neg
+# carry, and it is not removable: at np = 4, nn = 0, dp = 1 (mag 4, gcd 2) the
+# left side is Rat{Int{0,2}, 1} while the flipped spelling is Rat{Int{0,4}, 2}
+# (measured, PROVING.md round eleven).
+law Rat.neg.reduced:
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +g1: {N.Nat.gcd(Rat.mag(np, nn), 1n+dp) == 1n : Nat}
+  {Rat.neg(Rat{Rat.num(np, nn), 1n+dp}) == Rat{Rat.num(nn, np), 1n+dp} : Rat}
+
+# Rat.mul.neg_neg.reduced: negating *both* factors of a product is invisible --
+# mul(neg X, neg Y) = mul(X, Y) for spelled X and Y with coprime coordinates.
+#
+# This is the identity QExt.conj_mul was missing, and it is not a rearrangement
+# that holds at arbitrary values: at an unreduced spelling the two sides
+# normalize to different terms (the measured obstruction, PROVING.md round ten).
+# The two hypotheses are the coordinates' coprimality, which is what makes each
+# negation land back in constructor form (Rat.neg.reduced) -- and once both
+# factors are constructors again, the two sides of the product are the same mk
+# applied to two Ints that differ only by
+#
+#   Int.mul(Int.neg a, Int.neg b) = Int.mul(a, b),
+#
+# an identity of Int representatives. No Nat gcd fact appears anywhere in the
+# fill; the coprime spelling is hypothesis, not work.
+law Rat.mul.neg_neg.reduced:
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +mq: Nat
+  for +mn: Nat
+  for +dq: Nat
+  for +g1: {N.Nat.gcd(Rat.mag(np, nn), 1n+dp) == 1n : Nat}
+  for +g2: {N.Nat.gcd(Rat.mag(mq, mn), 1n+dq) == 1n : Nat}
+  {Rat.mul(Rat.neg(Rat{Rat.num(np, nn), 1n+dp}),
+           Rat.neg(Rat{Rat.num(mq, mn), 1n+dq}))
+   == Rat.mul(Rat{Rat.num(np, nn), 1n+dp}, Rat{Rat.num(mq, mn), 1n+dq}) : Rat}
+
 # Rat.add_neg
 # ===========
 #

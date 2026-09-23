@@ -151,9 +151,9 @@ laws-only files intentionally fail with
 is the smoke test -- it has a `main`, so it prints the `Rat.inv` triple it
 computes instead of that line. The count is
 transitive over imports: nat.bend 128, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 224 = 128 Nat + 32 Int + 64 Rat, qrat.bend 249 = 128 Nat +
-32 Int + 64 Rat + 25 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own twenty-five laws).
+QExt, rat.bend 226 = 128 Nat + 32 Int + 66 Rat, qrat.bend 252 = 128 Nat +
+32 Int + 66 Rat + 26 QExt (it imports rat.bend itself, so its count is
+rat.bend's plus its own twenty-six laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -550,18 +550,23 @@ Known gaps, in dependency order:
    `conj_conj`. The flipped additive inverse still has no law of its own: it is
    `QExt.add_comm` followed by `QExt.add_neg`, two steps, and naming *that*
    `neg_add` is the confusion the Rat files' names rule out.
-   What is still open on this side is the *structure*: the norm is
+   The other half of the homomorphism statement, `conj(x*y) = conj(x)*conj(y)`,
+   landed in round eleven as `QExt.conj_mul` — but not for free: it is *false* at
+   an arbitrary pair of spellings, so it is stated at `QExt.of`'s six coordinates
+   and conditional on the two imaginary coefficients being reduced (the same
+   coprimality hypothesis `conj_conj` asks for). Its real coordinate is the Rat
+   identity `mul(neg a, neg b) = mul(a, b)` at a reduced pair, which no law had
+   reached: `Rat.mul.neg_neg.reduced` (rat.bend), the rung-2 twin of the canonical
+   `Rat.neg_neg`, whose fill rewrites each negation through `Rat.neg.reduced` and
+   leaves an `Int`-level identity, so coprimality is the only Nat fact it
+   consumes. An earlier round recorded that obstruction here as unreachable; it
+   was reached by stating the identity at a reduced pair rather than by
+   rearranging a stuck product. What is still open on this side is
+   the *structure*: the norm is
    multiplicative — `norm(d, x*y) = norm(d,x) * norm(d,y)`, which is what makes
-   "no zero divisors when the norm is non-zero" reachable. The other half of the
-   homomorphism statement, `conj(x*y) = conj(x)*conj(y)`, is *out of reach at this
-   presentation* rather than merely unproved: its real coordinate needs
-   `mul(neg xb, neg yb) = mul(xb, yb)` at variables, whose only route is double
-   negation at a product's own output, and `Rat.neg_neg` is stated over the
-   canonical spelling a product is not (measured: `{==}` closes that identity at
-   literals and cannot close it at variables). What would unblock it is a Rat law
-   about the coprimality of what `mk` produces — Nat-level gcd work, not a
-   rearrangement. The exclusion, the route and both measurements are in qrat.bend's
-   `conj_conj` comment and PROVING.md, round ten.
+   "no zero divisors when the norm is non-zero" reachable. Both measurements, the
+   route and the laws' own comments are in qrat.bend and PROVING.md, rounds ten
+   and eleven.
 3. A binary-nat layer for proof land. The compiled lanes are already binary -- the
    C lane maps `Nat` to W64 with native `nat_add`/`nat_mul`/`nat_divmod`
    (`comp.ts:161`, `comp.ts:255`), and the JS lane uses BigInt -- but in proof

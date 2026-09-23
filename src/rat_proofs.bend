@@ -4581,6 +4581,84 @@ def R.Rat.neg_add.arb(x, y, px, py):
           R.Rat.neg(y),
           Equal.sym(R.Rat, R.Rat.neg(y), m2, Rat.neg_eq_mul_negone(y))))))
 
+# Rat.neg.reduced's fill is one mk.fixed at the swapped pair. Rat.neg of a
+# constructor unfolds to mk(Rat.num(nn,np), 1+dp) definitionally -- the same
+# measurement Rat.neg_neg's fill makes with `{==}` -- so mk.fixed returns the
+# flipped spelling, and the only real work is the mag symmetry that carries the
+# coprimality hypothesis to the swapped pair. That trans is Rat.neg_neg's,
+# verbatim: mag(nn,np) is mag(np,nn) with its two summands exchanged, so
+# Nat.add_comm settles it.
+def R.Rat.neg.reduced(np, nn, dp, g1):
+  +d = Nat.add(1n, dp)
+  +g1s = Equal.trans(Nat,
+    N.Nat.gcd(R.Rat.mag(nn, np), d),
+    N.Nat.gcd(R.Rat.mag(np, nn), d),
+    1n,
+    Equal.cong(Nat, Nat, u => N.Nat.gcd(u, d),
+      R.Rat.mag(nn, np), R.Rat.mag(np, nn),
+      N.add_comm(Nat.sub(nn, np), Nat.sub(np, nn))),
+    g1)
+  R.Rat.mk.fixed(Nat.cmp(nn, np), nn, np, dp, {==}, g1s)
+
+# Rat.mul.neg_neg.reduced's fill: Rat.neg.reduced turns each negation back into a
+# constructor, which is the whole point of the reduced hypothesis -- Rat.mul then
+# destructures both factors, so the two sides are the same mk applied to
+# mul(num(nn,np), num(mn,mq)) and mul(num(np,nn), num(mq,mn)). Since num(nn,np)
+# *is* Int.neg(num(np,nn)) definitionally (Int.neg swaps the pair), that gap is
+# Int.mul(Int.neg a, Int.neg b) = Int.mul(a, b): Int.neg_mul twice around
+# Int.mul_comm and Int.neg_invol, no Nat fact anywhere. The first leg of that last
+# trans is `{==}` -- mul of two constructors *is* the mk of the cross product,
+# definitionally -- and the second is the congruence at the mk, fed by `chain`.
+def R.Rat.mul.neg_neg.reduced(np, nn, dp, mq, mn, dq, g1, g2):
+  +d = Nat.add(1n, dp)
+  +e = Nat.add(1n, dq)
+  +x = R.Rat.of(np, nn, dp)
+  +y = R.Rat.of(mq, mn, dq)
+  +nx = R.Rat.of(nn, np, dp)
+  +ny = R.Rat.of(mn, mq, dq)
+  +xn = R.Rat.num(np, nn)
+  +yn = R.Rat.num(mq, mn)
+  +p1 = I.Int.neg(I.Int.mul(xn, I.Int.neg(yn)))
+  +p2 = I.Int.neg(I.Int.mul(I.Int.neg(yn), xn))
+  +p3 = I.Int.mul(I.Int.neg(I.Int.neg(yn)), xn)
+  +p4 = I.Int.mul(yn, xn)
+  +t1 = Equal.trans(I.Int,
+    I.Int.mul(I.Int.neg(xn), I.Int.neg(yn)), p1, p2,
+    Equal.sym(I.Int, p1, I.Int.mul(I.Int.neg(xn), I.Int.neg(yn)),
+      I.Int.neg_mul(xn, I.Int.neg(yn))),
+    Equal.cong(I.Int, I.Int, u => I.Int.neg(u),
+      I.Int.mul(xn, I.Int.neg(yn)), I.Int.mul(I.Int.neg(yn), xn),
+      I.Int.mul_comm(xn, I.Int.neg(yn))))
+  +t2 = Equal.trans(I.Int, p2, p3, I.Int.mul(xn, yn),
+    I.Int.neg_mul(I.Int.neg(yn), xn),
+    Equal.trans(I.Int, p3, p4, I.Int.mul(xn, yn),
+      Equal.cong(I.Int, I.Int, u => I.Int.mul(u, xn),
+        I.Int.neg(I.Int.neg(yn)), yn, I.Int.neg_invol(yn)),
+      I.Int.mul_comm(yn, xn)))
+  +chain = Equal.trans(I.Int,
+    I.Int.mul(I.Int.neg(xn), I.Int.neg(yn)), p2, I.Int.mul(xn, yn), t1, t2)
+  Equal.trans(R.Rat,
+    R.Rat.mul(R.Rat.neg(x), R.Rat.neg(y)),
+    R.Rat.mul(nx, ny),
+    R.Rat.mul(x, y),
+    Equal.trans(R.Rat,
+      R.Rat.mul(R.Rat.neg(x), R.Rat.neg(y)),
+      R.Rat.mul(nx, R.Rat.neg(y)),
+      R.Rat.mul(nx, ny),
+      Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(u, R.Rat.neg(y)),
+        R.Rat.neg(x), nx, R.Rat.neg.reduced(np, nn, dp, g1)),
+      Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(nx, u),
+        R.Rat.neg(y), ny, R.Rat.neg.reduced(mq, mn, dq, g2))),
+    Equal.trans(R.Rat,
+      R.Rat.mul(nx, ny),
+      R.Rat.mk(I.Int.mul(R.Rat.num(nn, np), R.Rat.num(mn, mq)), Nat.mul(d, e)),
+      R.Rat.mul(x, y),
+      {==},
+      Equal.cong(I.Int, R.Rat, N => R.Rat.mk(N, Nat.mul(d, e)),
+        I.Int.mul(R.Rat.num(nn, np), R.Rat.num(mn, mq)),
+        I.Int.mul(R.Rat.num(np, nn), R.Rat.num(mq, mn)),
+        chain)))
+
 # Rat.add_neg
 # ===========
 #

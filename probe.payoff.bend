@@ -415,3 +415,32 @@ def probe.conj_conj.instance()
         Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}))
       == Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}} : Q.QExt}:
   {==}
+
+# The multiplicativity law, reached from the caller's side at the law's own
+# presentation: both imaginary coefficients carry their coprimality, the real
+# coordinates need nothing -- the same asymmetry conj_conj has, and the reason
+# the law is stated at a reduced pair instead of at a stuck product.
+def probe.conj_mul(+d: Nat, +np: Nat, +nn: Nat, +dp: Nat,
+                   +mq: Nat, +mn: Nat, +dq: Nat,
+                   +rp: Nat, +rn: Nat, +dr: Nat,
+                   +sp: Nat, +sn: Nat, +ds: Nat,
+                   +h1: {N.Nat.gcd(R.Rat.mag(mq, mn), 1n+dq) == 1n : Nat},
+                   +h2: {N.Nat.gcd(R.Rat.mag(sp, sn), 1n+ds) == 1n : Nat})
+  -> {Q.QExt.conj(Q.QExt.mul(d, Q.QExt.of(np, nn, dp, mq, mn, dq),
+                               Q.QExt.of(rp, rn, dr, sp, sn, ds)))
+      == Q.QExt.mul(d, Q.QExt.conj(Q.QExt.of(np, nn, dp, mq, mn, dq)),
+                       Q.QExt.conj(Q.QExt.of(rp, rn, dr, sp, sn, ds))) : Q.QExt}:
+  Q.QExt.conj_mul(d, np, nn, dp, mq, mn, dq, rp, rn, dr, sp, sn, ds, h1, h2)
+
+# The arithmetic at 1 + sqrt 2: same instance as conj_conj.instance, with the
+# radicand 2 and both operands equal. mag(1, 0) = 1 against the denominator
+# 1 + 1 = 2, so both coprimality gcds compute and both pieces of evidence are
+# {==} -- the law applies with nothing left for a caller to derive.
+def probe.conj_mul.instance()
+  -> {Q.QExt.conj(Q.QExt.mul(2n,
+        Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}},
+        Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}))
+      == Q.QExt.mul(2n,
+        Q.QExt.conj(Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}),
+        Q.QExt.conj(Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}})) : Q.QExt}:
+  Q.QExt.conj_mul(2n, 1n, 0n, 0n, 1n, 0n, 1n, 1n, 0n, 0n, 1n, 0n, 1n, {==}, {==})

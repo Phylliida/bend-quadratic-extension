@@ -1270,6 +1270,81 @@ def Q.QExt.conj_conj(np, nn, dp, mq, mn, dq, h):
   qext.im(RE, R.Rat.neg(R.Rat.neg(IM)), IM,
     R.Rat.neg_neg(Nat.cmp(mq, mn), mq, mn, dq, {==}, h))
 
+# Q.QExt.conj_mul
+# ===============
+#
+# Two Rat lanes, composed by the two-step idiom the other QExt fills use: the
+# real lane runs first, with the imaginary coordinate still spelled the way the
+# left side has it, and then the imaginary lane runs against the already-rewritten
+# real one -- which is why the first witness keeps neg(L0) as its other
+# coordinate rather than the lane's own end.
+#
+# Real: the bracket mul(neg xi, neg yi) -> mul(xi, yi) is one call to
+# Rat.mul.neg_neg.reduced under the congruence that puts it back inside the
+# radicand product. Nothing else moves, because mul(xr,yr) is a variable here: no
+# normalization is in play, so both sides spell the first summand identically.
+#
+# Imaginary: the left side's neg(add(mul(xr,yi), mul(xi,yr))) is split by
+# Rat.neg_add.arb -- whose two summands are *products*, which is exactly why that
+# rung-2 law was added this unit -- and each half is then negated one factor at a
+# time by Rat.mul_neg and Rat.neg_mul. Both of those are cited through Equal.sym:
+# mul_neg states mul(x, neg y) = neg(mul(x, y)) and neg_mul its mirror
+# mul(neg x, y) = neg(mul(x, y)), while both legs here run from the negated
+# product back to the negated factor. Every positivity hypothesis in the lane is
+# `{==}`: a QExt.of coefficient has a successor denominator, and the products
+# Rat.mul.den.pos is asked about are built from those.
+def Q.QExt.conj_mul(d, np, nn, dp, mq, mn, dq, rp, rn, dr, sp, sn, ds, h1, h2):
+  +p = Q.QExt.nat(d)
+  +X = Q.QExt.of(np, nn, dp, mq, mn, dq)
+  +Y = Q.QExt.of(rp, rn, dr, sp, sn, ds)
+  +xr = R.Rat.of(np, nn, dp)
+  +xi = R.Rat.of(mq, mn, dq)
+  +yr = R.Rat.of(rp, rn, dr)
+  +yi = R.Rat.of(sp, sn, ds)
+  +P = R.Rat.mul(xr, yr)
+  +Q = R.Rat.mul(p, R.Rat.mul(xi, yi))
+  +QN = R.Rat.mul(p, R.Rat.mul(R.Rat.neg(xi), R.Rat.neg(yi)))
+  +L0 = R.Rat.add(R.Rat.mul(xr, yi), R.Rat.mul(xi, yr))
+  +NXY = R.Rat.neg(R.Rat.mul(xr, yi))
+  +NYX = R.Rat.neg(R.Rat.mul(xi, yr))
+  +IM1 = R.Rat.add(R.Rat.mul(xr, R.Rat.neg(yi)), R.Rat.mul(R.Rat.neg(xi), yr))
+  +reL = Equal.trans(R.Rat,
+    R.Rat.add(R.Rat.mul(xr, yr), Q),
+    R.Rat.add(P, Q),
+    R.Rat.add(P, QN),
+    {==},
+    Equal.cong(R.Rat, R.Rat, u => R.Rat.add(P, u), Q, QN,
+      Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(p, v),
+        R.Rat.mul(xi, yi), R.Rat.mul(R.Rat.neg(xi), R.Rat.neg(yi)),
+        Equal.sym(R.Rat, R.Rat.mul(R.Rat.neg(xi), R.Rat.neg(yi)),
+          R.Rat.mul(xi, yi),
+          R.Rat.mul.neg_neg.reduced(mq, mn, dq, sp, sn, ds, h1, h2)))))
+  +imL = Equal.trans(R.Rat,
+    R.Rat.neg(L0),
+    R.Rat.add(NXY, NYX),
+    IM1,
+    R.Rat.neg_add.arb(R.Rat.mul(xr, yi), R.Rat.mul(xi, yr),
+      R.Rat.mul.den.pos(xr, yi, {==}, {==}),
+      R.Rat.mul.den.pos(xi, yr, {==}, {==})),
+    Equal.trans(R.Rat,
+      R.Rat.add(NXY, NYX),
+      R.Rat.add(R.Rat.mul(xr, R.Rat.neg(yi)), NYX),
+      IM1,
+      Equal.cong(R.Rat, R.Rat, u => R.Rat.add(u, NYX), NXY,
+        R.Rat.mul(xr, R.Rat.neg(yi)),
+        Equal.sym(R.Rat, R.Rat.mul(xr, R.Rat.neg(yi)), NXY,
+          R.Rat.mul_neg(xr, yi, {==}, {==}))),
+      Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.mul(xr, R.Rat.neg(yi)), u),
+        NYX, R.Rat.mul(R.Rat.neg(xi), yr),
+        Equal.sym(R.Rat, R.Rat.mul(R.Rat.neg(xi), yr), NYX,
+          R.Rat.neg_mul(xi, yr, {==}, {==})))))
+  Equal.trans(Q.QExt,
+    Q.QExt.conj(Q.QExt.mul(d, X, Y)),
+    Q.QExt{R.Rat.add(P, QN), R.Rat.neg(L0)},
+    Q.QExt.mul(d, Q.QExt.conj(X), Q.QExt.conj(Y)),
+    qext.re(R.Rat.neg(L0), R.Rat.add(R.Rat.mul(xr, yr), Q), R.Rat.add(P, QN), reL),
+    qext.im(R.Rat.add(P, QN), R.Rat.neg(L0), IM1, imL))
+
 # The division payoff
 # ===================
 #
