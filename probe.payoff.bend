@@ -444,3 +444,44 @@ def probe.conj_mul.instance()
         Q.QExt.conj(Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}),
         Q.QExt.conj(Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}})) : Q.QExt}:
   Q.QExt.conj_mul(2n, 1n, 0n, 0n, 1n, 0n, 1n, 1n, 0n, 0n, 1n, 0n, 1n, {==}, {==})
+
+# The norm's multiplicativity, reached from the caller's side. This law's
+# hypotheses are the point of its statement: x and y arbitrary, the three norms
+# *named* instead of written out (hnx/hny/hnxy), the product's own coordinates'
+# positivity handed over (gxy/hxy), and the conj_mul instance supplied (hc)
+# rather than derived. Each of those is a fact about a term that does not reduce,
+# so a caller always holds them already -- and writing them out is exactly what
+# made an earlier draft of the fill uncheckable.
+def probe.norm.mul(+d: Nat, +x: Q.QExt, +y: Q.QExt,
+                   +nx: R.Rat, +ny: R.Rat, +nxy: R.Rat,
+                   +gx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(x))) == LT{} : Cmp},
+                   +hx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(x))) == LT{} : Cmp},
+                   +gy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(y))) == LT{} : Cmp},
+                   +hy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(y))) == LT{} : Cmp},
+                   +gxy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(Q.QExt.mul(d, x, y)))) == LT{} : Cmp},
+                   +hxy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(Q.QExt.mul(d, x, y)))) == LT{} : Cmp},
+                   +hnx: {nx == Q.QExt.norm(d, x) : R.Rat},
+                   +hny: {ny == Q.QExt.norm(d, y) : R.Rat},
+                   +hnxy: {nxy == Q.QExt.norm(d, Q.QExt.mul(d, x, y)) : R.Rat},
+                   +hc: {Q.QExt.conj(Q.QExt.mul(d, x, y))
+                         == Q.QExt.mul(d, Q.QExt.conj(x), Q.QExt.conj(y)) : Q.QExt})
+  -> {Q.QExt.emb(nxy) == Q.QExt.mul(d, Q.QExt.emb(nx), Q.QExt.emb(ny)) : Q.QExt}:
+  Q.QExt.norm.mul(d, x, y, nx, ny, nxy, gx, hx, gy, hy, gxy, hxy, hnx, hny, hnxy, hc)
+
+# The arithmetic at 1 + sqrt 2 with radicand 2: norm(1 + sqrt 2) = 1 - 2 = -1,
+# the square (1 + sqrt 2)^2 = 3 + 2 sqrt 2 has norm 9 - 8 = 1, and (-1)*(-1) = 1.
+# Every hypothesis the law asks for is {==} here -- the values are concrete, so
+# each named norm, each positivity, and the conj_mul instance all compute. The
+# conj_mul instance is passed as the law's own instance rather than as {==},
+# since that is what a caller composing the two laws writes.
+def probe.norm.mul.instance()
+  -> {Q.QExt.emb(Q.QExt.norm(2n, Q.QExt.mul(2n, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}})))
+      == Q.QExt.mul(2n,
+        Q.QExt.emb(Q.QExt.norm(2n, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}})),
+        Q.QExt.emb(Q.QExt.norm(2n, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}))) : Q.QExt}:
+  Q.QExt.norm.mul(2n, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}},
+    Q.QExt.norm(2n, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}),
+    Q.QExt.norm(2n, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}),
+    Q.QExt.norm(2n, Q.QExt.mul(2n, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}})),
+    {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==},
+    Q.QExt.conj_mul(2n, 1n, 0n, 0n, 1n, 0n, 1n, 1n, 0n, 0n, 1n, 0n, 1n, {==}, {==}))

@@ -61,7 +61,8 @@ law of its sibling via `def <alias>.<name>(...)`:
 - `src/qext_proofs.bend` — fills both qext.bend laws.
 - `src/qrat.bend` — `QExt` over `Rat`: the type, `QExt.nat`/`zero`/`one`/
   `add`/`neg`/`sub`/`mul`/`conj`/`norm`, `QExt.of` (the six-coordinate
-  abbreviation the composing law is stated with), the two operations
+  abbreviation the composing law is stated with) and `QExt.emb` (a rational as a
+  QExt value, the shape `QExt.norm.mul` is stated in), the two operations
   `QExt.inv`/`QExt.div` (`x/y = x * inv(y, q)`, the divisor handed in as a
   spelled rational for the reason every Rat division law does it), and
   twenty-five laws: `add_comm`/`mul_comm`/`sub_eq_add_neg`/`neg_neg`/
@@ -151,9 +152,9 @@ laws-only files intentionally fail with
 is the smoke test -- it has a `main`, so it prints the `Rat.inv` triple it
 computes instead of that line. The count is
 transitive over imports: nat.bend 128, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 226 = 128 Nat + 32 Int + 66 Rat, qrat.bend 252 = 128 Nat +
-32 Int + 66 Rat + 26 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own twenty-six laws).
+QExt, rat.bend 226 = 128 Nat + 32 Int + 66 Rat, qrat.bend 253 = 128 Nat +
+32 Int + 66 Rat + 27 QExt (it imports rat.bend itself, so its count is
+rat.bend's plus its own twenty-seven laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -561,12 +562,16 @@ Known gaps, in dependency order:
    leaves an `Int`-level identity, so coprimality is the only Nat fact it
    consumes. An earlier round recorded that obstruction here as unreachable; it
    was reached by stating the identity at a reduced pair rather than by
-   rearranging a stuck product. What is still open on this side is
-   the *structure*: the norm is
-   multiplicative — `norm(d, x*y) = norm(d,x) * norm(d,y)`, which is what makes
-   "no zero divisors when the norm is non-zero" reachable. Both measurements, the
-   route and the laws' own comments are in qrat.bend and PROVING.md, rounds ten
-   and eleven.
+   rearranging a stuck product. The **norm is multiplicative** as well:
+   `QExt.norm.mul` states `norm(d, x*y) = norm(d,x) * norm(d,y)` as an equation
+   of QExt values — the two embedded norms, via `QExt.emb` — because the
+   Rat-level spelling normalizes an `mk` chain at every conversion: a spelled
+   draft of it exhausted a 4 GB heap in 41 seconds, and the first fill at that
+   presentation was killed past four minutes. Restated at stuck terms, with the
+   three norms named by hypotheses, the fill checks and costs nothing
+   measurable. What is still open on this side is "no zero divisors when the norm
+   is non-zero". The measurements, the route and the laws' own comments are in
+   qrat.bend and PROVING.md, rounds ten through twelve.
 3. A binary-nat layer for proof land. The compiled lanes are already binary -- the
    C lane maps `Nat` to W64 with native `nat_add`/`nat_mul`/`nat_divmod`
    (`comp.ts:161`, `comp.ts:255`), and the JS lane uses BigInt -- but in proof

@@ -4014,3 +4014,103 @@ qext 34, rat **226** (+2: the two reduced laws), qrat.bend **252** (+3: the same
 plus `QExt.conj_mul`, so the file's own QExt inventory is 26). What is still open on
 this side is the *norm*: `norm(d, x*y) = norm(d,x) * norm(d,y)`, the structure fact
 that "no zero divisors when the norm is non-zero" needs.
+
+## The norm is multiplicative: the statement had to be rewritten for the checker, and one match made the fill cheap (measured)
+
+The goal this round was `norm(d, x*y) = norm(d,x) * norm(d,y)`, the structure fact
+that "no zero divisors when the norm is non-zero" needs. It is landed, as
+`QExt.norm.mul` in qrat.bend filled by `Q.QExt.norm.mul` in qrat_proofs.bend --
+but not in the form it was first stated in, and the reason is a checker
+measurement rather than a mathematical one.
+
+**The rule this round was written under.** Checking is to stay under a second, and
+anything that takes longer is to be done some other way. Two measurements had
+already made that sharp: a `{==}` on the Rat-level spelling of this identity
+(twelve spelled coordinates, each norm written out) exhausted a 4 GB heap in 41 s,
+and a first fill at that presentation was killed past four minutes with no output
+at all (`node --max-old-space-size=6000`). Spelling x and y as canonical `Rat`
+pairs makes every norm a `Rat.sub`/`Rat.mul` expression over canonical
+coefficients, and then every conversion question in the file normalizes an `mk`
+chain.
+
+**The statement.** The law is an equation of *QExt* values, not of `Rat`s:
+
+    QExt{nxy, 0} == QExt.mul(d, QExt{nx, 0}, QExt{ny, 0})
+
+because the Rat-level spelling is one zero-elimination away -- the product of the
+two embedded norms has real coordinate `add(mul(nx,ny), mul(QExt.nat(d),
+mul(zero,zero)))`, and nothing in the tree removes that second summand: there is
+no `Rat.add_zero.arb` (the canonical `Rat.add_zero` is stated over `Rat{n,d}` and
+needs its bridge, which is the same wall `Rat.neg_add.arb` was added to get past in
+round ten).
+
+**The stuck-term presentation.** x and y are arbitrary, so `QExt.mul(d,x,y)` does
+not reduce, and every term in the law and in the fill is a stuck term:
+
+  - the three norms are *named* by hypotheses (`hnx : nx == QExt.norm(d,x)`, and
+    `hny`/`hnxy`) instead of written out;
+  - the product's own coordinates' positivity arrives as `gxy`/`hxy`, because
+    `QExt.re(QExt.mul(d,x,y))` is stuck and no law reaches it;
+  - the `conj_mul` instance arrives as `hc`, since conj is multiplicative only at
+    a reduced pair and an arbitrary x has no such fact.
+
+**The fill, and the four errors.** Five legs:
+
+  1. `QExt{nxy,0} -> QExt{norm(d,XY),0} -> XY*conj(XY)` -- `hnxy` under a
+     congruence, then `QExt.mul_conj` read backwards;
+  2. `XY*conj(XY) -> XY*(conj x * conj y)` -- `hc` under a congruence;
+  3. `... -> (x*conj x)*(y*conj y)` -- `QExt.mul_assoc` four times and
+     `QExt.mul_comm` once (associate left, commute y past conj x, associate back);
+  4. `... -> (norm x + 0)(norm y + 0)` -- `QExt.mul_conj` twice, one congruence
+     each;
+  5. `... -> (nx + 0)(ny + 0)` -- `hnx`/`hny` under congruences.
+
+Four failures on the way, each a distinct checker fact:
+
+  - `let E1 = QExt{NX, R.Rat.zero()}` with `NX = QExt.norm(d,x)` gives
+    `expected : an annotated term (cannot infer)`. A bare constructor cannot infer
+    its type arguments when the argument is an operation's output rather than a
+    variable -- exactly what `Rat.of` and `QExt.of` exist for. The fix is a third
+    entry in that family, `QExt.emb(r) = QExt{r, R.Rat.zero()}`, a def with a
+    declared return type. It adds no law: qext.bend stays at 34.
+  - A positivity slot of `QExt.mul_assoc` at the argument `QExt.mul(d, y,
+    QExt.conj(y))` gives expected `{Nat.cmp(0n, denof(re(mul(d,y,conj y)))) ==
+    LT{}}` against observed `{Nat.cmp(0n, denof(add(mul(re y,re y), mul(nat d,
+    mul(im y, neg(im y)))))) == LT{}}`. The slot's type is `denof(re(z))` with z
+    the argument *as passed*, so at a stuck argument it does not reduce -- and no
+    `Rat.mul.den.pos` witness can inhabit it, because those conclude the
+    written-out product. Passing the argument as a spelled `QExt.pair(A,B)` makes
+    the slot reduce to the witness's own spelling; that is the round's second
+    constructor-inference failure, and `QExt.pair` was its first fix.
+  - With the arguments spelled, the *law's* conclusion still did not line up:
+    expected `M(d, CX, <spelled>)` against observed `M(d, CX, M(d,y,CY))`. The
+    law's own statement keeps the nested `mul`, so a trans endpoint written as the
+    reduced value is a different term.
+  - The fix for both is `match x y:` with `case Q.QExt{xa, xb} Q.QExt{ya, yb}:` at
+    the top of the fill. A single-constructor match refines the context, so every
+    projection of x and y and every `QExt.mul` at them reduces; the spelled lets
+    and `QExt.pair` then became unnecessary and were removed. This is the
+    technique the existing QExt fills use -- `Q.QExt.mul_assoc`, `.mul_distrib`,
+    `.mul_comm` and the rest open with a `match` -- and the round's real lesson is
+    that the first two attempts were written *without* it, at terms the checker
+    could not reduce.
+
+**Timing, measured.** Startup alone is 0.19 s. Gate times, current tree:
+nat_proofs 0.42, int_proofs 0.47, qext_proofs 0.47, rat_proofs 1.61, qrat_proofs
+5.66, probe 1.69, probe.payoff 6.59. The pre-unit tree -- `git show HEAD:` copies of
+both qrat files, checked side by side -- measured 5.66 s for qrat_proofs.bend, so
+the new fill adds nothing measurable: within noise it is the same number. The
+file's ~5.5 s is therefore pre-existing and still above the one-second rule; the
+cost is in the older QExt fills, and finding which one dominates is the next
+performance item rather than a consequence of this unit.
+
+**Status.** All seven gates print `All terms check.`; `probe.payoff.bend` grew
+from thirty-two defs to **thirty-four** -- the law from the caller's side at its own
+presentation (sixteen hypotheses, every one of them a fact a caller already holds)
+and a literal instance at 1 + sqrt 2 with radicand 2, where norm(1 + sqrt 2) = -1,
+the square 3 + 2 sqrt 2 has norm 1, and (-1)*(-1) = 1, with every hypothesis
+`{==}` except `hc`, which is the law's own instance. `scratch.bend` prints its
+triple unchanged. Law counts, transitive over imports: nat 128, int 32, qext 34,
+rat 226, qrat.bend **253** (+1: `QExt.norm.mul`, so the file's own QExt inventory
+is 27). What is still open on this side is "no zero divisors when the norm is
+non-zero".
