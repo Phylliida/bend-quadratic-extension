@@ -3865,19 +3865,28 @@ reason.** Its real coordinate is `mul(xa,ya) + d*mul(neg xb, neg yb)` against
 
     mul(neg xb, neg yb) = mul(xb, yb)     at variables
 
-and nothing in rat.bend reaches that. The only route to it is double negation at a
-product's own output, `neg(neg(mul(xb,yb))) = mul(xb,yb)`, and `Rat.neg_neg` is
-stated over the canonical spelling, which a product is not -- its conclusion is a
-constructor-headed `Rat{...}` and applications of `Rat.mul` are def-headed terms.
-Measured this round, both halves of that:
+and the Rat laws reach it by neither of the two routes they offer -- both end at a
+law whose statement a *stuck product* cannot satisfy. Route one is double negation
+at the product's own output, `neg(neg(mul(xb,yb))) = mul(xb,yb)`: `Rat.neg_neg`
+(rat.bend:813) concludes a constructor-headed `Rat{...}`, while applications of
+`Rat.mul` at variables are def-headed and stuck. Route two is multiplying by −1
+twice (`Rat.neg_eq_mul_negone`, both halves unconditional), associating to
+`mul(mul(-1,-1), U)`, and closing with `mul(Rat.one(), U) = U` -- which is
+`Rat.one_mul` (rat.bend:293), stated over `Rat{n,d}` with a bridge hypothesis, and
+so equally unable to take a stuck product. Measured this round, both closing steps
+at variables, plus the literal instance that shows the identity itself is true:
 
-    {==} at variables:  expected  neg(neg(mul(a,b)))
-                        observed  mul(a,b)              (fails)
+    {==} at variables:  expected  neg(neg(mul(a,b)))        observed  mul(a,b)   (fails)
+    {==} at variables:  expected  mul(one(), mul(a,b))      observed  mul(a,b)   (fails)
     {==} at literals:   neg(neg(mul(Rat{Int{2,0},3}, Rat{Int{5,0},7})))
                           = mul(Rat{Int{2,0},3}, Rat{Int{5,0},7})   (closes)
 
 -- the identity is *true* and every literal instance is `{==}`, while at variables
-the checker cannot even compare the two sides. What would unblock it is a Rat law
+the checker cannot even compare the two sides. (This is an argument over the law
+inventory, not an induction over all chains: what is measured is that both closing
+steps fail, and what is reasoned is that the permutational laws -- `mul_comm`,
+`mul_assoc.arb`, `mul_neg`, `neg_mul` -- only ever move a negation to the outside
+or remove one, so they cannot produce the missing double negation at a product.) What would unblock it is a Rat law
 about `mk`'s own output being reduced: the coprimality of the numerator and
 denominator that `mk` produces, which is Nat-level gcd work rather than a
 rearrangement. Until then the law is deliberately absent, and the exclusion, this
