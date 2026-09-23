@@ -3220,3 +3220,102 @@ inverse then, and no longer true of `div`, which now has `Rat.div.value.eq`. And
 its "left on this side" list carries the `Rat.inv` signature edit as the route to
 a variable-divisor law; the measurements above say the sign-in-the-spelling route
 is the one that works and the signature is untouched.
+
+## The QExt division payoff landed, and the norm is not positive (measured)
+
+The unit round four pointed at was one law: for `x = a + b*sqrt d`,
+
+    x * (conj(x) / norm(d, x)) = 1
+
+-- the rationalization, the reason the whole division block exists. It is now
+`QExt.inv.value.gt` in `src/qrat.bend`, filled by three defs in
+`src/qrat_proofs.bend`.
+
+**Two Rat laws had to come first, and both are denominator-level.** The payoff's
+rearrangements carry negations of the *coefficients* through products, so they
+need the positivity of a negated denominator, `Nat.cmp(0n, denof(neg x)) == LT{}`
+-- the missing third member of the `mk.den.pos` / `mul.den.pos` / `add.den.pos`
+family, added as `Rat.neg.den.pos`. It is a law rather than a bridge for the
+reason the family is: `Rat.neg` destructures before calling `Rat.mk`, so at a
+variable the term is stuck and no congruence or `mk`-headed positivity law
+reaches it. And the payoffs need negation on the *left* of a product,
+`(-x)*y = -(x*y)`; `Rat.mul_neg` cannot be turned around, because its negation is
+in the second factor -- so `Rat.neg_mul` was added (three steps: `mul_comm`, the
+inner `mul_neg`, and a `cong` under `neg` with `mul_comm` again). The payoff uses
+it three times.
+
+**One language fact, found by failing.** A `let` cannot hold a bare constructor:
+
+    +rh = R.Rat{R.Rat.num(1n+dp, 0n), 1n+ap}
+
+is rejected with `expected : an annotated term (cannot infer)` and the
+constructor's type in `observed` -- with no expected type, the checker cannot
+infer which type the constructor builds. `let`s whose right-hand side is a *def*
+call are fine, because a def has a known result type, and that asymmetry is the
+whole reason `Rat.of` exists in `src/rat.bend`:
+
+    def Rat.of(+np: Nat, +nn: Nat, +dp: Nat) -> Rat:
+      Rat{Rat.num(np, nn), 1n+dp}
+
+a plain abbreviation like `QExt.of`, nothing normalized, no match on its
+arguments. With it every `let` in the fill names its divisor once.
+
+**The law's design is round four's design.** The divisor's sign is in the
+*spelling*: the norm is written as the positive raw pair `(1+ap)/(1+dp)` and a
+hypothesis `hZ` says that rational *is* `QExt.norm(d,x)`. This is what buys the
+fill: `Rat.div(x, spelled)` reduces by conversion to `mul(x, reciprocal)` at a
+*variable* dividend -- no law, no rewrite. Measured before the fill was written,
+by a `{==}` against that goal at variables; `probe.payoff.bend` keeps it as the
+first of its three defs.
+
+**The fill.** Two coordinate defs plus the composing chain.
+`QExt.inv.value.gt.re` is stated in the *unfolded* shape -- the goal after the
+`Rat.div`s have become products by the reciprocal -- and is a rearrangement:
+associativity twice (read backwards), `mul_neg`, then a three-`Equal.trans`
+chain that pulls `D*(neg BB*rh)` to `neg(PP)*rh` via `neg_mul`, `mul_neg` and an
+associativity under a `neg` congruence, `mul_add_left` backwards to re-fold the
+sum, `{==}` twice to cross the `sub`/`add-neg` and `norm` spellings, a `cong`
+with `sym(hZ)` to re-spell the norm as the literal pair, and `Rat.mul_inv.gt` at
+`(1+ap, 0n, dp)` to close. `QExt.inv.value.gt.im` is the mirror and cancels
+without needing `hZ` at all (`add_comm`, `add_neg`). The composing def matches
+`x` into `(xa, xb)` and then
+
+    trans(QExt{Lr,Li}, QExt{one,Li}, QExt{one,zero})
+
+-- the `re` step at the first coordinate only, the `im` step at the second. The
+first version tried to go straight to `QExt{one,zero}` and the checker answered
+with `expected : QExt{one, zero}` / `observed : QExt{one, Li}`: the intermediate
+has to keep the coordinate the current step is not touching, exactly as
+`QExt.mul_conj`'s fill does.
+
+**One realization that saved a step.** After `match x`, the law's own
+left-hand side -- `QExt.mul(d, x, QExt{div, div})` -- reduces to
+`QExt{Lr,Li}` definitionally, so the chain starts at the matched pair with no
+`{==}` bridging step.
+
+**Where the statement stops, measured.** An earlier comment in `rat.bend` said
+the norm `a^2 - b^2*d` of a non-zero extension is positive, and that the GT
+branch is the branch a rationalization caller has already decided. The second
+half is false in `d` itself: the norm is indefinite, so an extension like
+`1 + 2*sqrt 3`, whose norm is `-11`, has no positive raw pair equal to its norm
+-- no `hZ` exists, and no GT law can state that instance. What is measurable is
+the product against the *positive* spelling `11`, and it is not 1: deliberately
+false `{==}` on the closed product prints
+
+    expected : QExt{Int{0,1}/1, 0}      (i.e. -1 over 1)
+    observed : QExt{Int{1,0}/1, 0}      (QExt.one())
+
+so the same product built with `11` multiplies out to **-1**. That is the
+boundary of the law, not a presentational choice, and it is why an LT twin of
+`QExt.inv.value.gt` is the next unit. Both files' comments were corrected to say
+this instead.
+
+**What checks, and the counts.** All five `src/*_proofs.bend` print
+`All terms check.`, as do `probe.bend` and the new `probe.payoff.bend`
+(which states the conversion, the law from a caller's side at a *variable* `x`,
+and the literal `1/(2 + sqrt 2) = (2 - sqrt 2)/2`). Two honest notes about that
+probe: at literals the whole product *also* reduces on its own -- measured,
+`{==}` closes the instance goal -- so the variable def is what really exercises
+the law; and the instance still earns its place as the arithmetic check.
+Laws-only counts: nat.bend 128, int.bend 32, qext.bend 34, rat.bend **223**
+(128 + 32 + 63 Rat: the two new laws), qrat.bend **232** (rat's 223 + 9 QExt).

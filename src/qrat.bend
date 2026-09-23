@@ -286,10 +286,49 @@ law QExt.mul_distrib:
 # is Rat{Rat.num(d,0), 1}, whose denominator is 1 by computation.
 #
 # What is *not* here is the division: `1/(a + b*sqrt d) = conj(x)/norm(d,x)` is
-# one Rat division away, and that operation and its laws are their own unit.
+# one Rat division away, and that operation and its laws are their own unit --
+# they are in, and the law is QExt.inv.value.gt below.
 law QExt.mul_conj:
   for +d: Nat
   for +x: QExt
   for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
   for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
   {QExt.mul(d, x, QExt.conj(x)) == QExt{QExt.norm(d, x), R.Rat.zero()} : QExt}
+
+# QExt.inv.value.gt
+# =================
+#
+#     x^-1 = conj(x) / norm(d, x),   x = a + b*sqrt(d)
+#
+# -- the rationalization, and the reason the division unit exists: with Rat.div
+# the inverse of an extension is the conjugate divided by the norm, and
+# QExt.mul_conj plus Rat.mul_inv already say that that product is 1.
+#
+# The divisor's sign is in the *spelling*, as it is for every division law in
+# rat.bend: norm(d,x) is written below as the positive raw pair (1+ap, 0n) over
+# 1+dp, and hZ is the equation that says the norm *is* that rational. With the
+# sign a literal, the Nat.cmp inside Rat.div's Rat.inv argument computes on
+# constructors and the whole left-hand side reduces -- measured, it unfolds to
+# Rat.mul(a, d/(1+ap)) with no law and no rewrite, which is what makes the fill
+# a rearrangement of products rather than a fight with a stuck comparison.
+#
+# A caller whose coefficients are literals gets hZ by `{==}`; a caller with a
+# variable norm needs it as a hypothesis, exactly as Rat.mul_inv does. The norm
+# being positive is what GT carries, so there is no branch-free form of this
+# law. That is a real restriction, not a presentational one: the norm is
+# indefinite in d, so an extension like 1 + 2*sqrt 3 (norm -11) cannot be stated
+# by this law at all -- there is no positive raw pair equal to -11 and no hZ to
+# hand over. Measured: that extension against the positive spelling 11 gives -1.
+# An LT twin of this law is what that case waits on (PROVING.md, round five).
+law QExt.inv.value.gt:
+  for +d: Nat
+  for +x: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +ap: Nat
+  for +dp: Nat
+  for +hZ: {R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp} == QExt.norm(d, x) : R.Rat}
+  {QExt.mul(d, x,
+     QExt{R.Rat.div(QExt.re(x), R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp}),
+          R.Rat.div(R.Rat.neg(QExt.im(x)), R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp})})
+   == QExt.one() : QExt}
