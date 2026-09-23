@@ -361,12 +361,15 @@ law QExt.conj_add:
 # cannot state: the real coordinate of conj(x)*conj(y) is
 # mul(xa,ya) + d*mul(neg xb, neg yb) and conj(x*y)'s is
 # mul(xa,ya) + d*mul(xb,yb), so the law needs mul(neg xb, neg yb) = mul(xb, yb)
-# at *variables* -- an identity no chain of the Rat laws in rat.bend reaches,
-# because the only route to it is double negation at an operation's own output
-# (neg(neg U) = U for U = mul(xb,yb)), and Rat.neg_neg is stated over the
-# canonical spelling, which a product is not -- measured, `{==}` cannot close
-# neg(neg(mul(a,b))) = mul(a,b) and Rat.neg_neg does not apply to it. Both
-# literals-are-true and variables-are-stuck are recorded in PROVING.md; what
+# at *variables* -- an identity the Rat laws reach by neither of the two routes
+# they offer, because both end at a law a stuck product cannot satisfy: either
+# double negation at the product's own output (neg(neg U) = U for U = mul(xb,yb)),
+# where Rat.neg_neg's conclusion is constructor-headed and Rat.mul's applications
+# are def-headed, or multiplying by -1 twice and closing with Rat.one_mul, which
+# is stated over Rat{n,d}. Measured, both closing steps at variables: `{==}`
+# cannot compare neg(neg(mul(a,b))) against mul(a,b), nor mul(one(), mul(a,b))
+# against mul(a,b); the first closes at literals, where the identity is true. Both
+# measurements are recorded in PROVING.md; what
 # would unblock it is a Rat law about mk's own output being reduced, which is a
 # Nat-level gcd fact (the coprimality of the numerator and denominator mk
 # produces) rather than a rearrangement.
