@@ -332,6 +332,36 @@ law QExt.mul_conj:
   for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
   {QExt.mul(d, x, QExt.conj(x)) == QExt{QExt.norm(d, x), R.Rat.zero()} : QExt}
 
+# QExt.mul_one: x * 1 = x, at the canonical presentation.
+#
+# Stated over QExt.of's six coordinates and not over an arbitrary value, because
+# at an arbitrary value it is *false*: == on QExt is structural, the product
+# comes back normalized, and the two are not the same term. Measured (PROVING.md,
+# round seven): at the unreduced real coordinate Rat{Int{2,0}, 2} the product is
+# the canonical Rat{Int{1,0}, 1}, so no variable form of this law exists. The two
+# bridges are Rat.mul_one's own hypothesis, one per coordinate -- what a
+# canonical value supplies by `{==}` at a literal and with Rat.mk.fixed in
+# general.
+#
+# The real coordinate is where the work is, and not by symmetry: QExt.mul's real
+# coordinate multiplies the radicand coefficient QExt.nat(d) by the imaginary
+# product, and QExt.nat(d) is Rat{Rat.num(d,0), 1} -- a denominator of base 1,
+# which Rat.mul_zero's spelling (Rat{n, 1n+dp}) cannot reach. So the real
+# coordinate is the four Rat identity laws plus that one base-denominator zero;
+# the imaginary coordinate is three of them.
+law QExt.mul_one:
+  for +d: Nat
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +mq: Nat
+  for +mn: Nat
+  for +dq: Nat
+  for +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp) == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat}
+  for +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq) == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat}
+  {QExt.mul(d, QExt.of(np, nn, dp, mq, mn, dq), QExt.one())
+   == QExt.of(np, nn, dp, mq, mn, dq) : QExt}
+
 # QExt.inv.value.gt
 # =================
 #
@@ -517,3 +547,68 @@ law QExt.div_add.lt:
   {QExt.div(d, QExt.add(x, y), z, R.Rat.of(0n, 1n+bp, dp))
    == QExt.add(QExt.div(d, x, z, R.Rat.of(0n, 1n+bp, dp)),
                QExt.div(d, y, z, R.Rat.of(0n, 1n+bp, dp))) : QExt}
+
+# QExt.div_mul_cancel.gt / QExt.div_mul_cancel.lt
+# ==============================================
+#
+#     (x/y)*y = x,   one law per sign of the norm's spelling
+#
+# The field axiom the pair of division laws above exists for. x is stated in the
+# canonical presentation and that is forced, not stylistic: the route runs
+# through QExt.mul_one, whose hypothesis is Rat.mul_one's own, and round seven
+# measured why the identity has to be asked for in that presentation -- x*1 = x
+# is false at a non-canonical value (the real coordinate of mul(x, one()) comes
+# back normalized, Rat{Int{2,0},2} printing as Rat{Int{1,0},1}, against an x that
+# keeps the unreduced spelling). The two bridges are exactly what QExt.mul_one
+# takes, so a caller holding coprimality gets them from Rat.mk.fixed, one call
+# per coordinate.
+#
+# Positivity of x is *not* a hypothesis: a spelled x has successor denominators,
+# so Nat.cmp computes it and the fill passes {==}, the same way QExt.div_add's
+# fill computes the quotient's positivity. y is arbitrary and its positivity is
+# asked for, as everywhere; its norm is the spelled rational, as in
+# QExt.mul_inv.
+
+law QExt.div_mul_cancel.gt:
+  for +d: Nat
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +mq: Nat
+  for +mn: Nat
+  for +dq: Nat
+  for +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp)
+            == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat}
+  for +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq)
+            == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat}
+  for +y: QExt
+  for +gy: {Nat.cmp(0n, R.Rat.denof(QExt.re(y))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  for +ap: Nat
+  for +ep: Nat
+  for +hZ: {R.Rat.of(1n+ap, 0n, ep) == QExt.norm(d, y) : R.Rat}
+  {QExt.mul(d, QExt.div(d, QExt.of(np, nn, dp, mq, mn, dq), y,
+                        R.Rat.of(1n+ap, 0n, ep)), y)
+   == QExt.of(np, nn, dp, mq, mn, dq) : QExt}
+
+law QExt.div_mul_cancel.lt:
+  for +d: Nat
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +mq: Nat
+  for +mn: Nat
+  for +dq: Nat
+  for +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp)
+            == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat}
+  for +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq)
+            == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat}
+  for +y: QExt
+  for +gy: {Nat.cmp(0n, R.Rat.denof(QExt.re(y))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  for +bp: Nat
+  for +ep: Nat
+  for +hZ: {R.Rat.of(0n, 1n+bp, ep) == QExt.norm(d, y) : R.Rat}
+  {QExt.mul(d, QExt.div(d, QExt.of(np, nn, dp, mq, mn, dq), y,
+                        R.Rat.of(0n, 1n+bp, ep)), y)
+   == QExt.of(np, nn, dp, mq, mn, dq) : QExt}

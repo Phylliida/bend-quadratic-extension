@@ -63,6 +63,23 @@ def qext.im(+x: R.Rat, +a: R.Rat, +b: R.Rat, e: {a == b : R.Rat})
   Equal.trans(Q.QExt, Q.QExt{x, a}, Q.QExt{x, b}, Q.QExt{x, b},
     Equal.cong(R.Rat, Q.QExt, u => Q.QExt{x, u}, a, b, e), {==})
 
+# qext.nat.mul_zero: QExt.nat(d) * 0 = 0 -- the one product in QExt.mul's real
+# coordinate that Rat.mul_zero cannot reach.
+#
+# Rat.mul_zero is stated at the spelling Rat{n, 1n+dp}, because that is what
+# makes mk's denominator a successor and lets Rat.mk.zero close the fill. The
+# radicand coefficient is QExt.nat(d) = Rat{Rat.num(d,0), 1}, a denominator of
+# base 1, so no dp instantiates it. The chain is Rat.mul_zero's own with the
+# last step free: the numerator becomes a literal zero and the denominator
+# Nat.mul(1n,1n) reduces, so mk(0,1) is already 0/1 by computation -- measured,
+# it is the `{==}` below and needs no Rat.mk.zero.
+def qext.nat.mul_zero(+d: Nat)
+  -> {R.Rat.mul(Q.QExt.nat(d), R.Rat.zero()) == R.Rat.zero() : R.Rat}:
+  %Equal.sym(I.Int, I.Int.mul(R.Rat.num(d, 0n), I.Int.zero()), I.Int.zero(),
+      I.Int.mul_zero(R.Rat.num(d, 0n)))
+    : {R.Rat.mk(_, Nat.mul(1n, 1n)) == R.Rat.zero() : R.Rat}
+  {==}
+
 # --- QExt ---
 
 # QExt.add_comm: addition is componentwise, so this is Rat.add_comm once per
@@ -916,6 +933,86 @@ def Q.QExt.mul_conj(d, x, gx, hx):
         qext.re(Li, Lr, Rr, QExt.mul_conj.re(d, xa, xb, hx)),
         qext.im(Rr, Li, R.Rat.zero(), QExt.mul_conj.im(xa, xb, gx, hx)))
 
+# QExt.mul_one
+# ============
+#
+# The identity at the canonical presentation. Each coordinate is a sum of two
+# products against Rat.one() and Rat.zero(), and every step is one of the four
+# Rat identity laws spent at the spelling the coordinate already carries:
+# Rat.mul_zero for the two imaginary products, Rat.mul_one and one of
+# Rat.add_zero / Rat.zero_add for the sum. The only term with no law behind it
+# is the real coordinate's QExt.nat(d) * 0, which qext.nat.mul_zero supplies.
+#
+# The intermediate terms are written unreduced, as everywhere in this file: the
+# coordinate witness holds the other coordinate, so both steps of the composing
+# fill have to meet at the same spelling of the coordinate that is not being
+# touched.
+
+def QExt.mul_one.re(+d: Nat, +np: Nat, +nn: Nat, +dp: Nat,
+                    +mq: Nat, +mn: Nat, +dq: Nat,
+                    +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp)
+                          == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat})
+  -> {R.Rat.add(R.Rat.mul(R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat.one()),
+                R.Rat.mul(Q.QExt.nat(d),
+                  R.Rat.mul(R.Rat{R.Rat.num(mq, mn), 1n+dq}, R.Rat.zero())))
+      == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat}:
+  +D = Q.QExt.nat(d)
+  +XA = R.Rat.of(np, nn, dp)
+  +XB = R.Rat.of(mq, mn, dq)
+  +A1 = R.Rat.add(R.Rat.mul(XA, R.Rat.one()), R.Rat.mul(D, R.Rat.mul(XB, R.Rat.zero())))
+  +A2 = R.Rat.add(R.Rat.mul(XA, R.Rat.one()), R.Rat.mul(D, R.Rat.zero()))
+  +A3 = R.Rat.add(R.Rat.mul(XA, R.Rat.one()), R.Rat.zero())
+  +A4 = R.Rat.add(XA, R.Rat.zero())
+  +e1 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.mul(XA, R.Rat.one()), u),
+    R.Rat.mul(D, R.Rat.mul(XB, R.Rat.zero())), R.Rat.mul(D, R.Rat.zero()),
+    Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(D, u),
+      R.Rat.mul(XB, R.Rat.zero()), R.Rat.zero(),
+      R.Rat.mul_zero(R.Rat.num(mq, mn), dq)))
+  +e2 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.mul(XA, R.Rat.one()), u),
+    R.Rat.mul(D, R.Rat.zero()), R.Rat.zero(), qext.nat.mul_zero(d))
+  +e3 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(u, R.Rat.zero()),
+    R.Rat.mul(XA, R.Rat.one()), XA,
+    R.Rat.mul_one(R.Rat.num(np, nn), 1n+dp, f1))
+  +e4 = R.Rat.add_zero(R.Rat.num(np, nn), 1n+dp, f1)
+  Equal.trans(R.Rat, A1, A3, XA,
+    Equal.trans(R.Rat, A1, A2, A3, e1, e2),
+    Equal.trans(R.Rat, A3, A4, XA, e3, e4))
+
+def QExt.mul_one.im(+np: Nat, +nn: Nat, +dp: Nat,
+                    +mq: Nat, +mn: Nat, +dq: Nat,
+                    +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq)
+                          == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat})
+  -> {R.Rat.add(R.Rat.mul(R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat.zero()),
+                R.Rat.mul(R.Rat{R.Rat.num(mq, mn), 1n+dq}, R.Rat.one()))
+      == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat}:
+  +XA = R.Rat.of(np, nn, dp)
+  +XB = R.Rat.of(mq, mn, dq)
+  +B1 = R.Rat.add(R.Rat.mul(XA, R.Rat.zero()), R.Rat.mul(XB, R.Rat.one()))
+  +B2 = R.Rat.add(R.Rat.zero(), R.Rat.mul(XB, R.Rat.one()))
+  +B3 = R.Rat.add(R.Rat.zero(), XB)
+  +e1 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(u, R.Rat.mul(XB, R.Rat.one())),
+    R.Rat.mul(XA, R.Rat.zero()), R.Rat.zero(),
+    R.Rat.mul_zero(R.Rat.num(np, nn), dp))
+  +e2 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.zero(), u),
+    R.Rat.mul(XB, R.Rat.one()), XB,
+    R.Rat.mul_one(R.Rat.num(mq, mn), 1n+dq, f2))
+  Equal.trans(R.Rat, B1, B3, XB,
+    Equal.trans(R.Rat, B1, B2, B3, e1, e2),
+    R.Rat.zero_add(R.Rat.num(mq, mn), 1n+dq, f2))
+
+def Q.QExt.mul_one(d, np, nn, dp, mq, mn, dq, f1, f2):
+  +D = Q.QExt.nat(d)
+  +XA = R.Rat.of(np, nn, dp)
+  +XB = R.Rat.of(mq, mn, dq)
+  +A1 = R.Rat.add(R.Rat.mul(XA, R.Rat.one()), R.Rat.mul(D, R.Rat.mul(XB, R.Rat.zero())))
+  +B1 = R.Rat.add(R.Rat.mul(XA, R.Rat.zero()), R.Rat.mul(XB, R.Rat.one()))
+  Equal.trans(Q.QExt,
+    Q.QExt.mul(d, Q.QExt.of(np, nn, dp, mq, mn, dq), Q.QExt.one()),
+    Q.QExt{XA, B1},
+    Q.QExt{XA, XB},
+    qext.re(B1, A1, XA, QExt.mul_one.re(d, np, nn, dp, mq, mn, dq, f1)),
+    qext.im(XA, B1, XB, QExt.mul_one.im(np, nn, dp, mq, mn, dq, f2)))
+
 # The division payoff
 # ===================
 #
@@ -1430,3 +1527,73 @@ def Q.QExt.div_add.lt(d, x, y, z, gx, hx, gy, hy, gz, hz, bp, dp):
       +hi = R.Rat.mul.den.pos(R.Rat.neg(zb), rp, R.Rat.neg.den.pos(zb, hz), {==})
       qext.mul_add_left(d, x, y, i, gx, hx, gy, hy, gi, hi)
 
+# QExt.div_mul_cancel.gt / .lt: the field axiom (x/y)*y = x, one law per sign of
+# the norm's spelling.
+#
+# Four steps, and the route is the one the shape of the laws dictates:
+#
+#   mul_assoc      (x*inv(y))*y   -> x*(inv(y)*y)     -- arbitrary values, so the
+#                                                       law is QExt.mul_assoc
+#   mul_comm       under a cong on the right factor    -- unconditional
+#   mul_inv        inv(y)*y = 1                        -- the spelled norm, hZ
+#   mul_one        x*1 = x                             -- x's spelled bridges
+#
+# The positivity the chain needs for its third value -- the reciprocal's own
+# coordinates -- is built here rather than asked for, exactly as QExt.div_add's
+# fill builds the quotient's: the reciprocal of a spelled rational is a
+# constructor, so its denominator is positive by computation ({==}), and
+# Rat.mul.den.pos lifts the dividend's positivity through the product. That is
+# where the canonical presentation of x pays for itself: its own two positivity
+# facts are {==} too, so the law's hypothesis list carries only y's.
+#
+# Note the two steps at the end are a mul_comm *then* a mul_inv: QExt.mul_inv
+# states y*inv(y) = 1 and the associativity has left inv(y)*y in place, so the
+# product has to be turned around before the inverse law applies.
+
+def Q.QExt.div_mul_cancel.gt(d, np, nn, dp, mq, mn, dq, f1, f2, y, gy, hy, ap, ep, hZ):
+  match y:
+    case Q.QExt{ya, yb}:
+      +X = Q.QExt.of(np, nn, dp, mq, mn, dq)
+      +q = R.Rat.of(1n+ap, 0n, ep)
+      +rp = R.Rat.of(1n+ep, 0n, ap)
+      +i = Q.QExt.inv(y, q)
+      +gi = R.Rat.mul.den.pos(ya, rp, gy, {==})
+      +hi = R.Rat.mul.den.pos(R.Rat.neg(yb), rp, R.Rat.neg.den.pos(yb, hy), {==})
+      +L1 = Q.QExt.mul(d, Q.QExt.mul(d, X, i), y)
+      +L2 = Q.QExt.mul(d, X, Q.QExt.mul(d, i, y))
+      +L3 = Q.QExt.mul(d, X, Q.QExt.mul(d, y, i))
+      Equal.trans(Q.QExt,
+        L1, L3, X,
+        Equal.trans(Q.QExt, L1, L2, L3,
+          Q.QExt.mul_assoc(d, X, i, y, {==}, {==}, gi, hi, gy, hy),
+          Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.mul(d, X, u),
+            Q.QExt.mul(d, i, y), Q.QExt.mul(d, y, i), Q.QExt.mul_comm(d, i, y))),
+        Equal.trans(Q.QExt, L3, Q.QExt.mul(d, X, Q.QExt.one()), X,
+          Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.mul(d, X, u),
+            Q.QExt.mul(d, y, i), Q.QExt.one(),
+            Q.QExt.mul_inv.gt(d, y, gy, hy, ap, ep, hZ)),
+          Q.QExt.mul_one(d, np, nn, dp, mq, mn, dq, f1, f2)))
+
+def Q.QExt.div_mul_cancel.lt(d, np, nn, dp, mq, mn, dq, f1, f2, y, gy, hy, bp, ep, hZ):
+  match y:
+    case Q.QExt{ya, yb}:
+      +X = Q.QExt.of(np, nn, dp, mq, mn, dq)
+      +q = R.Rat.of(0n, 1n+bp, ep)
+      +rp = R.Rat.of(0n, 1n+ep, bp)
+      +i = Q.QExt.inv(y, q)
+      +gi = R.Rat.mul.den.pos(ya, rp, gy, {==})
+      +hi = R.Rat.mul.den.pos(R.Rat.neg(yb), rp, R.Rat.neg.den.pos(yb, hy), {==})
+      +L1 = Q.QExt.mul(d, Q.QExt.mul(d, X, i), y)
+      +L2 = Q.QExt.mul(d, X, Q.QExt.mul(d, i, y))
+      +L3 = Q.QExt.mul(d, X, Q.QExt.mul(d, y, i))
+      Equal.trans(Q.QExt,
+        L1, L3, X,
+        Equal.trans(Q.QExt, L1, L2, L3,
+          Q.QExt.mul_assoc(d, X, i, y, {==}, {==}, gi, hi, gy, hy),
+          Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.mul(d, X, u),
+            Q.QExt.mul(d, i, y), Q.QExt.mul(d, y, i), Q.QExt.mul_comm(d, i, y))),
+        Equal.trans(Q.QExt, L3, Q.QExt.mul(d, X, Q.QExt.one()), X,
+          Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.mul(d, X, u),
+            Q.QExt.mul(d, y, i), Q.QExt.one(),
+            Q.QExt.mul_inv.lt(d, y, gy, hy, bp, ep, hZ)),
+          Q.QExt.mul_one(d, np, nn, dp, mq, mn, dq, f1, f2)))

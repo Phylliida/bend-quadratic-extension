@@ -182,13 +182,113 @@ def probe.op.instance()
       == Q.QExt.one() : Q.QExt}:
   {==}
 
-# The field axiom (x/y)*y = x is NOT here, and the measurements say why: at a
-# canonical literal instance it closes by computation ({==}, measured), but at a
-# variable dividend every route passes through x * 1 = x, and that step is not
-# merely missing, it is false at non-canonical values -- the real coordinate of
-# mul(x, one()) comes back normalized (Rat{Int{2,0},2} prints as Rat{Int{1,0},1}
-# against an x that keeps Rat{Int{2,0},2}), measured. So the field axiom has to
-# be presented over canonical spellings, the same way QExt.neg_neg is, and it
-# waits on QExt.mul_one -- which is a presentation-level law, not a positivity
-# one. That is the next unit; nothing in the pair of operation laws above needs
-# it.
+# The field axiom (x/y)*y = x is not here yet, and the measurements say what
+# shape it must take: at a canonical literal instance it closes by computation
+# ({==}, measured), but at a variable dividend every route passes through
+# x * 1 = x, and that step does not hold at non-canonical values -- the real
+# coordinate of mul(x, one()) comes back normalized (Rat{Int{2,0},2} prints as
+# Rat{Int{1,0},1} against an x that keeps Rat{Int{2,0},2}), measured. So the
+# field axiom is stated over canonical spellings, the same way QExt.neg_neg and
+# QExt.mul_one are, and x * 1 = x is no longer the gap: QExt.mul_one is in, with
+# probe.mul_one above its caller's-side statement. What remains is the
+# composition, one QExt.mul_inv call plus that law.
+
+# QExt.mul_one from the caller's side, at a variable value: qrat.bend's own
+# statement in the same spelling, and the body is one call. The two bridges are
+# Rat.mul_one's hypothesis, one per coordinate -- the caller supplies them.
+def probe.mul_one(+d: Nat, +np: Nat, +nn: Nat, +dp: Nat,
+                  +mq: Nat, +mn: Nat, +dq: Nat,
+                  +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp)
+                        == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat},
+                  +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq)
+                        == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat})
+  -> {Q.QExt.mul(d, Q.QExt.of(np, nn, dp, mq, mn, dq), Q.QExt.one())
+      == Q.QExt.of(np, nn, dp, mq, mn, dq) : Q.QExt}:
+  Q.QExt.mul_one(d, np, nn, dp, mq, mn, dq, f1, f2)
+
+# Where a downstream file has what QExt.neg_neg asks for -- coprimality of each
+# coordinate -- the bridges are not extra hypotheses at all: Rat.mk.fixed is the
+# step from gcd = 1 to mk(n,d) = Rat{n,d}, one call per coordinate, so a
+# neg_neg-style caller reaches this law with nothing new to prove. That is why
+# QExt.mul_one is stated on the bridges rather than on coprimality: a bridge is
+# strictly weaker, and it is exactly what Rat.mul_one consumes.
+def probe.mul_one.fixed(+d: Nat, +np: Nat, +nn: Nat, +dp: Nat,
+                        +g: {N.Nat.gcd(R.Rat.mag(np, nn), 1n+dp) == 1n : Nat},
+                        +mq: Nat, +mn: Nat, +dq: Nat,
+                        +h: {N.Nat.gcd(R.Rat.mag(mq, mn), 1n+dq) == 1n : Nat})
+  -> {Q.QExt.mul(d, Q.QExt.of(np, nn, dp, mq, mn, dq), Q.QExt.one())
+      == Q.QExt.of(np, nn, dp, mq, mn, dq) : Q.QExt}:
+  +f1 = R.Rat.mk.fixed(Nat.cmp(np, nn), np, nn, dp, {==}, g)
+  +f2 = R.Rat.mk.fixed(Nat.cmp(mq, mn), mq, mn, dq, {==}, h)
+  Q.QExt.mul_one(d, np, nn, dp, mq, mn, dq, f1, f2)
+
+# The arithmetic at 2 + sqrt 2: both denominators are base 1 and both numerators
+# are integers, so every bridge is {==} and the product computes on its own --
+# measured, {==} closes the whole goal and the law is not needed for it.
+def probe.mul_one.instance()
+  -> {Q.QExt.mul(2n,
+        Q.QExt{R.Rat{I.Int{2n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}},
+        Q.QExt.one())
+      == Q.QExt{R.Rat{I.Int{2n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}} : Q.QExt}:
+  {==}
+
+# The field axiom, from the caller's side. QExt.div_mul_cancel.gt above is
+# qrat.bend's own statement in the same spelling, and the body is one call --
+# the law exists so that the composition (mul_assoc, then mul_comm under a cong,
+# then mul_inv, then mul_one) is stated once instead of once per caller. x is
+# canonical, so its two positivity facts are computed ({==}) and do not appear
+# here; y is arbitrary, so both of its coordinates' positivity and the spelled
+# norm are asked for, exactly as QExt.mul_inv asks for them.
+def probe.div_mul_cancel.gt(+d: Nat,
+                            +np: Nat, +nn: Nat, +dp: Nat,
+                            +mq: Nat, +mn: Nat, +dq: Nat,
+                            +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp)
+                                  == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat},
+                            +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq)
+                                  == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat},
+                            +y: Q.QExt,
+                            +gy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(y))) == LT{} : Cmp},
+                            +hy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(y))) == LT{} : Cmp},
+                            +ap: Nat, +ep: Nat,
+                            +hZ: {R.Rat.of(1n+ap, 0n, ep) == Q.QExt.norm(d, y) : R.Rat})
+  -> {Q.QExt.mul(d, Q.QExt.div(d, Q.QExt.of(np, nn, dp, mq, mn, dq), y,
+                               R.Rat.of(1n+ap, 0n, ep)), y)
+      == Q.QExt.of(np, nn, dp, mq, mn, dq) : Q.QExt}:
+  Q.QExt.div_mul_cancel.gt(d, np, nn, dp, mq, mn, dq, f1, f2, y, gy, hy, ap, ep, hZ)
+
+# The LT twin: one law per sign of the norm's spelling, and the negative case is
+# not optional -- an extension whose norm is negative has no positive raw pair at
+# all (1 + 2*sqrt 3 has norm -11), so a GT-only pair of laws would not state the
+# field axiom for it.
+def probe.div_mul_cancel.lt(+d: Nat,
+                            +np: Nat, +nn: Nat, +dp: Nat,
+                            +mq: Nat, +mn: Nat, +dq: Nat,
+                            +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp)
+                                  == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat},
+                            +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq)
+                                  == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat},
+                            +y: Q.QExt,
+                            +gy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(y))) == LT{} : Cmp},
+                            +hy: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(y))) == LT{} : Cmp},
+                            +bp: Nat, +ep: Nat,
+                            +hZ: {R.Rat.of(0n, 1n+bp, ep) == Q.QExt.norm(d, y) : R.Rat})
+  -> {Q.QExt.mul(d, Q.QExt.div(d, Q.QExt.of(np, nn, dp, mq, mn, dq), y,
+                               R.Rat.of(0n, 1n+bp, ep)), y)
+      == Q.QExt.of(np, nn, dp, mq, mn, dq) : Q.QExt}:
+  Q.QExt.div_mul_cancel.lt(d, np, nn, dp, mq, mn, dq, f1, f2, y, gy, hy, bp, ep, hZ)
+
+# The arithmetic: 1/(2 + sqrt 2) times (2 + sqrt 2). x is 1, the norm of
+# 2 + sqrt 2 is 4 - 2 = 2, so the spelled divisor is of(1 + ap, 0, ep) at
+# ap = 1, ep = 0, and every hypothesis is {==} -- the bounds compute, the norm
+# identity computes, and both bridges are base cases. Measurement, as with
+# probe.mul_one.instance: at literals the whole product also reduces on its own,
+# so {==} closes this goal and the law is not needed for it. What exercises the
+# law is the variable defs above; this one is the arithmetic check.
+def probe.div_mul_cancel.instance()
+  -> {Q.QExt.mul(2n,
+        Q.QExt.div(2n, Q.QExt.of(1n, 0n, 0n, 0n, 0n, 0n),
+          Q.QExt{R.Rat{I.Int{2n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}},
+          R.Rat.of(1n+1n, 0n, 0n)),
+        Q.QExt{R.Rat{I.Int{2n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}})
+      == Q.QExt.of(1n, 0n, 0n, 0n, 0n, 0n) : Q.QExt}:
+  {==}

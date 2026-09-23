@@ -63,22 +63,30 @@ law of its sibling via `def <alias>.<name>(...)`:
   `add`/`neg`/`sub`/`mul`/`conj`/`norm`, `QExt.of` (the six-coordinate
   abbreviation the composing law is stated with), the two operations
   `QExt.inv`/`QExt.div` (`x/y = x * inv(y, q)`, the divisor handed in as a
-  spelled rational for the reason every Rat division law does it), and fourteen
+  spelled rational for the reason every Rat division law does it), and seventeen
   laws: `add_comm`/`mul_comm`/`sub_eq_add_neg`/`neg_neg`/`add_assoc`/
-  `mul_assoc`/`mul_distrib`/`mul_conj`, then the two value laws and the two
-  pairs stated over the operations. First `QExt.inv.value.gt` and `QExt.inv.value.lt` — the division
+  `mul_assoc`/`mul_distrib`/`mul_conj`, then the two value laws, the field
+  axioms and the three pairs stated over the operations. First `QExt.inv.value.gt` and `QExt.inv.value.lt` — the division
   payoff `1/x = conj(x)/norm(d,x)`, stated once per sign of the norm, each with
   the norm spelled as a raw pair of that sign plus `hZ` saying the norm *is*
   that rational (PROVING.md, rounds five and six). Then the operation-level
   `QExt.mul_inv.gt`/`.lt` (the payoff's product read as a quotient) and
-  `QExt.div_add.gt`/`.lt` (`(x+y)/z = x/z + y/z`, PROVING.md, round seven). Its
+  `QExt.div_add.gt`/`.lt` (`(x+y)/z = x/z + y/z`, PROVING.md, round seven).
+  Then `QExt.mul_one` (`x * 1 = x`, stated over canonical spellings — `==` is
+  structural, so a non-canonical `x` does not survive the product) and
+  `QExt.div_mul_cancel.gt`/`.lt`, the field axiom `(x/y) * y = x` at a canonical
+  dividend, one law per sign of the norm (PROVING.md, round eight). Its
   coefficients are rat.bend's `Rat` (`import ./rat.bend as R`); there is no
   second copy of the Rat layer.
 - `src/qrat_proofs.bend` — fills every qrat.bend law, and only those: the two
   coordinate witnesses, the two `QExt.mul` coordinate chains, the six algebra
   fills, the six behind the payoff (one product rearrangement per coordinate
-  per sign, plus the composing chain), and the four operation-law fills, each
-  one call. It also hosts `qext.mul_add_left`, the bare helper for
+  per sign, plus the composing chain), `QExt.mul_one`'s two coordinate chains,
+  and the six operation-law fills — five of them one call each, while the
+  `div_mul_cancel` pair is the one place in this file where a fill is a
+  composition rather than a call (`mul_assoc`, then `mul_comm` under a cong,
+  then `mul_inv`, then `QExt.mul_one`). It also hosts `qext.nat.mul_zero` (the
+  radicand's coefficient against zero, which `Rat.mul_zero` cannot state) and `qext.mul_add_left`, the bare helper for
   right-distributivity (`QExt.mul_distrib` is stated on the left; the mirror is
   `QExt.mul_comm`, that law, and two `QExt.mul_comm`s under a cong, and both
   `div_add` branches share it).
@@ -105,7 +113,9 @@ law of its sibling via `def <alias>.<name>(...)`:
   at literals, then the operation-level surface — that `QExt.inv` is its own
   body by conversion, `x/x = 1` from the caller's side on each side of zero (one
   call each, the reason no third law exists), `div_add` at variables on each
-  side of zero, and `(2 + sqrt 2)/(2 + sqrt 2) = 1` at literals.
+  side of zero, `(2 + sqrt 2)/(2 + sqrt 2) = 1` at literals, and then the field
+  axiom: `QExt.mul_one` and both `div_mul_cancel` branches from the caller's side
+  at a variable `y`, plus `1/(2 + sqrt 2) * (2 + sqrt 2) = 1` at literals.
 - `scratch.bend` — smoke test with a `main`.
 
 Check with `node bend2/main.ts <file>` from a bend checkout. The five
@@ -116,9 +126,9 @@ laws-only files intentionally fail with
 is the smoke test -- it has a `main`, so it prints the `Rat.inv` triple it
 computes instead of that line. The count is
 transitive over imports: nat.bend 128, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 223 = 128 Nat + 32 Int + 63 Rat, qrat.bend 237 = 128 Nat +
-32 Int + 63 Rat + 14 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own fourteen laws).
+QExt, rat.bend 223 = 128 Nat + 32 Int + 63 Rat, qrat.bend 240 = 128 Nat +
+32 Int + 63 Rat + 17 QExt (it imports rat.bend itself, so its count is
+rat.bend's plus its own seventeen laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -485,14 +495,18 @@ Known gaps, in dependency order:
    branches) applied at the reciprocal, and its positivity hypotheses for the
    *quotient* are derived inside the fill rather than asked for: the reciprocal
    of a spelled rational has denominator `1n+ap`, so its positivity is `{==}`,
-   and `Rat.mul.den.pos` lifts the divisor's. The field axiom `(x/y)*y = x` is
-   **not** in, and the measurements say why: at a canonical literal instance it
-   closes by computation, but at a variable dividend every route passes through
+   and `Rat.mul.den.pos` lifts the divisor's.
+   The field axiom `(x/y)*y = x` is now **in**, as `QExt.div_mul_cancel.gt`/`.lt`
+   — one law per sign of the norm, at a canonical dividend, which is what the
+   round-seven probes force: at a variable dividend every route passes through
    `x * 1 = x`, and that step is false at non-canonical values -- `mul(x,
    QExt.one())` comes back normalized (`Rat{Int{2,0},2}` prints as
-   `Rat{Int{1,0},1}` against an `x` that keeps the unreduced spelling). So it
-   waits on `QExt.mul_one`, which has to be presented over canonical spellings
-   the way `QExt.neg_neg` is; PROVING.md's round-seven section has both probes.
+   `Rat{Int{1,0},1}` against an `x` that keeps the unreduced spelling). So
+   `QExt.mul_one` came first, presented over canonical spellings the way
+   `QExt.neg_neg` is, and the field axiom is `mul_assoc`, `mul_comm` under a
+   cong, `mul_inv`, then that law. What stays out of reach is the *branch-free*
+   form at a variable dividend: `==` is structural on `QExt`, so there is no
+   presentation-free statement of it to prove.
 3. A binary-nat layer for proof land. The compiled lanes are already binary -- the
    C lane maps `Nat` to W64 with native `nat_add`/`nat_mul`/`nat_divmod`
    (`comp.ts:161`, `comp.ts:255`), and the JS lane uses BigInt -- but in proof
