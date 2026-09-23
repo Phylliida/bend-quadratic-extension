@@ -133,6 +133,43 @@ def QExt.norm(+d: Nat, +x: QExt) -> R.Rat:
   R.Rat.sub(R.Rat.mul(QExt.re(x), QExt.re(x)),
             R.Rat.mul(QExt.nat(d), R.Rat.mul(QExt.im(x), QExt.im(x))))
 
+# The inverse, as an operation
+# ============================
+#
+#     QExt.inv(x, q) = conj(x) / q,     QExt.div(d, x, y, q) = x * QExt.inv(y, q)
+#
+# -- the rationalization `x^-1 = conj(x)/norm(d,x)`, now a function rather than a
+# relation between spelled terms. (Both relations are still stated, as
+# QExt.inv.value.gt / .lt and as QExt.mul_inv.gt / .lt below; those laws are what
+# say the operation means the inverse, because the operation itself is defined at
+# every q.)
+#
+# The divisor is a *parameter* rather than something the operation computes, and
+# that is forced rather than a convenience. QExt.norm(d, x) is an operation's
+# output -- a sum of products -- while Rat.div needs a constructor-headed divisor
+# for the Nat.cmp inside its Rat.inv argument to compute: at an arbitrary Rat
+# that comparison is stuck, inside an argument list, next to the {==} whose type
+# mentions it, where no rewrite step can reach (measured in rat.bend's division
+# round). So the caller hands over the norm as a spelled rational q --
+# `R.Rat.of(1n+ap, 0n, dp)` when the norm is positive, `R.Rat.of(0n, 1n+bp, dp)`
+# when it is negative -- and the hZ hypothesis of the inv laws is what says q *is*
+# the norm. This is the sign-in-the-spelling discipline of every division law in
+# rat.bend, at the QExt level.
+#
+# Two things this is not. It is not partial: like Rat.inv's EQ branch and Rat.mk
+# at denominator 0, it is defined at every q, and no law claims anything about a
+# q that is not the norm. And it is not a helper that hides the spelling: the
+# coordinate expression in the body is verbatim the left-hand side of
+# QExt.inv.value.gt / .lt, so those laws apply to it by conversion alone.
+def QExt.inv(+x: QExt, +q: R.Rat) -> QExt:
+  QExt{R.Rat.div(QExt.re(x), q), R.Rat.div(R.Rat.neg(QExt.im(x)), q)}
+
+# QExt.div: x / y = x * y^-1 -- a definition, like Rat.sub and Rat.div. Its q is
+# the same parameter QExt.inv takes, and it is *y's*: the sign in the spelling is
+# the sign of y's norm, which is what makes the product reduce.
+def QExt.div(+d: Nat, x: QExt, y: QExt, q: R.Rat) -> QExt:
+  QExt.mul(d, x, QExt.inv(y, q))
+
 # QExt.add_comm: x + y = y + x. Holds for every pair: addition is
 # componentwise, and Rat.add_comm is unconditional.
 law QExt.add_comm:
@@ -371,3 +408,112 @@ law QExt.inv.value.lt:
      QExt{R.Rat.div(QExt.re(x), R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp}),
           R.Rat.div(R.Rat.neg(QExt.im(x)), R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp})})
    == QExt.one() : QExt}
+
+# QExt.mul_inv.gt / QExt.mul_inv.lt
+# =================================
+#
+#     x * x^-1 = 1,   x^-1 = QExt.inv(x, norm's spelling)
+#
+# -- the operation-level form of the rationalization, one law per sign of the
+# norm, and what makes QExt.inv *the* inverse rather than a coordinate
+# expression that happens to look right.
+#
+# These are the value laws above with the spelled constructor replaced by the
+# operation: `R.Rat.of(1n+ap, 0n, dp)` names exactly the constructor
+# QExt.inv.value.gt spells, and QExt.inv unfolds to exactly that law's
+# left-hand-side divisor expression -- so each fill below is one call, and the
+# pair is also what keeps the operation and the spelled relation from drifting
+# apart, since the one is proved by the other. What the pair adds over the two
+# value laws is a name a consumer cites while thinking in operations and a
+# statement that does not mention a raw QExt constructor at all.
+#
+# The same two facts the payoff laws carry are the same two here. There is no
+# branch-free form -- the norm is indefinite in d, so no single hZ covers both
+# signs, measured in round five on 1 + 2*sqrt 3 -- and norm = 0 is uncovered on
+# purpose: a^2 = b^2*d is reachable for non-zero x when d is a square
+# (x = 2 + sqrt 4 = 4), and that extension is a zero divisor that has no inverse
+# to state.
+#
+# `x / x = 1` is *not* a third law. QExt.div(d, x, x, q) unfolds to
+# QExt.mul(d, x, QExt.inv(x, q)), which is this law's left-hand side verbatim, so
+# a caller states the quotient form and cites QExt.mul_inv.gt; at the Rat level
+# the twin Rat.div_self.gt is a real law only because Rat.div's divisor there is
+# a raw coordinate spelling rather than an operation's output.
+law QExt.mul_inv.gt:
+  for +d: Nat
+  for +x: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +ap: Nat
+  for +dp: Nat
+  for +hZ: {R.Rat.of(1n+ap, 0n, dp) == QExt.norm(d, x) : R.Rat}
+  {QExt.mul(d, x, QExt.inv(x, R.Rat.of(1n+ap, 0n, dp))) == QExt.one() : QExt}
+
+law QExt.mul_inv.lt:
+  for +d: Nat
+  for +x: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +bp: Nat
+  for +dp: Nat
+  for +hZ: {R.Rat.of(0n, 1n+bp, dp) == QExt.norm(d, x) : R.Rat}
+  {QExt.mul(d, x, QExt.inv(x, R.Rat.of(0n, 1n+bp, dp))) == QExt.one() : QExt}
+
+# QExt.div_add.gt / QExt.div_add.lt
+# ================================
+#
+#     (x + y)/z = x/z + y/z,   one law per sign of the divisor's spelling
+#
+# -- division is additive in its dividend. This is the law that makes the
+# quotient of a *sum* computable, and it is the QExt twin of Rat.div_add: on the
+# Rat side the fill is one Rat.mul_add_left.arb, here it is one right
+# distributivity over QExt (QExt.mul_distrib is stated on the left, the mirror
+# follows by QExt.mul_comm, unconditionally).
+#
+# Where the divisor comes from is the caller's business here: the law is about
+# dividing by the spelled rational, and unlike QExt.mul_inv it carries no hZ.
+# Nothing in the fill uses the relation between q and a norm -- what a caller
+# establishes is that the two quotients they care about are the two quotients
+# this law names, which is the same hZ the inv laws take, used at the call site.
+#
+# The six hypotheses are the positivity of x's and y's two coordinates each and
+# of z's -- the same list QExt.mul_distrib takes, because the fill *is* that law
+# at the reciprocal. The positivity of the reciprocal's coordinates, which that
+# law also needs, is not a hypothesis: the reciprocal of a spelled rational is a
+# constructor (Rat{Rat.num(1n+dp,0n), 1n+ap}), so its denominator is 1n+ap and
+# its positivity is {==}, and Rat.mul.den.pos turns z's positivity into the
+# quotient's. That derivation lives in the fill, not in the statement -- a
+# consumer never writes it.
+law QExt.div_add.gt:
+  for +d: Nat
+  for +x: QExt
+  for +y: QExt
+  for +z: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +gy: {Nat.cmp(0n, R.Rat.denof(QExt.re(y))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  for +gz: {Nat.cmp(0n, R.Rat.denof(QExt.re(z))) == LT{} : Cmp}
+  for +hz: {Nat.cmp(0n, R.Rat.denof(QExt.im(z))) == LT{} : Cmp}
+  for +ap: Nat
+  for +dp: Nat
+  {QExt.div(d, QExt.add(x, y), z, R.Rat.of(1n+ap, 0n, dp))
+   == QExt.add(QExt.div(d, x, z, R.Rat.of(1n+ap, 0n, dp)),
+               QExt.div(d, y, z, R.Rat.of(1n+ap, 0n, dp))) : QExt}
+
+law QExt.div_add.lt:
+  for +d: Nat
+  for +x: QExt
+  for +y: QExt
+  for +z: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +gy: {Nat.cmp(0n, R.Rat.denof(QExt.re(y))) == LT{} : Cmp}
+  for +hy: {Nat.cmp(0n, R.Rat.denof(QExt.im(y))) == LT{} : Cmp}
+  for +gz: {Nat.cmp(0n, R.Rat.denof(QExt.re(z))) == LT{} : Cmp}
+  for +hz: {Nat.cmp(0n, R.Rat.denof(QExt.im(z))) == LT{} : Cmp}
+  for +bp: Nat
+  for +dp: Nat
+  {QExt.div(d, QExt.add(x, y), z, R.Rat.of(0n, 1n+bp, dp))
+   == QExt.add(QExt.div(d, x, z, R.Rat.of(0n, 1n+bp, dp)),
+               QExt.div(d, y, z, R.Rat.of(0n, 1n+bp, dp))) : QExt}
