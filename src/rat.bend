@@ -93,6 +93,17 @@ def Rat.mk(n: I.Int, d: Nat) -> Rat:
   I.Int{+np, +nn} = n
   Rat.mk.go(np, nn, d)
 
+# Rat.of(np, nn, dp): the raw rational (np - nn)/(1 + dp) as a constructor --
+# the spelling a divisor with literal coordinates is named in, and the one the
+# division laws consume. A plain abbreviation like QExt.of: nothing is
+# normalized here and no match is taken on the arguments, so it unfolds to the
+# constructor wherever a law or a fill writes it. It exists because a *let*
+# cannot hold a bare constructor -- the checker cannot infer the constructor's
+# type without an expected type -- so a fill that wants to name the divisor once
+# and use it ten times needs a def to name it with.
+def Rat.of(+np: Nat, +nn: Nat, +dp: Nat) -> Rat:
+  Rat{Rat.num(np, nn), 1n+dp}
+
 # Rat.add: x + y = (xn*yd + yn*xd) / (xd*yd), normalized. The two products are
 # Int times a Nat, written Int.mul(n, Int{k, 0}) -- the representation's way of
 # scaling an Int.
@@ -1091,6 +1102,18 @@ law Rat.add.den.pos:
   for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
   {Nat.cmp(0n, Rat.denof(Rat.add(x, y))) == LT{} : Cmp}
 
+# Rat.neg.den.pos: the third closure clause, -x's denominator positive when
+# x's is. It is needed wherever a fill builds a *negation of a stuck term* --
+# the rationalization's -b and -(b^2*d) are exactly that -- because Rat.neg
+# destructures its argument before it calls Rat.mk: at a variable the whole
+# term is stuck, so no congruence and no mk-headed positivity law reaches it and
+# the fact has to arrive as a law stated at the stuck spelling, like its two
+# siblings above.
+law Rat.neg.den.pos:
+  for +x: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  {Nat.cmp(0n, Rat.denof(Rat.neg(x))) == LT{} : Cmp}
+
 # Rat.mul_distrib.arb / Rat.mul_add_left.arb
 # ==========================================
 #
@@ -1304,6 +1327,19 @@ law Rat.mul_neg:
   for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
   {Rat.mul(x, Rat.neg(y)) == Rat.neg(Rat.mul(x, y)) : Rat}
 
+# Rat.neg_mul: the same law with the negation on the *left*, (-x)*y = -(x*y).
+# Rat.mul_neg cannot be turned around to give this -- its negation is in the
+# second factor -- so the fact is stated separately; the fill is Rat.mul_comm,
+# Rat.mul_neg and one more commutativity under a congruence, which is why the
+# statement is worth having rather than a three-step detour at every use. The
+# rationalization needs it three times: b*(-b), d*(-(b*b)) and (-(b*b))*rh.
+law Rat.neg_mul:
+  for +x: Rat
+  for +y: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
+  {Rat.mul(Rat.neg(x), y) == Rat.neg(Rat.mul(x, y)) : Rat}
+
 # Rat.add_neg
 # ===========
 #
@@ -1373,9 +1409,15 @@ law Rat.mul_add_left:
 # np != nn, so nothing has to be said about it and no c != EQ side condition has
 # to be spelled (this language has no natural form for one).
 #
-# GT is stated first because that is the branch QExt.inv consumes: the norm
-# a^2 - b^2*d of a non-zero extension is positive, and a caller that has decided
-# that hands over the GT case.
+# GT is stated first because that is the branch the rationalization consumes
+# when the norm is positive: a divisor whose numerator is positive is the case
+# Rat.div's own GT spelling covers, and the payoff law is stated there. It is
+# *not* the general case -- an earlier version of this comment said the norm
+# a^2 - b^2*d of a non-zero extension is positive, and that is false in d itself:
+# the norm is indefinite, so 1 + 2*sqrt 3 (norm -11) has no positive spelling at
+# all and no GT law can state it. Measured: that extension against the positive
+# spelling 11 multiplies out to -1, not 1. The case waits on an LT twin of the
+# payoff law (PROVING.md, round five).
 #
 # The hypothesis is {GT{} == Nat.cmp(np, nn)}, not the reverse: Rat.inv's own
 # parameter is {c == Nat.cmp(np,nn)}, so this is the orientation its caller

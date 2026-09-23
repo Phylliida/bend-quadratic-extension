@@ -4355,6 +4355,28 @@ def R.Rat.add.den.pos(x, y, px, py):
     case R.Rat{xn, xd} R.Rat{yn, yd}:
       Rat.add.den.pos.coords(xn, yn, xd, yd, px, py)
 
+# Rat.neg.den.pos: the same shape one operation over -- Rat.neg's output is
+# Rat.mk(Int.neg(xn), xd), so after the two destructuring levels the goal is
+# div(xd, g) with g = gcd(mag(xn, xp), xd) and one Rat.div.pos closes it.
+def Rat.neg.den.pos.coords(+xp: Nat, +xn: Nat, +xd: Nat,
+                           +px: {Nat.cmp(0n, xd) == LT{} : Cmp})
+  -> {Nat.cmp(0n, R.Rat.denof(R.Rat.neg(R.Rat{I.Int{xp, xn}, xd}))) == LT{} : Cmp}:
+  +U = xn
+  +V = xp
+  +d = xd
+  +G = R.Rat.g(U, V, d)
+  Rat.div.pos(G, d,
+    Pair.snd(N.Nat.divides(G, R.Rat.mag(U, V)), N.Nat.divides(G, d),
+             N.gcd_divides(R.Rat.mag(U, V), d)),
+    px)
+
+def R.Rat.neg.den.pos(x, px):
+  match x:
+    case R.Rat{xn, xd}:
+      match xn:
+        case I.Int{xp, xnn}:
+          Rat.neg.den.pos.coords(xp, xnn, xd, px)
+
 
 # The negation and inverse laws
 # =============================
@@ -4511,6 +4533,23 @@ def R.Rat.mul_neg(x, y, px, py):
               R.Rat.neg(R.Rat.mul(R.Rat{xn, xd}, R.Rat{yn, yd})),
               eA2,
               eR))))
+
+# Rat.neg_mul: mul_neg with the negation on the left. Three steps and no
+# destructuring: the negation swaps sides by Rat.mul_comm, Rat.mul_neg turns it
+# into -(y*x), and the last commutativity moves y back.
+def R.Rat.neg_mul(x, y, px, py):
+  Equal.trans(R.Rat,
+    R.Rat.mul(R.Rat.neg(x), y),
+    R.Rat.mul(y, R.Rat.neg(x)),
+    R.Rat.neg(R.Rat.mul(x, y)),
+    R.Rat.mul_comm(R.Rat.neg(x), y),
+    Equal.trans(R.Rat,
+      R.Rat.mul(y, R.Rat.neg(x)),
+      R.Rat.neg(R.Rat.mul(y, x)),
+      R.Rat.neg(R.Rat.mul(x, y)),
+      R.Rat.mul_neg(y, x, py, px),
+      Equal.cong(R.Rat, R.Rat, u => R.Rat.neg(u),
+        R.Rat.mul(y, x), R.Rat.mul(x, y), R.Rat.mul_comm(y, x))))
 
 # Rat.add_neg
 # ===========
