@@ -4628,3 +4628,737 @@ def R.Rat.add_neg(x, px):
   match x:
     case R.Rat{xn, xd}:
       Rat.add_neg.int(xn, xd, px)
+
+# The inverse unit, GT branch
+# =============================
+#
+# Rat.inv's GT branch is the one raw constructor that does *not* need
+# coprimality: with p = np - nn > 0 and d' = 1 + dp the product's numerator is
+# the difference pair (d'*p, 0) and its denominator argument is d'*p, so
+# Rat.g collapses to that product and both div coordinates are div(T, T) = 1.
+# The collapse is gcd_scale at k = p plus Nat.gcd_self, the Nat-level law
+# this repo now carries (Nat.gcd at a *variable* cannot start: its fourth slot
+# holds the argument and Nat.cmp(a, a) does not reduce, so the case split has
+# to live inside the law).
+
+# What the checker sees is the expansion, not that clean pair: Rat.mul goes
+# through Int.mul and Rat.mk, so the coordinates are the raw four-product
+# sums A and B below, and every rewrite is stated at those terms.
+
+# Rat.mul_inv.gt
+# ==============
+#
+# The GT branch of Rat.mul_inv: x * x^-1 = 1 for np > nn, at raw coordinates.
+#
+# Nothing here is a congruence fill, because the product's numerator is a
+# difference pair whose slots cancel: with p = np - nn > 0 and d' = 1 + dp the
+# product is
+#
+#     Int{p*d', 0} / (d' * p)
+#
+# so the divisor Rat.g collapses to gcd(p*d', d'*p) = d'*p -- the *whole*
+# product, twice -- and both div coordinates are div(T, T) = 1. The collapse is
+# gcd_scale at k = p plus gcd(d', d') = d' (the law this repo now carries as
+# Nat.gcd_self; at the variable d' the loop cannot start, so the case split has
+# to live inside the law, which is why the in-file version could not reach it),
+# and both
+# factors come out of the *same* gcd_divides(T, T) pair, which is what keeps
+# Nat.gcd's argument order out of the proof: gcd_comm is not needed and the
+# order is repaired inside the gcd_scale call instead.
+#
+# So the first law since Rat.mk.diag that needs no coprimality: the hypotheses
+# are the successor denominator and np > nn, and no gcd collapses to 1
+# anywhere -- it collapses to the product.
+
+# T = d'*p is a successor, which is the spelling div_self wants
+def Rat.mul_inv.pw(+T: Nat, +pT: {Nat.cmp(0n, T) == LT{} : Cmp})
+  -> {T == 1n+Nat.sub(T, 1n) : Nat}:
+  N.pos_witness(T, pT)
+
+# div(T, T) = 1 for the opaque dividend the goal has: pos_witness rewrites the
+# dividend to 1+ap, one cong carries the same fact to the divisor, and what is
+# left is div_self at ap = sub(T, 1n). Three congs and two transes, because a
+# `%` rewrite cannot reach a divisor position -- Nat.div is a def, so the goal's
+# occurrence shows up as div.fin(divmod(..)) and a rewrite that must convert
+# against a stated type has nothing to match there.
+def Rat.mul_inv.divself(+T: Nat, +pT: {Nat.cmp(0n, T) == LT{} : Cmp})
+  -> {Nat.div(T, T) == 1n : Nat}:
+  +sub = Nat.sub(T, 1n)
+  +w1 = Equal.cong(Nat, Nat, u => Nat.div(u, T), T, Nat.add(1n, sub),
+    Rat.mul_inv.pw(T, pT))
+  +w2 = Equal.cong(Nat, Nat, u => Nat.div(Nat.add(1n, sub), u), T, Nat.add(1n, sub),
+    Rat.mul_inv.pw(T, pT))
+  Equal.trans(Nat, Nat.div(T, T), Nat.div(Nat.add(1n, sub), T), 1n,
+    w1,
+    Equal.trans(Nat, Nat.div(Nat.add(1n, sub), T),
+      Nat.div(Nat.add(1n, sub), Nat.add(1n, sub)), 1n,
+      w2,
+      N.div_self(sub)))
+
+# hT: T is d'*p, which is the left side of Nat.mul_comm(1n+dp, p).
+def Rat.mul_inv.hT(+T: Nat, +p: Nat, +dp: Nat,
+                      +h: {T == Nat.mul(1n+dp, p) : Nat})
+  -> {T == Nat.mul(p, 1n+dp) : Nat}:
+  Equal.trans(Nat, T, Nat.mul(1n+dp, p), Nat.mul(p, 1n+dp),
+    h, N.mul_comm(1n+dp, p))
+
+# gcd(T*1, T) = T for the opaque divisor T = d'*p. The chain is three rewrites,
+# each one an equation whose *right* side is the occurrence sitting in the goal
+# (that is the direction %e works in), followed by the scaled collapse:
+#   e1: T*1 -> p*(1+dp), so the loop can start on the first argument at all;
+#   hs: the second argument T -> p*(1+dp), the same term, so both gcd arguments
+#       are now identical and gcd_scale applies to them;
+#   e3: the right side T -> (1+dp)*p, which is what that collapsed gcd is;
+# then gs states the goal. The inner gcd(p, p) = p is Nat.gcd_self at the
+# *variable* p. That generality is the whole reason the law exists: at p,
+# Nat.gcd cannot start (the fourth slot holds p and Nat.cmp(p, p) is stuck), so
+# a lemma stated at 1+dp -- the spelling in which the loop does reduce -- is a
+# different, non-convertible type and cannot be used in its place. The case
+# split inside the law is what buys the successor case its reduction.
+def Rat.mul_inv.gT(+T: Nat, +p: Nat, +dp: Nat,
+                      +hT: {T == Nat.mul(p, 1n+dp) : Nat})
+  -> {N.Nat.gcd(Nat.mul(T, 1n), T) == T : Nat}:
+  +hs = Equal.sym(Nat, T, Nat.mul(p, 1n+dp), hT)
+  +gs = Equal.trans(Nat,
+    N.Nat.gcd(Nat.mul(p, 1n+dp), Nat.mul(p, 1n+dp)),
+    Nat.mul(N.Nat.gcd(p, p), 1n+dp),
+    Nat.mul(1n+dp, p),
+    N.gcd_scale(p, p, dp),
+    Equal.trans(Nat, Nat.mul(N.Nat.gcd(p, p), 1n+dp), Nat.mul(p, 1n+dp), Nat.mul(1n+dp, p),
+      Equal.cong(Nat, Nat, u => Nat.mul(u, 1n+dp), N.Nat.gcd(p, p), p,
+        N.gcd_self(p)),
+      N.mul_comm(p, 1n+dp)))
+  +e1 = Equal.trans(Nat, Nat.mul(p, 1n+dp), T, Nat.mul(T, 1n), hs, N.mul_one(T))
+  +e3 = Equal.trans(Nat, Nat.mul(1n+dp, p), Nat.mul(p, 1n+dp), T,
+    Equal.sym(Nat, Nat.mul(p, 1n+dp), Nat.mul(1n+dp, p), N.mul_comm(p, 1n+dp)), hs)
+  %e1 : {N.Nat.gcd(_, T) == T : Nat}
+  %hs : {N.Nat.gcd(Nat.mul(p, 1n+dp), _) == T : Nat}
+  %e3 : {N.Nat.gcd(Nat.mul(p, 1n+dp), Nat.mul(p, 1n+dp)) == _ : Nat}
+  gs
+
+# The Nat algebra of the product's own coordinates
+# ===============================================
+#
+# What the checker sees for the product is not the clean Int{p*d', 0}/(d'*p) of
+# the block header: Rat.mul expands to Int.mul(Rat.num(np, nn), Int{d, 0n})
+# before Rat.mk normalizes it, and Int.mul's own definition is a four-product
+# sum, so the product's numerator is the raw pair
+#
+#   ca = mul(np-nn, d) + mul(nn-np, 0)      cb = mul(np-nn, 0) + mul(nn-np, d)
+#
+# (with d = 1+dp) and its denominator argument is mk's mul(d, np-nn) -- the term
+# T of the block header, up to Nat.mul's own definition. The statements below
+# are written in that raw spelling, because that is what a rewrite has to match.
+#
+# Every step is a law call: mul_zero kills the second summand of each coordinate
+# (nothing here unfolds an operation over a variable -- mul(x, 0) does *not*
+# reduce, its match is on the first argument), add_zero/sub_zero collapse what is
+# left, and the branch hypothesis enters exactly once, as np > nn means nn-np is
+# zero and np-nn is a successor. Rat.mul_inv.gt is where the sign of np-nn is
+# needed; by the time these coordinates are stated, it has been spent.
+
+# coordA: the product's first numerator coordinate is T
+def Rat.mul_inv.gt.coordA(+np: Nat, +nn: Nat, +dp: Nat)
+  -> {Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))
+      == Nat.mul(1n+dp, Nat.sub(np, nn)) : Nat}:
+  Equal.trans(Nat,
+    Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+    Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), 0n),
+    Nat.mul(1n+dp, Nat.sub(np, nn)),
+    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), u),
+      Nat.mul(Nat.sub(nn, np), 0n), 0n, N.mul_zero(Nat.sub(nn, np))),
+    Equal.trans(Nat,
+      Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), 0n),
+      Nat.mul(Nat.sub(np, nn), 1n+dp),
+      Nat.mul(1n+dp, Nat.sub(np, nn)),
+      N.add_zero(Nat.mul(Nat.sub(np, nn), 1n+dp)),
+      N.mul_comm(Nat.sub(np, nn), 1n+dp)))
+
+# coordB: the second numerator coordinate is zero -- np > nn is what makes
+# mul(nn-np, d) vanish, via sub_of_lt at cmp(nn, np) = LT
+def Rat.mul_inv.gt.coordB(+np: Nat, +nn: Nat, +dp: Nat,
+                          +e: {GT{} == Nat.cmp(np, nn) : Cmp})
+  -> {Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))
+      == 0n : Nat}:
+  Equal.trans(Nat,
+    Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+    Nat.add(0n, Nat.mul(Nat.sub(nn, np), 1n+dp)),
+    0n,
+    Equal.cong(Nat, Nat, u => Nat.add(u, Nat.mul(Nat.sub(nn, np), 1n+dp)),
+      Nat.mul(Nat.sub(np, nn), 0n), 0n, N.mul_zero(Nat.sub(np, nn))),
+    Equal.trans(Nat,
+      Nat.add(0n, Nat.mul(Nat.sub(nn, np), 1n+dp)),
+      Nat.add(0n, Nat.mul(0n, 1n+dp)),
+      0n,
+      Equal.cong(Nat, Nat, u => Nat.add(0n, u), Nat.mul(Nat.sub(nn, np), 1n+dp),
+        Nat.mul(0n, 1n+dp),
+        Equal.cong(Nat, Nat, u => Nat.mul(u, 1n+dp), Nat.sub(nn, np), 0n,
+          N.sub_of_lt(nn, np, N.cmp_lt_of_gt(np, nn,
+            Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))))),
+      {==}))
+
+# subAB: the product's first numerator is T once the zero coordinate is
+# truncated away from it
+def Rat.mul_inv.gt.subAB(+np: Nat, +nn: Nat, +dp: Nat,
+                         +e: {GT{} == Nat.cmp(np, nn) : Cmp})
+  -> {Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+              Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)))
+      == Nat.mul(1n+dp, Nat.sub(np, nn)) : Nat}:
+  Equal.trans(Nat,
+    Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+            Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))),
+    Nat.sub(Nat.mul(1n+dp, Nat.sub(np, nn)),
+            Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))),
+    Nat.mul(1n+dp, Nat.sub(np, nn)),
+    Equal.cong(Nat, Nat,
+      u => Nat.sub(u, Nat.add(Nat.mul(Nat.sub(np, nn), 0n),
+                              Nat.mul(Nat.sub(nn, np), 1n+dp))),
+      Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+      Nat.mul(1n+dp, Nat.sub(np, nn)),
+      Rat.mul_inv.gt.coordA(np, nn, dp)),
+    Equal.trans(Nat,
+      Nat.sub(Nat.mul(1n+dp, Nat.sub(np, nn)),
+              Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))),
+      Nat.sub(Nat.mul(1n+dp, Nat.sub(np, nn)), 0n),
+      Nat.mul(1n+dp, Nat.sub(np, nn)),
+      Equal.cong(Nat, Nat, u => Nat.sub(Nat.mul(1n+dp, Nat.sub(np, nn)), u),
+        Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)), 0n,
+        Rat.mul_inv.gt.coordB(np, nn, dp, e)),
+      N.sub_zero(Nat.mul(1n+dp, Nat.sub(np, nn)))))
+
+# subBA: and the second is zero on the nose
+def Rat.mul_inv.gt.subBA(+np: Nat, +nn: Nat, +dp: Nat,
+                         +e: {GT{} == Nat.cmp(np, nn) : Cmp})
+  -> {Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+              Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)))
+      == 0n : Nat}:
+  Equal.trans(Nat,
+    Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+            Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))),
+    Nat.sub(0n, Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))),
+    0n,
+    Equal.cong(Nat, Nat,
+      u => Nat.sub(u, Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp),
+                              Nat.mul(Nat.sub(nn, np), 0n))),
+      Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)), 0n,
+      Rat.mul_inv.gt.coordB(np, nn, dp, e)),
+    N.sub_zero_left(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp),
+                            Nat.mul(Nat.sub(nn, np), 0n))))
+
+# magT: the product's magnitude coordinate, in the spelling gcd_scale's second
+# argument takes -- T*1, which is where its first coordinate T has to appear
+def Rat.mul_inv.gt.magT(+np: Nat, +nn: Nat, +dp: Nat,
+                        +e: {GT{} == Nat.cmp(np, nn) : Cmp})
+  -> {Nat.add(
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))),
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))))
+      == Nat.mul(Nat.mul(1n+dp, Nat.sub(np, nn)), 1n) : Nat}:
+  Equal.trans(Nat,
+    Nat.add(
+      Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+              Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))),
+      Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+              Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)))),
+    Nat.add(Nat.mul(1n+dp, Nat.sub(np, nn)),
+            Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+                    Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)))),
+    Nat.mul(Nat.mul(1n+dp, Nat.sub(np, nn)), 1n),
+    Equal.cong(Nat, Nat,
+      u => Nat.add(u,
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)))),
+      Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+              Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))),
+      Nat.mul(1n+dp, Nat.sub(np, nn)),
+      Rat.mul_inv.gt.subAB(np, nn, dp, e)),
+    Equal.trans(Nat,
+      Nat.add(Nat.mul(1n+dp, Nat.sub(np, nn)),
+              Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+                      Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)))),
+      Nat.add(Nat.mul(1n+dp, Nat.sub(np, nn)), 0n),
+      Nat.mul(Nat.mul(1n+dp, Nat.sub(np, nn)), 1n),
+      Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(1n+dp, Nat.sub(np, nn)), u),
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))),
+        0n,
+        Rat.mul_inv.gt.subBA(np, nn, dp, e)),
+      Equal.trans(Nat,
+        Nat.add(Nat.mul(1n+dp, Nat.sub(np, nn)), 0n),
+        Nat.mul(1n+dp, Nat.sub(np, nn)),
+        Nat.mul(Nat.mul(1n+dp, Nat.sub(np, nn)), 1n),
+        N.add_zero(Nat.mul(1n+dp, Nat.sub(np, nn))),
+        N.mul_one(Nat.mul(1n+dp, Nat.sub(np, nn))))))
+
+# gcdT: the divisor is T. The magnitude is mul(T,1) after magT and mk's
+# denominator argument is T = mul(1+dp, np-nn) up to Nat.mul's definition, so
+# gT -- the scaled collapse -- applies to the goal's own gcd.
+def Rat.mul_inv.gt.gcdT(+np: Nat, +nn: Nat, +dp: Nat,
+                        +e: {GT{} == Nat.cmp(np, nn) : Cmp})
+  -> {N.Nat.gcd(
+        Nat.add(
+          Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+                  Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))),
+          Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+                  Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)))),
+        Nat.add(Nat.sub(np, nn), Nat.mul(dp, Nat.sub(np, nn))))
+      == Nat.mul(1n+dp, Nat.sub(np, nn)) : Nat}:
+  Equal.trans(Nat,
+    N.Nat.gcd(
+      Nat.add(
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))),
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)))),
+      Nat.add(Nat.sub(np, nn), Nat.mul(dp, Nat.sub(np, nn)))),
+    N.Nat.gcd(Nat.mul(Nat.mul(1n+dp, Nat.sub(np, nn)), 1n),
+              Nat.add(Nat.sub(np, nn), Nat.mul(dp, Nat.sub(np, nn)))),
+    Nat.mul(1n+dp, Nat.sub(np, nn)),
+    Equal.cong(Nat, Nat,
+      u => N.Nat.gcd(u, Nat.add(Nat.sub(np, nn), Nat.mul(dp, Nat.sub(np, nn)))),
+      Nat.add(
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))),
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)))),
+      Nat.mul(Nat.mul(1n+dp, Nat.sub(np, nn)), 1n),
+      Rat.mul_inv.gt.magT(np, nn, dp, e)),
+    Rat.mul_inv.gT(Nat.mul(1n+dp, Nat.sub(np, nn)), Nat.sub(np, nn), dp,
+      N.mul_comm(1n+dp, Nat.sub(np, nn))))
+
+# pb: the branch fact T's positivity rests on -- on np > nn the difference
+# np - nn is a successor, which is sub_pos. T = d' * p is then a product of
+# successors, which is exactly what mul_pos wants; the {==} for its first
+# factor is legitimate only because 1n+dp *is* a successor, so that argument
+# cannot be abstracted into a branch-agnostic helper.
+def Rat.mul_inv.gt.pb(+np: Nat, +nn: Nat,
+                      +e: {GT{} == Nat.cmp(np, nn) : Cmp})
+  -> {Nat.cmp(0n, Nat.sub(np, nn)) == LT{} : Cmp}:
+  Equal.trans(Cmp, Nat.cmp(0n, Nat.sub(np, nn)),
+    Nat.cmp(0n, 1n+Nat.sub(np, 1n+nn)), LT{},
+    Equal.cong(Nat, Cmp, u => Nat.cmp(0n, u), Nat.sub(np, nn),
+      1n+Nat.sub(np, 1n+nn),
+      N.sub_pos(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))),
+    {==})
+
+# chain: the product's clean coordinates are one. div(T, T) = 1 twice -- once in
+# the numerator's first slot, once in the denominator -- with div(0, T) = 0
+# between them. No Nat.divides witness: div_self is what says div(T, T) = 1 at
+# the opaque dividend the goal has, so nothing here destructures the pair
+# gcd_divides returns, and T's positivity is the only hypothesis needed.
+def Rat.mul_inv.chain(+T: Nat, +pT: {Nat.cmp(0n, T) == LT{} : Cmp})
+  -> {R.Rat{I.Int{Nat.div(T, T), Nat.div(0n, T)}, Nat.div(T, T)}
+      == R.Rat.one() : R.Rat}:
+  +ds = Rat.mul_inv.divself(T, pT)
+  +dz = N.div_zero(T)
+  Equal.trans(R.Rat,
+    R.Rat{I.Int{Nat.div(T, T), Nat.div(0n, T)}, Nat.div(T, T)},
+    R.Rat{I.Int{1n, Nat.div(0n, T)}, Nat.div(T, T)},
+    R.Rat.one(),
+    Equal.cong(Nat, R.Rat, u => R.Rat{I.Int{u, Nat.div(0n, T)}, Nat.div(T, T)},
+      Nat.div(T, T), 1n, ds),
+    Equal.trans(R.Rat,
+      R.Rat{I.Int{1n, Nat.div(0n, T)}, Nat.div(T, T)},
+      R.Rat{I.Int{1n, 0n}, Nat.div(T, T)},
+      R.Rat.one(),
+      Equal.cong(Nat, R.Rat, u => R.Rat{I.Int{1n, u}, Nat.div(T, T)},
+        Nat.div(0n, T), 0n, dz),
+      Equal.cong(Nat, R.Rat, u => R.Rat{I.Int{1n, 0n}, u},
+        Nat.div(T, T), 1n, ds)))
+
+def Rat.mul_inv.gt.coords(+np: Nat, +nn: Nat, +dp: Nat,
+                          +e: {GT{} == Nat.cmp(np, nn) : Cmp})
+  -> {R.Rat.mul(R.Rat{R.Rat.num(np, nn), 1n+dp},
+                R.Rat.inv(np, nn, 1n+dp, GT{}, e))
+      == R.Rat.one() : R.Rat}:
+  # p = |np - nn| on this branch; T = d'*p; and A, B, D, G are the product's own
+  # coordinates as the checker prints them -- the two raw numerator coordinates,
+  # mk's denominator argument and the gcd Rat.mk.go cancels. Every rewrite below
+  # is stated at these terms, so each pattern matches the goal up to conversion.
+  +p = Nat.sub(np, nn)
+  +T = Nat.mul(1n+dp, p)
+  +A = Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))
+  +B = Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))
+  +D = Nat.add(Nat.sub(np, nn), Nat.mul(dp, Nat.sub(np, nn)))
+  +G = N.Nat.gcd(Nat.add(Nat.sub(A, B), Nat.sub(B, A)), D)
+  +sAB = Rat.mul_inv.gt.subAB(np, nn, dp, e)
+  +sBA = Rat.mul_inv.gt.subBA(np, nn, dp, e)
+  +gEq = Rat.mul_inv.gt.gcdT(np, nn, dp, e)
+  +pbv = Rat.mul_inv.gt.pb(np, nn, e)
+  +pTv = N.mul_pos(1n+dp, p, {==}, pbv)
+  # The first numerator coordinate: sub(A, B) -> T, then the divisor G -> T, so
+  # the coordinate is div(T, T) = 1. Each equation below has the occurrence (the
+  # goal's right side) on the right and the replacement on the left -- the
+  # direction %e rewrites in.
+  +e1 = Equal.cong(Nat, Nat, u => Nat.div(u, G), T, Nat.sub(A, B),
+    Equal.sym(Nat, Nat.sub(A, B), T, sAB))
+  +e2 = Equal.cong(Nat, Nat, u => Nat.div(T, u), T, G, Equal.sym(Nat, G, T, gEq))
+  # the same for the second coordinate, which is div(0, T) = 0
+  +e3 = Equal.cong(Nat, Nat, u => Nat.div(u, G), 0n, Nat.sub(B, A),
+    Equal.sym(Nat, Nat.sub(B, A), 0n, sBA))
+  +e4 = Equal.cong(Nat, Nat, u => Nat.div(0n, u), T, G, Equal.sym(Nat, G, T, gEq))
+  # and the divisor itself, after which the remaining goal is chain's
+  +e5 = Equal.cong(Nat, Nat, u => Nat.div(D, u), T, G, Equal.sym(Nat, G, T, gEq))
+  %e1 : {R.Rat{I.Int{_, Nat.div(Nat.sub(B, A), G)}, Nat.div(D, G)} == R.Rat.one() : R.Rat}
+  %e2 : {R.Rat{I.Int{_, Nat.div(Nat.sub(B, A), G)}, Nat.div(D, G)} == R.Rat.one() : R.Rat}
+  %e3 : {R.Rat{I.Int{Nat.div(T, T), _}, Nat.div(D, G)} == R.Rat.one() : R.Rat}
+  %e4 : {R.Rat{I.Int{Nat.div(T, T), _}, Nat.div(D, G)} == R.Rat.one() : R.Rat}
+  %e5 : {R.Rat{I.Int{Nat.div(T, T), Nat.div(0n, T)}, _} == R.Rat.one() : R.Rat}
+  Rat.mul_inv.chain(T, pTv)
+
+# R.Rat.mul_inv.gt: hand the comparison and its evidence in. The goal is the
+# coords conclusion up to conversion: Rat.mul unfolds, Rat.inv's GT branch is
+# the raw constructor, and the two Rat.mags the divisor is built from are the
+# ones the helper rewrites.
+def R.Rat.mul_inv.gt(np, nn, dp, e):
+  Rat.mul_inv.gt.coords(np, nn, dp, e)
+
+# The inverse unit, LT branch
+# ===========================
+#
+# Same story as the GT branch, and the coordinates are the GT branch's with the
+# two raw products swapped: on np < nn the second factor Rat.num(0n, d') is the
+# negative of Rat.num(d', 0n), so the first raw product is the one that dies and
+# the second is the one that survives. sub(A, B) is again the magnitude
+# d' * (nn - np), the denominator argument is the same term, and the divisor
+# collapses to it by gcd_scale + gcd_self -- so divself, gT and chain are reused
+# exactly as they stand and only the coordinate helpers are new.
+
+# pb: the branch fact, np < nn making nn - np a successor
+def Rat.mul_inv.lt.pb(+np: Nat, +nn: Nat,
+                      +e: {LT{} == Nat.cmp(np, nn) : Cmp})
+  -> {Nat.cmp(0n, Nat.sub(nn, np)) == LT{} : Cmp}:
+  Equal.trans(Cmp, Nat.cmp(0n, Nat.sub(nn, np)),
+    Nat.cmp(0n, 1n+Nat.sub(nn, 1n+np)), LT{},
+    Equal.cong(Nat, Cmp, u => Nat.cmp(0n, u), Nat.sub(nn, np),
+      1n+Nat.sub(nn, 1n+np),
+      N.sub_pos(nn, np, N.cmp_gt_of_lt(np, nn,
+        Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))),
+    {==})
+
+# coordA: the first numerator coordinate is T. Here it is the *second* raw
+# product that has to die, and the survivor is already T's factor order.
+def Rat.mul_inv.lt.coordA(+np: Nat, +nn: Nat, +dp: Nat)
+  -> {Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))
+      == Nat.mul(1n+dp, Nat.sub(nn, np)) : Nat}:
+  Equal.trans(Nat,
+    Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+    Nat.add(0n, Nat.mul(Nat.sub(nn, np), 1n+dp)),
+    Nat.mul(1n+dp, Nat.sub(nn, np)),
+    Equal.cong(Nat, Nat, u => Nat.add(u, Nat.mul(Nat.sub(nn, np), 1n+dp)),
+      Nat.mul(Nat.sub(np, nn), 0n), 0n, N.mul_zero(Nat.sub(np, nn))),
+    Equal.trans(Nat,
+      Nat.add(0n, Nat.mul(Nat.sub(nn, np), 1n+dp)),
+      Nat.mul(Nat.sub(nn, np), 1n+dp),
+      Nat.mul(1n+dp, Nat.sub(nn, np)),
+      {==},
+      N.mul_comm(Nat.sub(nn, np), 1n+dp)))
+
+# coordB: the second numerator coordinate is zero -- np < nn is what makes
+# sub(np, nn) vanish here, and that is the one fact of the branch this proof
+# consumes
+def Rat.mul_inv.lt.coordB(+np: Nat, +nn: Nat, +dp: Nat,
+                          +e: {LT{} == Nat.cmp(np, nn) : Cmp})
+  -> {Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))
+      == 0n : Nat}:
+  Equal.trans(Nat,
+    Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+    Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), 0n),
+    0n,
+    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), u),
+      Nat.mul(Nat.sub(nn, np), 0n), 0n, N.mul_zero(Nat.sub(nn, np))),
+    Equal.trans(Nat,
+      Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), 0n),
+      Nat.add(Nat.mul(0n, 1n+dp), 0n),
+      0n,
+      Equal.cong(Nat, Nat, u => Nat.add(u, 0n), Nat.mul(Nat.sub(np, nn), 1n+dp),
+        Nat.mul(0n, 1n+dp),
+        Equal.cong(Nat, Nat, u => Nat.mul(u, 1n+dp), Nat.sub(np, nn), 0n,
+          N.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))),
+      {==}))
+
+# subAB: the first numerator is T once the zero coordinate is truncated away
+def Rat.mul_inv.lt.subAB(+np: Nat, +nn: Nat, +dp: Nat,
+                         +e: {LT{} == Nat.cmp(np, nn) : Cmp})
+  -> {Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+              Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)))
+      == Nat.mul(1n+dp, Nat.sub(nn, np)) : Nat}:
+  Equal.trans(Nat,
+    Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+            Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))),
+    Nat.sub(Nat.mul(1n+dp, Nat.sub(nn, np)),
+            Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))),
+    Nat.mul(1n+dp, Nat.sub(nn, np)),
+    Equal.cong(Nat, Nat,
+      u => Nat.sub(u, Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp),
+                              Nat.mul(Nat.sub(nn, np), 0n))),
+      Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+      Nat.mul(1n+dp, Nat.sub(nn, np)),
+      Rat.mul_inv.lt.coordA(np, nn, dp)),
+    Equal.trans(Nat,
+      Nat.sub(Nat.mul(1n+dp, Nat.sub(nn, np)),
+              Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))),
+      Nat.sub(Nat.mul(1n+dp, Nat.sub(nn, np)), 0n),
+      Nat.mul(1n+dp, Nat.sub(nn, np)),
+      Equal.cong(Nat, Nat, u => Nat.sub(Nat.mul(1n+dp, Nat.sub(nn, np)), u),
+        Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)), 0n,
+        Rat.mul_inv.lt.coordB(np, nn, dp, e)),
+      N.sub_zero(Nat.mul(1n+dp, Nat.sub(nn, np)))))
+
+# subBA: and the second is zero on the nose
+def Rat.mul_inv.lt.subBA(+np: Nat, +nn: Nat, +dp: Nat,
+                         +e: {LT{} == Nat.cmp(np, nn) : Cmp})
+  -> {Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+              Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)))
+      == 0n : Nat}:
+  Equal.trans(Nat,
+    Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+            Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))),
+    Nat.sub(0n, Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))),
+    0n,
+    Equal.cong(Nat, Nat,
+      u => Nat.sub(u, Nat.add(Nat.mul(Nat.sub(np, nn), 0n),
+                              Nat.mul(Nat.sub(nn, np), 1n+dp))),
+      Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)), 0n,
+      Rat.mul_inv.lt.coordB(np, nn, dp, e)),
+    N.sub_zero_left(Nat.add(Nat.mul(Nat.sub(np, nn), 0n),
+                            Nat.mul(Nat.sub(nn, np), 1n+dp))))
+
+# magT: the product's magnitude coordinate, in the spelling gcd_scale's second
+# argument takes -- T*1, with this branch's T = d' * (nn - np)
+def Rat.mul_inv.lt.magT(+np: Nat, +nn: Nat, +dp: Nat,
+                        +e: {LT{} == Nat.cmp(np, nn) : Cmp})
+  -> {Nat.add(
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))),
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))))
+      == Nat.mul(Nat.mul(1n+dp, Nat.sub(nn, np)), 1n) : Nat}:
+  Equal.trans(Nat,
+    Nat.add(
+      Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+              Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))),
+      Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+              Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)))),
+    Nat.add(Nat.mul(1n+dp, Nat.sub(nn, np)),
+            Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+                    Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)))),
+    Nat.mul(Nat.mul(1n+dp, Nat.sub(nn, np)), 1n),
+    Equal.cong(Nat, Nat,
+      u => Nat.add(u,
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)))),
+      Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+              Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))),
+      Nat.mul(1n+dp, Nat.sub(nn, np)),
+      Rat.mul_inv.lt.subAB(np, nn, dp, e)),
+    Equal.trans(Nat,
+      Nat.add(Nat.mul(1n+dp, Nat.sub(nn, np)),
+              Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+                      Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)))),
+      Nat.add(Nat.mul(1n+dp, Nat.sub(nn, np)), 0n),
+      Nat.mul(Nat.mul(1n+dp, Nat.sub(nn, np)), 1n),
+      Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(1n+dp, Nat.sub(nn, np)), u),
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))),
+        0n,
+        Rat.mul_inv.lt.subBA(np, nn, dp, e)),
+      Equal.trans(Nat,
+        Nat.add(Nat.mul(1n+dp, Nat.sub(nn, np)), 0n),
+        Nat.mul(1n+dp, Nat.sub(nn, np)),
+        Nat.mul(Nat.mul(1n+dp, Nat.sub(nn, np)), 1n),
+        N.add_zero(Nat.mul(1n+dp, Nat.sub(nn, np))),
+        N.mul_one(Nat.mul(1n+dp, Nat.sub(nn, np))))))
+
+# gcdT: the divisor is this branch's T, so the same gT applies -- the second
+# argument of gT is the difference nn - np, and Nat.mul's definition makes the
+# goal's denominator argument mul(d', nn - np) into that add-spelling
+def Rat.mul_inv.lt.gcdT(+np: Nat, +nn: Nat, +dp: Nat,
+                        +e: {LT{} == Nat.cmp(np, nn) : Cmp})
+  -> {N.Nat.gcd(
+        Nat.add(
+          Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+                  Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))),
+          Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+                  Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)))),
+        Nat.add(Nat.sub(nn, np), Nat.mul(dp, Nat.sub(nn, np))))
+      == Nat.mul(1n+dp, Nat.sub(nn, np)) : Nat}:
+  Equal.trans(Nat,
+    N.Nat.gcd(
+      Nat.add(
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))),
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)))),
+      Nat.add(Nat.sub(nn, np), Nat.mul(dp, Nat.sub(nn, np)))),
+    N.Nat.gcd(Nat.mul(Nat.mul(1n+dp, Nat.sub(nn, np)), 1n),
+              Nat.add(Nat.sub(nn, np), Nat.mul(dp, Nat.sub(nn, np)))),
+    Nat.mul(1n+dp, Nat.sub(nn, np)),
+    Equal.cong(Nat, Nat,
+      u => N.Nat.gcd(u, Nat.add(Nat.sub(nn, np), Nat.mul(dp, Nat.sub(nn, np)))),
+      Nat.add(
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))),
+        Nat.sub(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)),
+                Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)))),
+      Nat.mul(Nat.mul(1n+dp, Nat.sub(nn, np)), 1n),
+      Rat.mul_inv.lt.magT(np, nn, dp, e)),
+    Rat.mul_inv.gT(Nat.mul(1n+dp, Nat.sub(nn, np)), Nat.sub(nn, np), dp,
+      N.mul_comm(1n+dp, Nat.sub(nn, np))))
+
+def Rat.mul_inv.lt.coords(+np: Nat, +nn: Nat, +dp: Nat,
+                          +e: {LT{} == Nat.cmp(np, nn) : Cmp})
+  -> {R.Rat.mul(R.Rat{R.Rat.num(np, nn), 1n+dp},
+                R.Rat.inv(np, nn, 1n+dp, LT{}, e))
+      == R.Rat.one() : R.Rat}:
+  # q = nn - np on this branch; T = d'*q; A and B are the product's own
+  # coordinates as the checker prints them. The rewrites are stated at those
+  # terms, so each pattern matches the goal up to conversion.
+  +q = Nat.sub(nn, np)
+  +T = Nat.mul(1n+dp, q)
+  +A = Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp))
+  +B = Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n))
+  +D = Nat.add(Nat.sub(nn, np), Nat.mul(dp, Nat.sub(nn, np)))
+  +G = N.Nat.gcd(Nat.add(Nat.sub(A, B), Nat.sub(B, A)), D)
+  +sAB = Rat.mul_inv.lt.subAB(np, nn, dp, e)
+  +sBA = Rat.mul_inv.lt.subBA(np, nn, dp, e)
+  +gEq = Rat.mul_inv.lt.gcdT(np, nn, dp, e)
+  +pbv = Rat.mul_inv.lt.pb(np, nn, e)
+  +pTv = N.mul_pos(1n+dp, q, {==}, pbv)
+  # As in the GT branch: sub(A, B) -> T and then G -> T, the same for the second
+  # coordinate (which is div(0, T) = 0), and finally the divisor itself
+  +e1 = Equal.cong(Nat, Nat, u => Nat.div(u, G), T, Nat.sub(A, B),
+    Equal.sym(Nat, Nat.sub(A, B), T, sAB))
+  +e2 = Equal.cong(Nat, Nat, u => Nat.div(T, u), T, G, Equal.sym(Nat, G, T, gEq))
+  +e3 = Equal.cong(Nat, Nat, u => Nat.div(u, G), 0n, Nat.sub(B, A),
+    Equal.sym(Nat, Nat.sub(B, A), 0n, sBA))
+  +e4 = Equal.cong(Nat, Nat, u => Nat.div(0n, u), T, G, Equal.sym(Nat, G, T, gEq))
+  +e5 = Equal.cong(Nat, Nat, u => Nat.div(D, u), T, G, Equal.sym(Nat, G, T, gEq))
+  %e1 : {R.Rat{I.Int{_, Nat.div(Nat.sub(B, A), G)}, Nat.div(D, G)} == R.Rat.one() : R.Rat}
+  %e2 : {R.Rat{I.Int{_, Nat.div(Nat.sub(B, A), G)}, Nat.div(D, G)} == R.Rat.one() : R.Rat}
+  %e3 : {R.Rat{I.Int{Nat.div(T, T), _}, Nat.div(D, G)} == R.Rat.one() : R.Rat}
+  %e4 : {R.Rat{I.Int{Nat.div(T, T), _}, Nat.div(D, G)} == R.Rat.one() : R.Rat}
+  %e5 : {R.Rat{I.Int{Nat.div(T, T), Nat.div(0n, T)}, _} == R.Rat.one() : R.Rat}
+  Rat.mul_inv.chain(T, pTv)
+
+# R.Rat.mul_inv.lt: the branch's own constructor and comparison, same goal
+def R.Rat.mul_inv.lt(np, nn, dp, e):
+  Rat.mul_inv.lt.coords(np, nn, dp, e)
+
+# Rat.div
+# =======
+#
+# Every fill below is a statement about a product, because the divisor's sign is
+# in its spelling and Rat.div's body therefore reduces all the way (the Division
+# block in rat.bend records why it has to be stated that way). The value forms
+# are once-through {==}; the self laws are one Rat.mul_inv call each; div_one is
+# Rat.mul_one; the field axiom is a three-step chain -- associativity, the
+# reciprocal pair under a cong, then mul_one; and div_add is one
+# Rat.mul_add_left.arb, since with the sign in the spelling both sides are
+# products by the same reciprocal.
+
+# R.Rat.div.value.gt / R.Rat.div.value.lt / R.Rat.div.value.eq
+def R.Rat.div.value.gt(ap, dp, Zp, Zn, D):
+  {==}
+
+def R.Rat.div.value.lt(bp, dp, Zp, Zn, D):
+  {==}
+
+def R.Rat.div.value.eq(dp, Zp, Zn, D):
+  {==}
+
+# R.Rat.div_self.gt / R.Rat.div_self.lt: dividend and divisor are the same
+# word, so the body reduces to exactly the pair Rat.mul_inv proves
+def R.Rat.div_self.gt(ap, dp):
+  R.Rat.mul_inv.gt(1n+ap, 0n, dp, {==})
+
+def R.Rat.div_self.lt(bp, dp):
+  R.Rat.mul_inv.lt(0n, 1n+bp, dp, {==})
+
+# R.Rat.div_one: the divisor is Rat.one(), whose coordinates are 1n and 0n, so
+# the body reduces to Rat.mul(x, Rat.one())
+def R.Rat.div_one(n, d, fx):
+  R.Rat.mul_one(n, d, fx)
+
+# R.Rat.div_mul_cancel.gt: (x / y) * y = x for a positive y. The reciprocal is
+# spelled out, so the chain starts at the div term and says where it goes:
+# associativity pulls the product (x * y^-1) * y to x * (y^-1 * y), comm and
+# Rat.mul_inv.gt collapse the inner product to 1 under a cong, and Rat.mul_one
+# finishes. y = Rat{Rat.num(1n+ap,0n),1n+dp} and y^-1 = Rat{Rat.num(1n+dp,0n),1n+ap}.
+def R.Rat.div_mul_cancel.gt(ap, dp, n, d, fx, pd):
+  Equal.trans(R.Rat,
+    R.Rat.mul(R.Rat.div(R.Rat{n, d}, R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp}),
+              R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp}),
+    R.Rat.mul(R.Rat{n, d},
+      R.Rat.mul(R.Rat{R.Rat.num(1n+dp, 0n), 1n+ap},
+                R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp})),
+    R.Rat{n, d},
+    R.Rat.mul_assoc.arb(R.Rat{n, d},
+      R.Rat{R.Rat.num(1n+dp, 0n), 1n+ap},
+      R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp},
+      pd, {==}, {==}),
+    Equal.trans(R.Rat,
+      R.Rat.mul(R.Rat{n, d},
+        R.Rat.mul(R.Rat{R.Rat.num(1n+dp, 0n), 1n+ap},
+                  R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp})),
+      R.Rat.mul(R.Rat{n, d}, R.Rat.one()),
+      R.Rat{n, d},
+      Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(R.Rat{n, d}, u),
+        R.Rat.mul(R.Rat{R.Rat.num(1n+dp, 0n), 1n+ap},
+                  R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp}),
+        R.Rat.one(),
+        Equal.trans(R.Rat,
+          R.Rat.mul(R.Rat{R.Rat.num(1n+dp, 0n), 1n+ap},
+                    R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp}),
+          R.Rat.mul(R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp},
+                    R.Rat{R.Rat.num(1n+dp, 0n), 1n+ap}),
+          R.Rat.one(),
+          R.Rat.mul_comm(R.Rat{R.Rat.num(1n+dp, 0n), 1n+ap},
+                         R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp}),
+          R.Rat.mul_inv.gt(1n+ap, 0n, dp, {==}))),
+      R.Rat.mul_one(n, d, fx)))
+
+# R.Rat.div_mul_cancel.lt: the mirror. The reciprocal of a negative y is
+# negative too -- Rat{Rat.num(0n,1n+dp), 1n+bp}, not Rat{Rat.num(1n+dp,0n),1n+bp};
+# that sign is the one mistake in this block, and the checker reports it as a
+# mismatch on the first factor of the goal's product, not on the reciprocal.
+def R.Rat.div_mul_cancel.lt(bp, dp, n, d, fx, pd):
+  Equal.trans(R.Rat,
+    R.Rat.mul(R.Rat.div(R.Rat{n, d}, R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp}),
+              R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp}),
+    R.Rat.mul(R.Rat{n, d},
+      R.Rat.mul(R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp},
+                R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp})),
+    R.Rat{n, d},
+    R.Rat.mul_assoc.arb(R.Rat{n, d},
+      R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp},
+      R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp},
+      pd, {==}, {==}),
+    Equal.trans(R.Rat,
+      R.Rat.mul(R.Rat{n, d},
+        R.Rat.mul(R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp},
+                  R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp})),
+      R.Rat.mul(R.Rat{n, d}, R.Rat.one()),
+      R.Rat{n, d},
+      Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(R.Rat{n, d}, u),
+        R.Rat.mul(R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp},
+                  R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp}),
+        R.Rat.one(),
+        Equal.trans(R.Rat,
+          R.Rat.mul(R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp},
+                    R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp}),
+          R.Rat.mul(R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp},
+                    R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp}),
+          R.Rat.one(),
+          R.Rat.mul_comm(R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp},
+                         R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp}),
+          R.Rat.mul_inv.lt(0n, 1n+bp, dp, {==}))),
+      R.Rat.mul_one(n, d, fx)))
+
+# R.Rat.div_add.gt / R.Rat.div_add.lt
+def R.Rat.div_add.gt(ap, dp, x, y, px, py):
+  R.Rat.mul_add_left.arb(x, y, R.Rat{R.Rat.num(1n+dp, 0n), 1n+ap}, px, py, {==})
+
+def R.Rat.div_add.lt(bp, dp, x, y, px, py):
+  R.Rat.mul_add_left.arb(x, y, R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp}, px, py, {==})

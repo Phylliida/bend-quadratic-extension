@@ -1166,6 +1166,20 @@ law gcd_scale:
   for +kp: Nat
   {Nat.gcd(Nat.mul(m, 1n+kp), Nat.mul(d, 1n+kp)) == Nat.mul(Nat.gcd(m, d), 1n+kp) : Nat}
 
+# gcd_self: gcd(a, a) = a, at a general a -- and the generality is the point.
+#
+# For a *variable* a the loop cannot start at all: Nat.gcd's fourth slot holds
+# a and Nat.cmp(a, a) is stuck, so Nat.gcd(a, a) is a stuck term and no lemma
+# stated at a fixed, successor-shaped argument can be used in its place -- the
+# type gcd(1+d, 1+d) = 1+d is convertible with gcd(a, a) = a only at a = 1+d,
+# never at a variable. So the case split has to happen inside the lemma, which
+# is what this states: the successor case Nat.gcd_self opens is the one where
+# the loop reduces, and there gcd_scale at k = 0 with m = d = 1 collapses the
+# two equal arguments. (a = 0 is the def's own first branch.)
+law gcd_self:
+  for +a: Nat
+  {Nat.gcd(a, a) == a : Nat}
+
 # gcd divides both arguments
 # ==========================
 #

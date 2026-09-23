@@ -1411,6 +1411,20 @@ def NL.gcd_scale(m, d, kp):
       %NL.mul_comm(1n+kp, NL.Nat.gcd.go(Nat.add(1n+mp, d), d, Nat.cmp(1n+mp, d), 1n+mp)) : {Nat.mul(1n+kp, NL.Nat.gcd.go(Nat.add(1n+mp, d), d, Nat.cmp(1n+mp, d), 1n+mp)) == _ : Nat}
       {==}
 
+# gcd_self: the case split is the proof. Only the successor case has a gcd that
+# reduces, and add_zero puts its goal into the one spelling mul(1, a) can have:
+# Nat.mul(1, 1+ap) is add(1+ap, 0) by the def of mul, which is where the
+# rewrite lands -- and gcd_scale at m = d = 1, k = ap states exactly that goal,
+# the two arguments of the outer gcd being equal being what its k = 0 instance
+# then collapses. a is + in the law, which is what lets ap be read twice here.
+def NL.gcd_self(a):
+  match a:
+    case 0n:
+      {==}
+    case 1n+ap:
+      %NL.add_zero(1n+ap) : {NL.Nat.gcd(_, _) == _ : Nat}
+      NL.gcd_scale(1n, 1n, ap)
+
 def NL.divides_add(g, q1, q2, a, b, p1, p2):
   Equal.trans(Nat, Nat.add(a, b), Nat.add(Nat.mul(g, q1), b), Nat.mul(g, Nat.add(q1, q2)),
     Equal.cong(Nat, Nat, u => Nat.add(u, b), a, Nat.mul(g, q1), p1),
