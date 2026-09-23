@@ -356,23 +356,17 @@ law QExt.conj_add:
 # hypothesis as QExt.neg_neg's, minus the real coordinate's, which this law does
 # not touch.
 #
-# What is deliberately *not* here is multiplicativity, conj(x*y) = conj(x)*conj(y).
-# It does not fail on presentation -- it fails on an identity this presentation
-# cannot state: the real coordinate of conj(x)*conj(y) is
-# mul(xa,ya) + d*mul(neg xb, neg yb) and conj(x*y)'s is
-# mul(xa,ya) + d*mul(xb,yb), so the law needs mul(neg xb, neg yb) = mul(xb, yb)
-# at *variables* -- an identity the Rat laws reach by neither of the two routes
-# they offer, because both end at a law a stuck product cannot satisfy: either
-# double negation at the product's own output (neg(neg U) = U for U = mul(xb,yb)),
-# where Rat.neg_neg's conclusion is constructor-headed and Rat.mul's applications
-# are def-headed, or multiplying by -1 twice and closing with Rat.one_mul, which
-# is stated over Rat{n,d}. Measured, both closing steps at variables: `{==}`
-# cannot compare neg(neg(mul(a,b))) against mul(a,b), nor mul(one(), mul(a,b))
-# against mul(a,b); the first closes at literals, where the identity is true. Both
-# measurements are recorded in PROVING.md; what
-# would unblock it is a Rat law about mk's own output being reduced, which is a
-# Nat-level gcd fact (the coprimality of the numerator and denominator mk
-# produces) rather than a rearrangement.
+# Multiplicativity -- conj(x*y) = conj(x)*conj(y) -- is QExt.conj_mul below,
+# stated over QExt.of's six coordinates. It is not free at this presentation: the
+# real coordinate needs the Rat identity mul(neg a, neg b) = mul(a, b) at a
+# *reduced* pair, which no law reached until this round. The law that does is
+# Rat.mul.neg_neg.reduced (rat.bend), the rung-2 twin of the canonical
+# Rat.neg_neg: its fill rewrites each negation through Rat.neg.reduced and leaves
+# an Int-level identity, so the coprimality of the two coefficients is the only
+# Nat fact it consumes. An earlier round recorded the obstruction here as
+# unreachable; it was reached by stating the identity at a reduced pair rather
+# than by rearranging a stuck product.
+#
 law QExt.conj_conj:
   for +np: Nat
   for +nn: Nat
@@ -384,6 +378,48 @@ law QExt.conj_conj:
   {QExt.conj(QExt.conj(QExt{R.Rat{R.Rat.num(np, nn), 1n+dp},
                            R.Rat{R.Rat.num(mq, mn), 1n+dq}}))
    == QExt{R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat{R.Rat.num(mq, mn), 1n+dq}} : QExt}
+
+# QExt.conj_mul: conj(x*y) = conj(x)*conj(y) -- the multiplicativity of the
+# conjugate, and with QExt.conj_add the pair that makes conj a ring
+# automorphism of QExt.
+#
+# Conditional, and only on the two *imaginary* coefficients: the real coordinate
+# of the identity reads
+#
+#     mul(xr,yr) + d*mul(neg xi, neg yi)  ==  mul(xr,yr) + d*mul(xi, yi)
+#
+# and the surrounding sum cancels, so the whole gap is the bracket -- one call to
+# Rat.mul.neg_neg.reduced (rat.bend) under the radicand congruence. The
+# imaginary coordinate needs no hypothesis at all: it is the neg_add/mul_neg
+# chain QExt.neg_add and QExt.mul_neg already use, over products rather than
+# spelled pairs.
+#
+# The hypotheses are the coprimality of each imaginary coefficient, and they are
+# not cosmetic: measured this round, `{==}` on the identity at the unreduced pair
+# Rat{Rat.num(4n,0n), 2n} prints expected Rat{Int{0,2},1} against observed
+# Rat{Int{0,4},2} -- the left side goes through mk, which cancels the common
+# factor, the right is a raw spelling. The real coefficients need nothing: they
+# meet inside Rat.add, whose own normalization absorbs whatever spelling they
+# carry, and Rat.neg.reduced's hypotheses are spent inside the one Rat law.
+law QExt.conj_mul:
+  for +d: Nat
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +mq: Nat
+  for +mn: Nat
+  for +dq: Nat
+  for +rp: Nat
+  for +rn: Nat
+  for +dr: Nat
+  for +sp: Nat
+  for +sn: Nat
+  for +ds: Nat
+  for +h1: {N.Nat.gcd(R.Rat.mag(mq, mn), 1n+dq) == 1n : Nat}
+  for +h2: {N.Nat.gcd(R.Rat.mag(sp, sn), 1n+ds) == 1n : Nat}
+  {QExt.conj(QExt.mul(d, QExt.of(np, nn, dp, mq, mn, dq),
+                         QExt.of(rp, rn, dr, sp, sn, ds)))
+   == QExt.mul(d, QExt.conj(QExt.of(np, nn, dp, mq, mn, dq)), QExt.conj(QExt.of(rp, rn, dr, sp, sn, ds))) : QExt}
 
 # QExt.mul_one: x * 1 = x, at the canonical presentation.
 #

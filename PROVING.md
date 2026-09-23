@@ -3909,3 +3909,108 @@ above) and one editing miss, which is the cheapest this layer has been since rou
 nine -- and the block landed in the order round nine predicted for the Rat-facing
 part, with the addition round nine did not predict: that the Rat-facing part needed
 `Rat.neg_add.arb` before `QExt.neg_add` could exist at all.
+
+## The law that was out of reach a round ago landed, and the Nat work was already there (measured)
+
+Round ten closed the negation and conjugation block with five laws and recorded
+`QExt.conj_mul` as out of reach -- not unproved but unreachable at the law
+inventory it had, because its real coordinate needs `mul(neg a, neg b) = mul(a, b)`
+at variables and both routes to that identity died on a canonical-spelling law
+(`Rat.neg_neg` concludes a constructor-headed `Rat{...}` while `Rat.mul`
+applications are def-headed, so `{==}` closes the identity at literals and reports
+`expected neg(neg(mul(a,b)))` / `observed mul(a,b)` at variables). The roadmap
+paragraph that recorded the exclusion named the unblock as "a Rat law about the
+coprimality of what `mk` produces -- Nat-level gcd work, not a rearrangement".
+
+That law is what landed, and the round's one surprise is that the Nat work already
+existed: the unblock is a rearrangement after all, at the one presentation where a
+rearrangement is available.
+
+**The two Rat laws.** `Rat.neg.reduced` (rat.bend:1381) is the rung-2 twin of the
+canonical `Rat.neg_neg`: `neg(Rat{num(np,nn), 1+dp}) == Rat{num(nn,np), 1+dp}`
+under `g1 : gcd(mag(np,nn), 1+dp) == 1`, and its fill is one call --
+`R.Rat.mk.fixed(Nat.cmp(nn,np), nn, np, dp, {==}, g1s)` (rat_proofs.bend:4591).
+`neg` of a constructor unfolds to `mk(Rat.num(nn,np), 1+dp)` definitionally and at
+a coprime pair mk's output *is* the flipped spelling, so the only work is the `g1`
+the caller gives and `g1s`, the mag-symmetry trans `Rat.neg_neg`'s own fill
+already uses verbatim (a congruence under `gcd(., d)` fed by
+`N.add_comm(sub(nn,np), sub(np,nn))`).
+
+`Rat.mul.neg_neg.reduced` (rat.bend:1403) is the identity the QExt half was
+actually missing: `mul(neg X, neg Y) = mul(X, Y)` for spelled X, Y with coprime
+coordinates -- and it is **false** without them. Measured with a deliberately-false
+`{==}` at the unreduced pair, `Rat.neg(Rat{Rat.num(4n,0n), 2n})` against
+`Rat{Rat.num(0n,4n), 2n}`: expected `Rat{Int{0,2},1}`, observed `Rat{Int{0,4},2}`.
+The left side goes through mk, which cancels the common factor; the right is a raw
+spelling. The coprimality hypothesis is therefore part of the statement rather than
+a convenience, and the law's comment carries the witness.
+
+Its fill (rat_proofs.bend:4612) is the `Rat.neg_neg` template at the reduced
+presentation: two congruences applying `Rat.neg.reduced` to each factor, then an
+inner trans `mul(nx,ny) -> mk(num(nn,np)*num(mn,mq), mul(d,e)) -> mul(x,y)` whose
+first leg is `{==}` -- mul of two constructor factors *is* the mk of the cross
+product definitionally -- and whose second leg is a congruence fed by an `Int`
+identity: two `Int.neg_mul` steps, two `Int.mul_comm` steps and one
+`Int.neg_invol`, all of them unconditional. The coprime spelling is hypothesis, not
+work: the fill consumes no Nat fact beyond the `g1`/`g2` that `Rat.neg.reduced`
+already spends.
+
+**The leg order cost one giant-term error, and its diagnosis is worth keeping.** I
+had the congruence first and `{==}` second. The checker dumped both sides' SNF --
+about 1.4k tokens each, single-line, no newlines -- and a token-level diff pinned
+the first difference at token 730, in the `Nat.sub(nn,np)` / `Nat.sub(np,nn)`
+region; the definitional fact above then explained it. Two notes for next time: the
+dump has no `Location` line, so there is no position to navigate to and only a
+structural comparison helps; and a line-oriented diff of it is useless, because
+there are no lines.
+
+**`QExt.conj_mul`** (qrat.bend:404) is then stated at `QExt.of`'s six coordinates
+with the two imaginary coefficients' coprimality (`h1`, `h2`) and no other
+hypothesis. The real coordinates need nothing: they meet inside `Rat.add`, whose own
+normalization absorbs whatever spelling they carry, and `Rat.neg.reduced`'s own
+hypothesis is spent inside the one Rat law. The fill is the one-call-per-coordinate
+shape round ten predicted -- real: one `Rat.mul.neg_neg.reduced` under the radicand
+congruence; imaginary: the same `neg_add.arb`/`mul_neg`/`neg_mul` chain
+`QExt.neg_add` and `QExt.mul_neg` use, over products rather than spelled pairs.
+
+**Two orientation facts, both measured this round.**
+
+1. `Rat.mul.neg_neg.reduced` is stated negation-first, so the congruence that
+   consumes it inside `QExt.conj_mul`'s real coordinate has to wrap it in
+   `Equal.sym`: the raw call has type `{neg-side == positive-side}` while the cong
+   slot wants `{positive-side == neg-side}`, and the checker reports the mismatch by
+   printing the two whole `Rat` terms as expected and observed. Round ten's rule
+   ("cite the first leg naked; `sym` only on the inner witnesses that need the
+   opposite orientation") has a twin: a *law* cited into a congruence is naked only
+   when the law's own orientation matches the congruence's direction.
+2. `Equal.cong`'s `(a, b)` order is the order its evidence must have; the
+   `qext.re`/`qext.im` helpers in qrat_proofs.bend fix it in place --
+   `cong(f, a, b, e)` with `e : {a == b}` yields `{f(a) == f(b)}`.
+
+**A parse error that reads like a grammar restriction and is not one.** The law's
+conclusion first came out with the right-hand side missing one `)` before
+`: QExt}`. The report was `expected : a term` / `observed : ':'`, pointing at the
+annotation's colon -- the symptom, not the missing separator, and at the last line
+of the statement rather than the line where the imbalance starts. Two round trips
+went into suspecting the multi-line braced conclusion, which is not the problem:
+`QExt.inv.value.gt` and `QExt.mul_one` both break lines inside `QExt.mul(...)`
+argument lists and inside `QExt{...}`. The general fix is to count parentheses per
+side with python before re-running, and to read "expected a term, observed `:`" as
+"an argument list is still open".
+
+**One namespace fact, measured by error.** In qrat_proofs.bend the prefix `Q.` names
+both qrat.bend and the proofs module's own definitions, while `R.` is rat.bend.
+Writing `R.QExt.nat(d)` in the new fill produced `expected : a defined name` /
+`observed : R.QExt.nat` -- three references to fix. It is round six's cross-file
+rule pointing the other way.
+
+**Status.** Five `src/*_proofs.bend` print `All terms check.`, as do `probe.bend`
+and `probe.payoff.bend`, which grew from thirty defs to **thirty-two**: the new law
+from the caller's side at its own presentation, and `probe.conj_mul.instance` at
+literals (1 + sqrt(2) over radicand 2, both operands `Rat{Int{1,0},1+1}`), where
+both coprimality gcds compute and both pieces of evidence are `{==}`.
+`scratch.bend` is unchanged. Law counts, transitive over imports: nat 128, int 32,
+qext 34, rat **226** (+2: the two reduced laws), qrat.bend **252** (+3: the same two
+plus `QExt.conj_mul`, so the file's own QExt inventory is 26). What is still open on
+this side is the *norm*: `norm(d, x*y) = norm(d,x) * norm(d,y)`, the structure fact
+that "no zero divisors when the norm is non-zero" needs.
