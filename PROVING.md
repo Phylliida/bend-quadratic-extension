@@ -3771,3 +3771,132 @@ record of the last two rounds: every step here was a law applied at a spelling t
 goal already carried, with no intermediate term, no congruence to place and no
 `trans` middle to match up. The two rounds before this one each cost several
 iterations on exactly those three things.
+
+## The negation and conjugation block: a rung-2 Rat law was the missing rung, and one law is out of reach (measured)
+
+Round nine closed the operation surface and named the next unit itself: what the
+`QExt` layer still lacked was "`Rat.neg_add` itself -- negation distributing over a
+sum -- and on the multiplicative side the pair `Rat.mul_neg`/`Rat.neg_mul`". This
+round adds those, plus the two conjugation laws that finish the additive half of
+`conj`, and the round needed a *new Rat law* to do it. It also found that one of
+the round-nine sentences about a law name was about the wrong law, and that one
+member of the block -- `conj(x*y) = conj(x)*conj(y)` -- cannot be stated here at
+all.
+
+**The canonical `Rat.neg_add` cannot reach an operation output, so the rung-2 form
+had to be written.** `Rat.neg_add` (rat.bend:1206) spells its summands
+`Rat{num(np,nn), 1n+dp}`; `QExt.neg_add`'s summands are coordinates of an arbitrary
+`QExt`, which after `QExt.add` are `Int.add`-headed sums of scaled difference
+pairs, and no congruence turns one into the other. This is the fourth time the same
+pattern has forced a rung-2 law (`Rat.add_assoc.arb`, `Rat.mul_assoc.arb`,
+`Rat.mul_distrib.arb`, now `Rat.neg_add.arb`): the *canonical* Rat laws are what the
+`Rat` layer is stated over, and the *arbitrary-value* forms are what a composing
+layer can call. `Rat.neg_add.arb` (rat.bend:1360) is
+
+    -(x + y) = (-x) + (-y)      for arbitrary x, y, with only px and py
+
+-- the −1 factor written as `Rat.neg(Rat.one())`, which is `neg_eq_mul_negone`'s own
+spelling of it, so its positivity is `{==}` at a literal and no hypothesis is
+needed for it. The route is `Rat.neg_eq_mul_negone` (negation is multiplication by
+−1), `Rat.mul_distrib.arb`, and then the same law again at each summand under a
+congruence. No destructuring, no value law, no cross product. The fill
+(rat_proofs.bend:4559) is a three-deep `Equal.trans` whose middle terms are the
+scaled summands; it mirrors `Rat.neg_mul`'s three-step fill one operation over.
+
+**The one error in that fill is a rule about `Equal.sym` worth stating.** The first
+leg is `Rat.neg_eq_mul_negone(s)` and the goal's left endpoint is already
+`neg(s)`, so the law applies in the direction the `trans` needs and must be cited
+*naked*. Wrapping it in `Equal.sym` produced the flip the checker printed --
+`expected {neg(s) == mul(A,s)}` against `observed {mul(A,s) == neg(s)}`. `sym`
+belongs on the *small congruence witnesses* inside the last leg (which need the
+opposite orientation from what `neg_eq_mul_negone` states), not on the leg that
+already matches. Both are visible in the fill as two `Equal.sym`s on the inner
+witnesses and none on the leg.
+
+**`QExt.neg_add`'s hypothesis set was wrong in the first draft, and reading the
+definition is what fixed it.** The draft took only the *imaginary* coefficients'
+positivity, on the assumption that `QExt.neg` negates the imaginary coordinate
+alone. It does not:
+
+    QExt.neg(x) = QExt{Rat.neg(xa), Rat.neg(xb)}
+
+-- componentwise. Negating the imaginary coefficient alone is `QExt.conj`. So both
+coordinates are negated sums needing both summands' positivity, and the law
+(qrat.bend:484) takes `gx, gy, hx, hy`. The fill (qrat_proofs.bend:1109) is then
+two `Rat.neg_add.arb` calls -- one per coordinate, via `qext.re`/`qext.im` -- and
+nothing else, with no congruence anywhere, because both sides of each coordinate
+equation are compositions `==` compares directly. The general lesson: the
+hypothesis list of a composing law is what the *fill's* Rat laws need, so deriving
+it from the fill (or from the operation's definition) before writing the statement
+costs less than a rewrite after.
+
+**The multiplicative twins, and what they cost.** `QExt.mul_neg` and
+`QExt.neg_mul` (`mul(d,x,-y) = -(mul(d,x,y))` and `mul(d,-x,y) = -(mul(d,x,y))`,
+qrat.bend:503 and :513) are not symmetric in price. `mul_neg` is per coordinate and
+needs a helper level: a coordinate of a product is a sum of two products, so the
+negation has to travel one factor at a time (`Rat.mul_neg` at each product of
+`xa`/`ya`, and on the real coordinate if the radicand term is involved,
+`Rat.mul.den.pos(xb, yb, hx, hy)` as the positivity prototype for the coefficient
+`d` pulled inside the negation under a congruence), and then the two negations
+merge with `Equal.sym(Rat.neg_add.arb(P, Q, ...))` -- the law above it, read
+backwards. `QExt.neg_mul` is then *three steps and no coordinates of its own*:
+`QExt.mul_comm` moves the negation into the second slot, `QExt.mul_neg` does the
+work, and one `Equal.cong` of `QExt.neg` over `QExt.mul_comm` swaps the factor
+back. Two laws for the price of one because the commuting law was already in the
+file.
+
+**`conj_add` is one call, `conj_conj` is one call plus a hypothesis, and together
+they say `conj` is an additive automorphism.** `QExt.conj_add` (qrat.bend:341)
+needs a single `Rat.neg_add.arb` on the imaginary coordinate and no congruence at
+all: the real coordinate is the *same term* on both sides, and addition is
+componentwise. `QExt.conj_conj` (qrat.bend:373) is `neg(neg(im x)) = im x`, so it
+needs `Rat.neg_neg`, which is false unconditionally (rat.bend records the witness
+`np = 4, nn = 0, dp = 1`) and therefore carries the canonical spelling plus
+coprimality -- on the imaginary coordinate *only*, because the real coordinate
+never enters it. Its fill (qrat_proofs.bend:1267) is the `Q.QExt.neg_neg` call
+shape one operation over. One error here, and it is the constructor-in-a-`let`
+rule again: `+RE = R.Rat{R.Rat.num(np,nn), 1n+dp}` is rejected with "an annotated
+term (cannot infer)", and `R.Rat.of(np, nn, dp)` is the fix -- a bare constructor
+cannot be the right-hand side of a `let` in this checker.
+
+**`conj(x*y) = conj(x)*conj(y)` is out of reach here, and not for a presentation
+reason.** Its real coordinate is `mul(xa,ya) + d*mul(neg xb, neg yb)` against
+`mul(xa,ya) + d*mul(xb,yb)`, so the law needs
+
+    mul(neg xb, neg yb) = mul(xb, yb)     at variables
+
+and nothing in rat.bend reaches that. The only route to it is double negation at a
+product's own output, `neg(neg(mul(xb,yb))) = mul(xb,yb)`, and `Rat.neg_neg` is
+stated over the canonical spelling, which a product is not -- its conclusion is a
+constructor-headed `Rat{...}` and applications of `Rat.mul` are def-headed terms.
+Measured this round, both halves of that:
+
+    {==} at variables:  expected  neg(neg(mul(a,b)))
+                        observed  mul(a,b)              (fails)
+    {==} at literals:   neg(neg(mul(Rat{Int{2,0},3}, Rat{Int{5,0},7})))
+                          = mul(Rat{Int{2,0},3}, Rat{Int{5,0},7})   (closes)
+
+-- the identity is *true* and every literal instance is `{==}`, while at variables
+the checker cannot even compare the two sides. What would unblock it is a Rat law
+about `mk`'s own output being reduced: the coprimality of the numerator and
+denominator that `mk` produces, which is Nat-level gcd work rather than a
+rearrangement. Until then the law is deliberately absent, and the exclusion, this
+route and both measurements are recorded in `QExt.conj_conj`'s comment where a
+reader looking for the missing law will actually be.
+
+**Counts, measured.** Laws-only: nat 128, int 32, qext 34, rat **224**, qrat.bend
+**249** = 128 Nat + 32 Int + **64 Rat** + **25 QExt** (the twenty of rounds six to
+nine plus `neg_add`, `mul_neg`, `neg_mul`, `conj_add`, `conj_conj`). All five
+`src/*_proofs.bend` print `All terms check.`, as do `probe.bend` (restored verbatim
+from HEAD and re-checked after a stray experiment was found in it) and
+`probe.payoff.bend`; `scratch.bend` prints the same triple it has since round
+three. `probe.payoff.bend` grew from twenty-three defs to **thirty**: the five laws
+from the caller's side at variables, `probe.neg_add.out` (the same law through
+`Equal.sym`, because the orientation a caller with a sum of negations needs is not
+baked into the statement), and `probe.conj_conj.instance` at literals.
+
+**The fills reported green after one real error** (the constructor in a `let`
+above) and one editing miss, which is the cheapest this layer has been since round
+nine -- and the block landed in the order round nine predicted for the Rat-facing
+part, with the addition round nine did not predict: that the Rat-facing part needed
+`Rat.neg_add.arb` before `QExt.neg_add` could exist at all.

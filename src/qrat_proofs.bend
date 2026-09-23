@@ -1093,6 +1093,183 @@ def Q.QExt.add_neg(x, gx, hx):
         qext.re(B1, A1, R.Rat.zero(), R.Rat.add_neg(xa, gx)),
         qext.im(R.Rat.zero(), B1, R.Rat.zero(), R.Rat.add_neg(xb, hx)))
 
+# QExt.neg_add / QExt.mul_neg / QExt.neg_mul
+# ==========================================
+#
+# The negation laws, all three over arbitrary values: the QExt twins of
+# Rat.neg_add.arb, Rat.mul_neg and Rat.neg_mul, and the reason this unit added a
+# Rat law rather than a bridge. Every coordinate of these laws is a sum of two
+# *operation outputs* (products, or products of products), which is exactly the
+# shape the canonical Rat.neg_add cannot take -- so the Rat-level rung-2 form
+# Rat.neg_add.arb is what carries the negation across the sums here, and each
+# coordinate's products are then negated one factor at a time by Rat.mul_neg.
+#
+# QExt.neg_add is two calls, one per coordinate, composed at the real coordinate
+# and then at the imaginary one -- the same two-step shape QExt.add_neg uses.
+def Q.QExt.neg_add(x, y, gx, gy, hx, hy):
+  match x:
+    case Q.QExt{+xa, +xb}:
+      match y:
+        case Q.QExt{+ya, +yb}:
+          +R1 = R.Rat.add(R.Rat.neg(xa), R.Rat.neg(ya))
+          +I0 = R.Rat.neg(R.Rat.add(xb, yb))
+          Equal.trans(Q.QExt,
+            Q.QExt.neg(Q.QExt.add(Q.QExt{xa, xb}, Q.QExt{ya, yb})),
+            Q.QExt{R1, I0},
+            Q.QExt.add(Q.QExt.neg(Q.QExt{xa, xb}), Q.QExt.neg(Q.QExt{ya, yb})),
+            qext.re(I0, R.Rat.neg(R.Rat.add(xa, ya)), R1,
+              R.Rat.neg_add.arb(xa, ya, gx, gy)),
+            qext.im(R1, I0, R.Rat.add(R.Rat.neg(xb), R.Rat.neg(yb)),
+              R.Rat.neg_add.arb(xb, yb, hx, hy)))
+
+# QExt.mul_neg's real coordinate: the negation travels from the second factor's
+# two coefficients to the product. xa*(-ya) -> -(xa*ya) is Rat.mul_neg; the
+# radicand term xb*(-yb) gets the same law under a congruence to become
+# d*(-(xb*yb)), and then one more Rat.mul_neg -- at the *product* rather than at a
+# coefficient -- pulls d inside the negation. The two negations are then merged
+# into the negation of the sum by Rat.neg_add.arb, read backwards.
+def QExt.mul_neg.re(+d: Nat, +xa: R.Rat, +xb: R.Rat, +ya: R.Rat, +yb: R.Rat,
+                    +gx: {Nat.cmp(0n, R.Rat.denof(xa)) == LT{} : Cmp},
+                    +hx: {Nat.cmp(0n, R.Rat.denof(xb)) == LT{} : Cmp},
+                    +gy: {Nat.cmp(0n, R.Rat.denof(ya)) == LT{} : Cmp},
+                    +hy: {Nat.cmp(0n, R.Rat.denof(yb)) == LT{} : Cmp})
+  -> {R.Rat.add(R.Rat.mul(xa, R.Rat.neg(ya)),
+                R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(xb, R.Rat.neg(yb))))
+      == R.Rat.neg(R.Rat.add(R.Rat.mul(xa, ya),
+                             R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(xb, yb)))) : R.Rat}:
+  +D = Q.QExt.nat(d)
+  +P = R.Rat.mul(xa, ya)
+  +E = R.Rat.mul(xb, yb)
+  +Q = R.Rat.mul(D, E)
+  +pE = R.Rat.mul.den.pos(xb, yb, hx, hy)
+  +e1 = Equal.cong(R.Rat, R.Rat,
+    u => R.Rat.add(u, R.Rat.mul(D, R.Rat.mul(xb, R.Rat.neg(yb)))),
+    R.Rat.mul(xa, R.Rat.neg(ya)), R.Rat.neg(P), R.Rat.mul_neg(xa, ya, gx, gy))
+  +e2 = Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.neg(P), u),
+    R.Rat.mul(D, R.Rat.mul(xb, R.Rat.neg(yb))), R.Rat.neg(Q),
+    Equal.trans(R.Rat,
+      R.Rat.mul(D, R.Rat.mul(xb, R.Rat.neg(yb))),
+      R.Rat.mul(D, R.Rat.neg(E)),
+      R.Rat.neg(Q),
+      Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(D, u),
+        R.Rat.mul(xb, R.Rat.neg(yb)), R.Rat.neg(E),
+        R.Rat.mul_neg(xb, yb, hx, hy)),
+      R.Rat.mul_neg(D, E, {==}, pE)))
+  Equal.trans(R.Rat,
+    R.Rat.add(R.Rat.mul(xa, R.Rat.neg(ya)),
+              R.Rat.mul(D, R.Rat.mul(xb, R.Rat.neg(yb)))),
+    R.Rat.add(R.Rat.neg(P), R.Rat.neg(Q)),
+    R.Rat.neg(R.Rat.add(P, Q)),
+    Equal.trans(R.Rat,
+      R.Rat.add(R.Rat.mul(xa, R.Rat.neg(ya)),
+                R.Rat.mul(D, R.Rat.mul(xb, R.Rat.neg(yb)))),
+      R.Rat.add(R.Rat.neg(P), R.Rat.mul(D, R.Rat.mul(xb, R.Rat.neg(yb)))),
+      R.Rat.add(R.Rat.neg(P), R.Rat.neg(Q)),
+      e1, e2),
+    Equal.sym(R.Rat, R.Rat.neg(R.Rat.add(P, Q)),
+      R.Rat.add(R.Rat.neg(P), R.Rat.neg(Q)),
+      R.Rat.neg_add.arb(P, Q, R.Rat.mul.den.pos(xa, ya, gx, gy),
+        R.Rat.mul.den.pos(D, E, {==}, pE))))
+
+# QExt.mul_neg's imaginary coordinate: the same three steps with no radicand in
+# sight -- xa*(-yb) -> -(xa*yb) and xb*(-ya) -> -(xb*ya) by Rat.mul_neg, merged
+# into the negation of the sum by Rat.neg_add.arb read backwards.
+def QExt.mul_neg.im(+xa: R.Rat, +xb: R.Rat, +ya: R.Rat, +yb: R.Rat,
+                    +gx: {Nat.cmp(0n, R.Rat.denof(xa)) == LT{} : Cmp},
+                    +hx: {Nat.cmp(0n, R.Rat.denof(xb)) == LT{} : Cmp},
+                    +gy: {Nat.cmp(0n, R.Rat.denof(ya)) == LT{} : Cmp},
+                    +hy: {Nat.cmp(0n, R.Rat.denof(yb)) == LT{} : Cmp})
+  -> {R.Rat.add(R.Rat.mul(xa, R.Rat.neg(yb)), R.Rat.mul(xb, R.Rat.neg(ya)))
+      == R.Rat.neg(R.Rat.add(R.Rat.mul(xa, yb), R.Rat.mul(xb, ya))) : R.Rat}:
+  +P = R.Rat.mul(xa, yb)
+  +Q = R.Rat.mul(xb, ya)
+  Equal.trans(R.Rat,
+    R.Rat.add(R.Rat.mul(xa, R.Rat.neg(yb)), R.Rat.mul(xb, R.Rat.neg(ya))),
+    R.Rat.add(R.Rat.neg(P), R.Rat.neg(Q)),
+    R.Rat.neg(R.Rat.add(P, Q)),
+    Equal.trans(R.Rat,
+      R.Rat.add(R.Rat.mul(xa, R.Rat.neg(yb)), R.Rat.mul(xb, R.Rat.neg(ya))),
+      R.Rat.add(R.Rat.neg(P), R.Rat.mul(xb, R.Rat.neg(ya))),
+      R.Rat.add(R.Rat.neg(P), R.Rat.neg(Q)),
+      Equal.cong(R.Rat, R.Rat, u => R.Rat.add(u, R.Rat.mul(xb, R.Rat.neg(ya))),
+        R.Rat.mul(xa, R.Rat.neg(yb)), R.Rat.neg(P),
+        R.Rat.mul_neg(xa, yb, gx, hy)),
+      Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.neg(P), u),
+        R.Rat.mul(xb, R.Rat.neg(ya)), R.Rat.neg(Q),
+        R.Rat.mul_neg(xb, ya, hx, gy))),
+    Equal.sym(R.Rat, R.Rat.neg(R.Rat.add(P, Q)),
+      R.Rat.add(R.Rat.neg(P), R.Rat.neg(Q)),
+      R.Rat.neg_add.arb(P, Q, R.Rat.mul.den.pos(xa, yb, gx, hy),
+        R.Rat.mul.den.pos(xb, ya, hx, gy))))
+
+def Q.QExt.mul_neg(d, x, y, gx, hx, gy, hy):
+  match x:
+    case Q.QExt{xa, xb}:
+      match y:
+        case Q.QExt{ya, yb}:
+          +Lr = R.Rat.add(R.Rat.mul(xa, R.Rat.neg(ya)),
+                          R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(xb, R.Rat.neg(yb))))
+          +Li = R.Rat.add(R.Rat.mul(xa, R.Rat.neg(yb)),
+                          R.Rat.mul(xb, R.Rat.neg(ya)))
+          +Rr = R.Rat.neg(R.Rat.add(R.Rat.mul(xa, ya),
+                                    R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(xb, yb))))
+          Equal.trans(Q.QExt,
+            Q.QExt.mul(d, Q.QExt{xa, xb}, Q.QExt.neg(Q.QExt{ya, yb})),
+            Q.QExt{Rr, Li},
+            Q.QExt.neg(Q.QExt.mul(d, Q.QExt{xa, xb}, Q.QExt{ya, yb})),
+            qext.re(Li, Lr, Rr,
+              QExt.mul_neg.re(d, xa, xb, ya, yb, gx, hx, gy, hy)),
+            qext.im(Rr, Li,
+              R.Rat.neg(R.Rat.add(R.Rat.mul(xa, yb), R.Rat.mul(xb, ya))),
+              QExt.mul_neg.im(xa, xb, ya, yb, gx, hx, gy, hy)))
+
+# QExt.neg_mul is QExt.mul_neg with the factors swapped: commutativity moves the
+# negation into the second slot, the law above spends it, and commutativity moves
+# the factors back. Three steps and no coordinate of its own -- which is also why
+# this law is the mirror of QExt.mul_neg's statement rather than a second
+# derivation of it.
+def Q.QExt.neg_mul(d, x, y, gx, hx, gy, hy):
+  Equal.trans(Q.QExt,
+    Q.QExt.mul(d, Q.QExt.neg(x), y),
+    Q.QExt.mul(d, y, Q.QExt.neg(x)),
+    Q.QExt.neg(Q.QExt.mul(d, x, y)),
+    Q.QExt.mul_comm(d, Q.QExt.neg(x), y),
+    Equal.trans(Q.QExt,
+      Q.QExt.mul(d, y, Q.QExt.neg(x)),
+      Q.QExt.neg(Q.QExt.mul(d, y, x)),
+      Q.QExt.neg(Q.QExt.mul(d, x, y)),
+      Q.QExt.mul_neg(d, y, x, gy, hy, gx, hx),
+      Equal.cong(Q.QExt, Q.QExt, u => Q.QExt.neg(u),
+        Q.QExt.mul(d, y, x), Q.QExt.mul(d, x, y), Q.QExt.mul_comm(d, y, x))))
+
+# QExt.conj_add / QExt.conj_conj
+# ==============================
+#
+# The conjugate: additive, and an involution. QExt.conj negates the imaginary
+# coefficient alone, so additivity is one Rat.neg_add.arb at the imaginary
+# coordinate and nothing at the real one -- that coordinate is the same term on
+# both sides, which is why this law's hypotheses are the imaginary coefficients'
+# only.
+def Q.QExt.conj_add(x, y, hx, hy):
+  match x:
+    case Q.QExt{+xa, +xb}:
+      match y:
+        case Q.QExt{+ya, +yb}:
+          qext.im(R.Rat.add(xa, ya), R.Rat.neg(R.Rat.add(xb, yb)),
+            R.Rat.add(R.Rat.neg(xb), R.Rat.neg(yb)),
+            R.Rat.neg_add.arb(xb, yb, hx, hy))
+
+# The involution is one Rat.neg_neg at the imaginary coordinate: conj(conj(x)) has
+# re(x) unchanged and neg(neg(im x)) where x has im x, so the real coordinate
+# needs no step at all. Rat.neg_neg is called at the law's own telescope -- its
+# comparison is the literal Nat.cmp of the coordinate and its evidence `{==}`,
+# exactly as QExt.neg_neg above calls it.
+def Q.QExt.conj_conj(np, nn, dp, mq, mn, dq, h):
+  +RE = R.Rat.of(np, nn, dp)
+  +IM = R.Rat.of(mq, mn, dq)
+  qext.im(RE, R.Rat.neg(R.Rat.neg(IM)), IM,
+    R.Rat.neg_neg(Nat.cmp(mq, mn), mq, mn, dq, {==}, h))
+
 # The division payoff
 # ===================
 #
