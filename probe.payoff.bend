@@ -292,3 +292,54 @@ def probe.div_mul_cancel.instance()
         Q.QExt{R.Rat{I.Int{2n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}})
       == Q.QExt.of(1n, 0n, 0n, 0n, 0n, 0n) : Q.QExt}:
   {==}
+
+# The additive identity and inverse, from the caller's side -- qrat.bend's own
+# statements in the same spellings, each body one call, so an implicit argument
+# that stops being inferable fails here first. The two identity laws take the
+# same canonical presentation and the same two bridges QExt.mul_one takes;
+# QExt.add_neg takes neither, and gets the coefficients' positivity instead.
+def probe.add_zero(+np: Nat, +nn: Nat, +dp: Nat,
+                   +mq: Nat, +mn: Nat, +dq: Nat,
+                   +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp)
+                         == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat},
+                   +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq)
+                         == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat})
+  -> {Q.QExt.add(Q.QExt.of(np, nn, dp, mq, mn, dq), Q.QExt.zero())
+      == Q.QExt.of(np, nn, dp, mq, mn, dq) : Q.QExt}:
+  Q.QExt.add_zero(np, nn, dp, mq, mn, dq, f1, f2)
+
+def probe.zero_add(+np: Nat, +nn: Nat, +dp: Nat,
+                   +mq: Nat, +mn: Nat, +dq: Nat,
+                   +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp)
+                         == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat},
+                   +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq)
+                         == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat})
+  -> {Q.QExt.add(Q.QExt.zero(), Q.QExt.of(np, nn, dp, mq, mn, dq))
+      == Q.QExt.of(np, nn, dp, mq, mn, dq) : Q.QExt}:
+  Q.QExt.zero_add(np, nn, dp, mq, mn, dq, f1, f2)
+
+def probe.add_neg(+x: Q.QExt,
+                  +gx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(x))) == LT{} : Cmp},
+                  +hx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(x))) == LT{} : Cmp})
+  -> {Q.QExt.add(x, Q.QExt.neg(x)) == Q.QExt.zero() : Q.QExt}:
+  Q.QExt.add_neg(x, gx, hx)
+
+# The payoff of add_neg: QExt.sub is a definition (x + (-y)), so the difference
+# of a value with itself is the additive inverse law at work -- and the goal here
+# is stated with QExt.sub, which the law's conclusion reaches by conversion
+# alone. That is the shape a caller writing x - x actually has.
+def probe.add_neg.sub_self(+x: Q.QExt,
+                           +gx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(x))) == LT{} : Cmp},
+                           +hx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(x))) == LT{} : Cmp})
+  -> {Q.QExt.sub(x, x) == Q.QExt.zero() : Q.QExt}:
+  Q.QExt.add_neg(x, gx, hx)
+
+# The arithmetic at 2 + sqrt 2, where every denominator is base 1: (2 + sqrt 2)
+# + 0 = 2 + sqrt 2, and the same measurement note as the other literal instances
+# -- the coordinates are canonical and the sum reduces on its own, so {==} closes
+# it and the law is not needed for the instance.
+def probe.add_zero.instance()
+  -> {Q.QExt.add(Q.QExt{R.Rat{I.Int{2n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}},
+                 Q.QExt.zero())
+      == Q.QExt{R.Rat{I.Int{2n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}} : Q.QExt}:
+  {==}

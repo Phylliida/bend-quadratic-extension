@@ -3698,3 +3698,76 @@ variable defs are what exercise the law.
 **Temp probes, deleted.** The five scratch probe files this round needed
 (`probe.field.a.bend` through `probe.field.d.bend`, `probe.mulone.bend`) were
 removed before the commit; their measurements are the four bullets above.
+
+## The additive identity and inverse: the last three laws, and the shortest fills in the layer (measured)
+
+Round eight closed the multiplicative side of the operation surface. What was
+left was the additive group: `QExt.add_comm`, `add_assoc`, `sub_eq_add_neg` and
+`neg_neg` were in, but nothing said `x + 0 = x` or `x + (-x) = 0` -- and the Rat
+layer has all of them (`Rat.add_zero`, `Rat.zero_add`, `Rat.add_neg`). This round
+adds the three, and they are the cheapest laws in the layer.
+
+**The additive identity is false at an unreduced coordinate, measured before the
+comment was written.** The probe is round seven's, one operation over: at the
+real coordinate `Rat{Int{2,0}, 2}`,
+
+    QExt.add(QExt{Rat{Int{2,0},2}, Rat.zero()}, QExt.zero())
+
+comes back `QExt{Rat{Int{1,0},1}, Rat{Int{0,0},1}}` -- the expected/observed pair
+the checker printed, with a location line this time (the term is small). So
+`QExt.add_zero`/`zero_add` are stated at the canonical presentation with
+`QExt.mul_one`'s two bridges, for `QExt.mul_one`'s reason: `==` on `QExt` is
+structural, and a non-canonical `x` does not survive the sum.
+
+**What makes them short, and what they do not need.** `QExt.add` is
+componentwise, so after the coordinates are read each coordinate goal *is* the Rat
+law's statement -- `Rat.add(Rat{n, 1n+dp}, Rat.zero())` against
+`Rat{n, 1n+dp}` -- with nothing in between and no intermediate term to name:
+one `R.Rat.add_zero(n, 1n+dp, fx)` call per coordinate, and a composing fill that
+is just the two `qext.re`/`qext.im` witnesses. In particular there is no radicand
+coefficient anywhere, so no helper is needed: `qext.nat.mul_zero` exists only
+because `QExt.mul`'s real coordinate multiplies by `QExt.nat(d)`, whose
+denominator is base 1 and therefore unreachable by `Rat.mul_zero`. That is also
+why these two laws take no `d` parameter: the radicand is `QExt.mul`'s parameter,
+not `QExt.add`'s.
+
+**`QExt.add_neg` is stated at an arbitrary value, and that is a contrast worth
+recording.** `Rat.add_neg` needs only a coefficient and its denominator's
+positivity, and its conclusion is `Rat.zero()` on the nose -- unlike `Rat.neg_neg`
+and `Rat.mul_one`, which compare an `mk` against a constructor and therefore need
+coprimality or a bridge. Negation is componentwise and produces no `mk` of its
+own, so the two sides of the coordinate equation are both compositions and `==`
+compares them directly. The fill is one `R.Rat.add_neg` per coordinate, at a
+variable `x`, inside a `match`; the law's positivity hypotheses arrive intact
+because `QExt.re(QExt{xa,xb})` reduces to `xa` after the match.
+
+**There is deliberately no `QExt.neg_add`, and the reason is a naming fact
+rather than a mathematical one.** In this tree `Rat.neg_add` (rat.bend:1206) is
+the *distribution* law `-(x + y) = (-x) + (-y)`, not the flipped inverse. A QExt
+law called `neg_add` stating `(-x) + x = 0` would therefore mean something
+different from its Rat namesake, and the flipped inverse is two steps any caller
+can take -- `QExt.add_comm` then `QExt.add_neg` -- so nothing in the tree states
+it. (`Rat` itself has no flipped form either. The two layers now agree on
+`add_comm`, `add_assoc`, `add_zero`, `zero_add`, `add_neg`, `neg_neg` and
+`sub_eq_add_neg`; what `QExt` still lacks on the additive side is `Rat.neg_add`
+itself -- negation distributing over a sum -- and on the multiplicative side the
+pair `Rat.mul_neg`/`Rat.neg_mul`. Those three are laws about how `neg` interacts
+with the operations rather than about the identity elements, and they are the
+natural next unit on this side if the structure is to be mirrored exactly.)
+
+**Counts, measured.** Laws-only: nat 128, int 32, qext 34, rat 223, qrat.bend
+**243** = 128 Nat + 32 Int + 63 Rat + **20 QExt** (the seventeen of rounds six to
+eight plus these three). All five `src/*_proofs.bend` print `All terms check.`,
+as do `probe.bend` and `probe.payoff.bend`; `scratch.bend` prints the same triple
+it has since round three. `probe.payoff.bend` grew from eighteen defs to
+twenty-three: `probe.add_zero`, `probe.zero_add` and `probe.add_neg` from the
+caller's side at variables, `probe.add_neg.sub_self` (`x - x = 0` written with
+`QExt.sub`, which the law reaches by conversion -- the shape a caller writing a
+difference actually has), and `probe.add_zero.instance` (`(2 + sqrt 2) + 0`,
+`{==}`, as with the other literal instances).
+
+**All three fills checked on the first run**, which is worth noting against the
+record of the last two rounds: every step here was a law applied at a spelling the
+goal already carried, with no intermediate term, no congruence to place and no
+`trans` middle to match up. The two rounds before this one each cost several
+iterations on exactly those three things.

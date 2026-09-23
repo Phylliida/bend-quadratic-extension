@@ -1013,6 +1013,86 @@ def Q.QExt.mul_one(d, np, nn, dp, mq, mn, dq, f1, f2):
     qext.re(B1, A1, XA, QExt.mul_one.re(d, np, nn, dp, mq, mn, dq, f1)),
     qext.im(XA, B1, XB, QExt.mul_one.im(np, nn, dp, mq, mn, dq, f2)))
 
+# QExt.add_zero / QExt.zero_add / QExt.add_neg
+# ===========================================
+#
+# The additive identity and inverse. The first two are one Rat.add_zero /
+# Rat.zero_add call per coordinate with nothing in between: QExt.add is
+# componentwise, so once the coordinates are read the goal *is* the Rat law's
+# statement, and the composing fill needs no chain -- just the two coordinate
+# witnesses, at the same spelling mul_one's compose uses.
+#
+# add_neg is at arbitrary values and gets nothing from the spelling: Rat.add_neg
+# takes a coefficient and its denominator's positivity, and its conclusion is
+# Rat.zero() on the nose, so each coordinate is one call. QExt.neg is
+# componentwise too, so the two sides of the coordinate equation are both
+# compositions and == compares them directly -- no canonical presentation, no
+# bridges, no trans chain beyond the two-coordinate compose.
+
+def QExt.add_zero.re(+np: Nat, +nn: Nat, +dp: Nat,
+                     +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp)
+                           == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat})
+  -> {R.Rat.add(R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat.zero())
+      == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat}:
+  R.Rat.add_zero(R.Rat.num(np, nn), 1n+dp, f1)
+
+def QExt.add_zero.im(+mq: Nat, +mn: Nat, +dq: Nat,
+                     +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq)
+                           == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat})
+  -> {R.Rat.add(R.Rat{R.Rat.num(mq, mn), 1n+dq}, R.Rat.zero())
+      == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat}:
+  R.Rat.add_zero(R.Rat.num(mq, mn), 1n+dq, f2)
+
+def Q.QExt.add_zero(np, nn, dp, mq, mn, dq, f1, f2):
+  +XA = R.Rat.of(np, nn, dp)
+  +XB = R.Rat.of(mq, mn, dq)
+  +A1 = R.Rat.add(XA, R.Rat.zero())
+  +B1 = R.Rat.add(XB, R.Rat.zero())
+  Equal.trans(Q.QExt,
+    Q.QExt.add(Q.QExt.of(np, nn, dp, mq, mn, dq), Q.QExt.zero()),
+    Q.QExt{XA, B1},
+    Q.QExt{XA, XB},
+    qext.re(B1, A1, XA, QExt.add_zero.re(np, nn, dp, f1)),
+    qext.im(XA, B1, XB, QExt.add_zero.im(mq, mn, dq, f2)))
+
+def QExt.zero_add.re(+np: Nat, +nn: Nat, +dp: Nat,
+                     +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp)
+                           == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat})
+  -> {R.Rat.add(R.Rat.zero(), R.Rat{R.Rat.num(np, nn), 1n+dp})
+      == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat}:
+  R.Rat.zero_add(R.Rat.num(np, nn), 1n+dp, f1)
+
+def QExt.zero_add.im(+mq: Nat, +mn: Nat, +dq: Nat,
+                     +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq)
+                           == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat})
+  -> {R.Rat.add(R.Rat.zero(), R.Rat{R.Rat.num(mq, mn), 1n+dq})
+      == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat}:
+  R.Rat.zero_add(R.Rat.num(mq, mn), 1n+dq, f2)
+
+def Q.QExt.zero_add(np, nn, dp, mq, mn, dq, f1, f2):
+  +XA = R.Rat.of(np, nn, dp)
+  +XB = R.Rat.of(mq, mn, dq)
+  +A1 = R.Rat.add(R.Rat.zero(), XA)
+  +B1 = R.Rat.add(R.Rat.zero(), XB)
+  Equal.trans(Q.QExt,
+    Q.QExt.add(Q.QExt.zero(), Q.QExt.of(np, nn, dp, mq, mn, dq)),
+    Q.QExt{XA, B1},
+    Q.QExt{XA, XB},
+    qext.re(B1, A1, XA, QExt.zero_add.re(np, nn, dp, f1)),
+    qext.im(XA, B1, XB, QExt.zero_add.im(mq, mn, dq, f2)))
+
+def Q.QExt.add_neg(x, gx, hx):
+  match x:
+    case Q.QExt{+xa, +xb}:
+      +A1 = R.Rat.add(xa, R.Rat.neg(xa))
+      +B1 = R.Rat.add(xb, R.Rat.neg(xb))
+      Equal.trans(Q.QExt,
+        Q.QExt.add(Q.QExt{xa, xb}, Q.QExt.neg(Q.QExt{xa, xb})),
+        Q.QExt{R.Rat.zero(), B1},
+        Q.QExt.zero(),
+        qext.re(B1, A1, R.Rat.zero(), R.Rat.add_neg(xa, gx)),
+        qext.im(R.Rat.zero(), B1, R.Rat.zero(), R.Rat.add_neg(xb, hx)))
+
 # The division payoff
 # ===================
 #
