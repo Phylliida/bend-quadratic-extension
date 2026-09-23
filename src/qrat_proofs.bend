@@ -1132,3 +1132,210 @@ def Q.QExt.inv.value.gt(d, x, gx, hx, ap, dp, hZ):
         qext.im(R.Rat.one(), Li, R.Rat.zero(),
           QExt.inv.value.gt.im(d, xa, xb, gx, hx, ap, dp, hZ)))
 
+# --- the LT twin ---
+#
+# QExt.inv.value.lt is the GT fill with the divisor's spelling swapped for round
+# four's negative one and nothing else touched: every step in both coordinate
+# chains is the same -- the same Rat.neg_mul, the same backwards
+# Rat.mul_add_left.arb, the same congruence against hZ -- because the only thing
+# the sign of the norm changes is which rational the reciprocal is written as.
+# The reciprocal of Rat{Rat.num(0n, 1n+bp), 1n+dp} is Rat{Rat.num(0n, 1n+dp),
+# 1n+bp} (round four measured that it is *not* the GT reciprocal with a
+# coordinate flipped), and Rat.mul_inv.lt closes the same final product.
+
+def QExt.inv.value.lt.re(+d: Nat, +xa: R.Rat, +xb: R.Rat,
+                         +gx: {Nat.cmp(0n, R.Rat.denof(xa)) == LT{} : Cmp},
+                         +hx: {Nat.cmp(0n, R.Rat.denof(xb)) == LT{} : Cmp},
+                         +bp: Nat, +dp: Nat,
+                         +hZ: {R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp}
+                               == Q.QExt.norm(d, Q.QExt{xa, xb}) : R.Rat})
+  -> {R.Rat.add(R.Rat.mul(xa, R.Rat.mul(xa, R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp})),
+                 R.Rat.mul(Q.QExt.nat(d),
+                   R.Rat.mul(xb, R.Rat.mul(R.Rat.neg(xb),
+                                           R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp}))))
+      == R.Rat.one() : R.Rat}:
+  +nb = R.Rat.neg(xb)
+  +D = Q.QExt.nat(d)
+  +rh = R.Rat.of(0n, 1n+dp, bp)
+  +Z = R.Rat.of(0n, 1n+bp, dp)
+  +AA = R.Rat.mul(xa, xa)
+  +BB = R.Rat.mul(xb, xb)
+  +PP = R.Rat.mul(D, BB)
+  +pAA = R.Rat.mul.den.pos(xa, xa, gx, gx)
+  +pBB = R.Rat.mul.den.pos(xb, xb, hx, hx)
+  +pPP = R.Rat.mul.den.pos(D, BB, {==}, pBB)
+  +pnegPP = R.Rat.neg.den.pos(PP, pPP)
+  # xa*(xa*rh) = (xa*xa)*rh, and the inner b*(nb*rh) = (b*nb)*rh
+  +eA1 = Equal.sym(R.Rat, R.Rat.mul(AA, rh), R.Rat.mul(xa, R.Rat.mul(xa, rh)),
+    R.Rat.mul_assoc.arb(xa, xa, rh, gx, gx, {==}))
+  +eA2 = Equal.sym(R.Rat, R.Rat.mul(R.Rat.mul(xb, nb), rh),
+    R.Rat.mul(xb, R.Rat.mul(nb, rh)),
+    R.Rat.mul_assoc.arb(xb, nb, rh, hx, R.Rat.neg.den.pos(xb, hx), {==}))
+  # xb*nb = -(xb*xb), then d*(-(b*b)*rh) = -(d*(b*b))*rh
+  +eM1 = R.Rat.mul_neg(xb, xb, hx, hx)
+  +eM2 = Equal.trans(R.Rat,
+    R.Rat.mul(D, R.Rat.mul(R.Rat.neg(BB), rh)),
+    R.Rat.mul(D, R.Rat.neg(R.Rat.mul(BB, rh))),
+    R.Rat.mul(R.Rat.neg(PP), rh),
+    Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(D, u),
+      R.Rat.mul(R.Rat.neg(BB), rh), R.Rat.neg(R.Rat.mul(BB, rh)),
+      R.Rat.neg_mul(BB, rh, pBB, {==})),
+    Equal.trans(R.Rat,
+      R.Rat.mul(D, R.Rat.neg(R.Rat.mul(BB, rh))),
+      R.Rat.neg(R.Rat.mul(D, R.Rat.mul(BB, rh))),
+      R.Rat.mul(R.Rat.neg(PP), rh),
+      R.Rat.mul_neg(D, R.Rat.mul(BB, rh), {==}, R.Rat.mul.den.pos(BB, rh, pBB, {==})),
+      Equal.trans(R.Rat,
+        R.Rat.neg(R.Rat.mul(D, R.Rat.mul(BB, rh))),
+        R.Rat.neg(R.Rat.mul(PP, rh)),
+        R.Rat.mul(R.Rat.neg(PP), rh),
+        Equal.cong(R.Rat, R.Rat, u => R.Rat.neg(u),
+          R.Rat.mul(D, R.Rat.mul(BB, rh)), R.Rat.mul(PP, rh),
+          Equal.sym(R.Rat, R.Rat.mul(PP, rh), R.Rat.mul(D, R.Rat.mul(BB, rh)),
+            R.Rat.mul_assoc.arb(D, BB, rh, {==}, pBB, {==}))),
+        Equal.sym(R.Rat, R.Rat.mul(R.Rat.neg(PP), rh), R.Rat.neg(R.Rat.mul(PP, rh)),
+          R.Rat.neg_mul(PP, rh, pPP, {==})))))
+  # (xa*xa)*rh + (-(b*b*d))*rh = (xa*xa - b*b*d)*rh, read backwards
+  +eSum = Equal.sym(R.Rat,
+    R.Rat.mul(R.Rat.add(AA, R.Rat.neg(PP)), rh),
+    R.Rat.add(R.Rat.mul(AA, rh), R.Rat.mul(R.Rat.neg(PP), rh)),
+    R.Rat.mul_add_left.arb(AA, R.Rat.neg(PP), rh, pAA, pnegPP, {==}))
+  Equal.trans(R.Rat,
+    R.Rat.add(R.Rat.mul(xa, R.Rat.mul(xa, rh)),
+              R.Rat.mul(D, R.Rat.mul(xb, R.Rat.mul(nb, rh)))),
+    R.Rat.add(R.Rat.mul(AA, rh), R.Rat.mul(D, R.Rat.mul(xb, R.Rat.mul(nb, rh)))),
+    R.Rat.one(),
+    Equal.cong(R.Rat, R.Rat,
+      u => R.Rat.add(u, R.Rat.mul(D, R.Rat.mul(xb, R.Rat.mul(nb, rh)))),
+      R.Rat.mul(xa, R.Rat.mul(xa, rh)), R.Rat.mul(AA, rh), eA1),
+    Equal.trans(R.Rat,
+      R.Rat.add(R.Rat.mul(AA, rh), R.Rat.mul(D, R.Rat.mul(xb, R.Rat.mul(nb, rh)))),
+      R.Rat.add(R.Rat.mul(AA, rh), R.Rat.mul(D, R.Rat.mul(R.Rat.mul(xb, nb), rh))),
+      R.Rat.one(),
+      Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.mul(AA, rh), R.Rat.mul(D, u)),
+        R.Rat.mul(xb, R.Rat.mul(nb, rh)), R.Rat.mul(R.Rat.mul(xb, nb), rh), eA2),
+      Equal.trans(R.Rat,
+        R.Rat.add(R.Rat.mul(AA, rh), R.Rat.mul(D, R.Rat.mul(R.Rat.mul(xb, nb), rh))),
+        R.Rat.add(R.Rat.mul(AA, rh), R.Rat.mul(D, R.Rat.mul(R.Rat.neg(BB), rh))),
+        R.Rat.one(),
+        Equal.cong(R.Rat, R.Rat,
+          u => R.Rat.add(R.Rat.mul(AA, rh), R.Rat.mul(D, R.Rat.mul(u, rh))),
+          R.Rat.mul(xb, nb), R.Rat.neg(BB), eM1),
+        Equal.trans(R.Rat,
+          R.Rat.add(R.Rat.mul(AA, rh), R.Rat.mul(D, R.Rat.mul(R.Rat.neg(BB), rh))),
+          R.Rat.add(R.Rat.mul(AA, rh), R.Rat.mul(R.Rat.neg(PP), rh)),
+          R.Rat.one(),
+          Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.mul(AA, rh), u),
+            R.Rat.mul(D, R.Rat.mul(R.Rat.neg(BB), rh)), R.Rat.mul(R.Rat.neg(PP), rh),
+            eM2),
+          Equal.trans(R.Rat,
+            R.Rat.add(R.Rat.mul(AA, rh), R.Rat.mul(R.Rat.neg(PP), rh)),
+            R.Rat.mul(R.Rat.add(AA, R.Rat.neg(PP)), rh),
+            R.Rat.one(),
+            eSum,
+            Equal.trans(R.Rat,
+              R.Rat.mul(R.Rat.add(AA, R.Rat.neg(PP)), rh),
+              R.Rat.mul(R.Rat.sub(AA, PP), rh),
+              R.Rat.one(),
+              {==},
+              Equal.trans(R.Rat,
+                R.Rat.mul(R.Rat.sub(AA, PP), rh),
+                R.Rat.mul(Q.QExt.norm(d, Q.QExt{xa, xb}), rh),
+                R.Rat.one(),
+                {==},
+                Equal.trans(R.Rat,
+                  R.Rat.mul(Q.QExt.norm(d, Q.QExt{xa, xb}), rh),
+                  R.Rat.mul(Z, rh),
+                  R.Rat.one(),
+                  Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(u, rh),
+                    Q.QExt.norm(d, Q.QExt{xa, xb}), Z,
+                    Equal.sym(R.Rat, Z, Q.QExt.norm(d, Q.QExt{xa, xb}), hZ)),
+                  R.Rat.mul_inv.lt(0n, 1n+bp, dp, {==})))))))))
+
+def QExt.inv.value.lt.im(+d: Nat, +xa: R.Rat, +xb: R.Rat,
+                         +gx: {Nat.cmp(0n, R.Rat.denof(xa)) == LT{} : Cmp},
+                         +hx: {Nat.cmp(0n, R.Rat.denof(xb)) == LT{} : Cmp},
+                         +bp: Nat, +dp: Nat,
+                         +hZ: {R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp}
+                               == Q.QExt.norm(d, Q.QExt{xa, xb}) : R.Rat})
+  -> {R.Rat.add(R.Rat.mul(xa,
+                   R.Rat.mul(R.Rat.neg(xb), R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp})),
+                 R.Rat.mul(xb, R.Rat.mul(xa, R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp})))
+      == R.Rat.zero() : R.Rat}:
+  +nb = R.Rat.neg(xb)
+  +rh = R.Rat.of(0n, 1n+dp, bp)
+  +M = R.Rat.mul(xa, xb)
+  +U = R.Rat.mul(M, rh)
+  +pM = R.Rat.mul.den.pos(xa, xb, gx, hx)
+  +pU = R.Rat.mul.den.pos(M, rh, pM, {==})
+  +eA1 = Equal.sym(R.Rat, R.Rat.mul(R.Rat.mul(xa, nb), rh),
+    R.Rat.mul(xa, R.Rat.mul(nb, rh)),
+    R.Rat.mul_assoc.arb(xa, nb, rh, gx, R.Rat.neg.den.pos(xb, hx), {==}))
+  +eM1 = R.Rat.mul_neg(xa, xb, gx, hx)
+  +eM2 = R.Rat.neg_mul(M, rh, pM, {==})
+  +eA2 = Equal.sym(R.Rat, R.Rat.mul(R.Rat.mul(xb, xa), rh),
+    R.Rat.mul(xb, R.Rat.mul(xa, rh)),
+    R.Rat.mul_assoc.arb(xb, xa, rh, hx, gx, {==}))
+  Equal.trans(R.Rat,
+    R.Rat.add(R.Rat.mul(xa, R.Rat.mul(nb, rh)),
+              R.Rat.mul(xb, R.Rat.mul(xa, rh))),
+    R.Rat.add(R.Rat.mul(R.Rat.mul(xa, nb), rh),
+              R.Rat.mul(xb, R.Rat.mul(xa, rh))),
+    R.Rat.zero(),
+    Equal.cong(R.Rat, R.Rat,
+      u => R.Rat.add(u, R.Rat.mul(xb, R.Rat.mul(xa, rh))),
+      R.Rat.mul(xa, R.Rat.mul(nb, rh)), R.Rat.mul(R.Rat.mul(xa, nb), rh), eA1),
+    Equal.trans(R.Rat,
+      R.Rat.add(R.Rat.mul(R.Rat.mul(xa, nb), rh),
+                R.Rat.mul(xb, R.Rat.mul(xa, rh))),
+      R.Rat.add(R.Rat.mul(R.Rat.neg(M), rh), R.Rat.mul(xb, R.Rat.mul(xa, rh))),
+      R.Rat.zero(),
+      Equal.cong(R.Rat, R.Rat,
+        u => R.Rat.add(R.Rat.mul(u, rh), R.Rat.mul(xb, R.Rat.mul(xa, rh))),
+        R.Rat.mul(xa, nb), R.Rat.neg(M), eM1),
+      Equal.trans(R.Rat,
+        R.Rat.add(R.Rat.mul(R.Rat.neg(M), rh), R.Rat.mul(xb, R.Rat.mul(xa, rh))),
+        R.Rat.add(R.Rat.neg(U), R.Rat.mul(xb, R.Rat.mul(xa, rh))),
+        R.Rat.zero(),
+        Equal.cong(R.Rat, R.Rat,
+          u => R.Rat.add(u, R.Rat.mul(xb, R.Rat.mul(xa, rh))),
+          R.Rat.mul(R.Rat.neg(M), rh), R.Rat.neg(U), eM2),
+        Equal.trans(R.Rat,
+          R.Rat.add(R.Rat.neg(U), R.Rat.mul(xb, R.Rat.mul(xa, rh))),
+          R.Rat.add(R.Rat.neg(U), R.Rat.mul(R.Rat.mul(xb, xa), rh)),
+          R.Rat.zero(),
+          Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.neg(U), u),
+            R.Rat.mul(xb, R.Rat.mul(xa, rh)), R.Rat.mul(R.Rat.mul(xb, xa), rh), eA2),
+          Equal.trans(R.Rat,
+            R.Rat.add(R.Rat.neg(U), R.Rat.mul(R.Rat.mul(xb, xa), rh)),
+            R.Rat.add(R.Rat.neg(U), U),
+            R.Rat.zero(),
+            Equal.cong(R.Rat, R.Rat, u => R.Rat.add(R.Rat.neg(U), u),
+              R.Rat.mul(R.Rat.mul(xb, xa), rh), U,
+              Equal.cong(R.Rat, R.Rat, u => R.Rat.mul(u, rh),
+                R.Rat.mul(xb, xa), M, R.Rat.mul_comm(xb, xa))),
+            Equal.trans(R.Rat,
+              R.Rat.add(R.Rat.neg(U), U),
+              R.Rat.add(U, R.Rat.neg(U)),
+              R.Rat.zero(),
+              R.Rat.add_comm(R.Rat.neg(U), U),
+              R.Rat.add_neg(U, pU)))))))
+
+def Q.QExt.inv.value.lt(d, x, gx, hx, bp, dp, hZ):
+  match x:
+    case Q.QExt{xa, xb}:
+      +Z = R.Rat.of(0n, 1n+bp, dp)
+      +Lr = R.Rat.add(R.Rat.mul(xa, R.Rat.div(xa, Z)),
+                      R.Rat.mul(Q.QExt.nat(d),
+                                R.Rat.mul(xb, R.Rat.div(R.Rat.neg(xb), Z))))
+      +Li = R.Rat.add(R.Rat.mul(xa, R.Rat.div(R.Rat.neg(xb), Z)),
+                      R.Rat.mul(xb, R.Rat.div(xa, Z)))
+      Equal.trans(Q.QExt,
+        Q.QExt{Lr, Li},
+        Q.QExt{R.Rat.one(), Li},
+        Q.QExt{R.Rat.one(), R.Rat.zero()},
+        qext.re(Li, Lr, R.Rat.one(),
+          QExt.inv.value.lt.re(d, xa, xb, gx, hx, bp, dp, hZ)),
+        qext.im(R.Rat.one(), Li, R.Rat.zero(),
+          QExt.inv.value.lt.im(d, xa, xb, gx, hx, bp, dp, hZ)))
+

@@ -3319,3 +3319,79 @@ probe: at literals the whole product *also* reduces on its own -- measured,
 the law; and the instance still earns its place as the arithmetic check.
 Laws-only counts: nat.bend 128, int.bend 32, qext.bend 34, rat.bend **223**
 (128 + 32 + 63 Rat: the two new laws), qrat.bend **232** (rat's 223 + 9 QExt).
+
+## The LT twin of the payoff, and the mirror cost one substitution table (measured)
+
+Round five ended with a measurement and an open unit: the norm of an extension is
+*indefinite* in `d`, so `1 + 2*sqrt 3` (norm -11) has no positive raw pair equal
+to its norm, no `hZ` exists for the GT law, and forcing the positive spelling 11
+makes the same product multiply out to -1. The unit that closes that hole is
+`QExt.inv.value.lt`, the payoff stated at round four's *negative* divisor
+spelling, and it is now in `src/qrat.bend` with three fills in
+`src/qrat_proofs.bend`.
+
+        x^-1 = conj(x)/norm(d,x),     norm(d,x) = a^2 - b^2*d < 0
+
+**The statement.** Same shape as the GT law, with `ap` replaced by `bp` and the
+divisor written `Rat{Rat.num(0n, 1n+bp), 1n+dp}` -- the negative spelling, i.e.
+`-(1+bp)/(1+dp)` -- and `hZ` saying the norm *is* that rational. `Nat.cmp(0n, 1n+bp)`
+computes to `LT{}` on constructors, so `Rat.div` against it reduces by
+conversion, exactly as on the GT side. The reciprocal is the thing worth
+re-reading round four for: `Rat.inv`'s LT branch is
+`Rat{Rat.num(0n, d), Nat.sub(nn, np)}`, so with `np = 0n`, `nn = 1n+bp`,
+`d = 1n+dp` the reciprocal is `Rat{Rat.num(0n, 1n+dp), 1n+bp}` -- the *negative*
+raw shape, **not** the GT reciprocal `Rat{Rat.num(1n+dp, 0n), 1n+ap}` with a
+coordinate flipped. The fill's closing law is `Rat.mul_inv.lt(0n, 1n+bp, dp, {==})`
+and it only closes because of that.
+
+**The fills are the GT fills, and the check that they are is the checker.**
+Nothing in either coordinate chain is about the sign of the norm: the same
+`Rat.neg_mul`, the same backwards `Rat.mul_add_left.arb`, the same congruence
+against `hZ`, the same `{==}` denominator witnesses (they only need `rh`'s
+denominator to be a successor, and `1n+bp` is one just as `1n+ap` is). So the LT
+block was produced from the GT block by a substitution table of eleven literal
+strings -- three def names, the `+ap: Nat` parameter, the two `hZ` types, the two
+`rh` spellings in the goals, the two `R.Rat.of` lets, and the closing
+`Rat.mul_inv.gt(1n+ap, 0n, dp, {==})` -- applied in a script, with an assertion
+that every pattern occurred and a scan showing no `ap` left in the block. The GT
+half of that script then had to be run *backwards*: the first attempt wrote
+`head + header + transformed_block` over the file, which replaced the GT block
+instead of following it, and the checker said so immediately -- `Error: 1 TODO
+found`, one law short of the 233 in the laws file. Inverting the table restored
+the GT block byte-for-byte, and the check that it is byte-for-byte is that the
+restored file prints `All terms check.`: a rewrite chain with one wrong
+identifier in it does not close. Worth recording as a technique: a mirror that is
+*claimed* to be a relabelling can be produced by relabelling, and the checker is
+the proof that the claim was right -- but only if the original is kept until it
+checks.
+
+**What the pair of laws covers, and what it does not.** Together they cover every
+extension whose norm is non-zero, one law per sign. Norm = 0 stays uncovered, and
+that is correct rather than an omission: `a^2 = b^2*d` is satisfiable for non-zero
+`x` whenever `d` is a square (`x = 2 + sqrt 4 = 4` has norm 0), and an extension
+whose norm is zero is a zero divisor -- there is no inverse to state. The
+*branch-free* form is still out of reach for the reason round four measured: at a
+variable divisor the `Nat.cmp` is stuck inside `Rat.inv`'s argument list next to
+the `{==}` whose type mentions it.
+
+**The consumer probe grew both ways.** `probe.payoff.bend` now records the
+negative conversion too -- `Rat.div(a, Rat{Rat.num(0n,1n+bp),1n+dp})` unfolds by
+conversion to `mul(a, Rat{Rat.num(0n,1n+dp),1n+bp})` at a variable dividend, which
+is the fact the `rh` spelling rests on, stated from the caller's side -- plus
+`probe.payoff.lt` (the law at a variable `x`, body a call to the published name)
+and `probe.payoff.instance.lt`, the literal
+
+    1/(1 + 2*sqrt 3) = (1 - 2*sqrt 3)/(-11)
+
+with every hypothesis `{==}`: the norm computes to -11, which is the spelling at
+`bp = 10`, `dp = 0`. That instance is the one the GT law cannot state at all, so
+it is also the honest demonstration that the LT twin was needed. As with the GT
+instance, at literals the product reduces on its own (`{==}` closes the goal);
+what the call adds is that the published name is callable with every implicit
+argument inferred.
+
+**Counts.** Laws-only: nat.bend 128, int.bend 32, qext.bend 34, rat.bend 223,
+qrat.bend **233** (rat's 223 + 10 QExt -- the LT law is the tenth). All five
+`src/*_proofs.bend` print `All terms check.`, as do `probe.bend` and
+`probe.payoff.bend`, and `scratch.bend` prints the same `Rat.inv` triple it has
+since round three.
