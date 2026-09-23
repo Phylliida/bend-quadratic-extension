@@ -332,3 +332,42 @@ law QExt.inv.value.gt:
      QExt{R.Rat.div(QExt.re(x), R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp}),
           R.Rat.div(R.Rat.neg(QExt.im(x)), R.Rat{R.Rat.num(1n+ap, 0n), 1n+dp})})
    == QExt.one() : QExt}
+
+# QExt.inv.value.lt
+# =================
+#
+# The same relation, with the norm on the other side of zero:
+#
+#     x^-1 = conj(x) / norm(d, x),   norm(d, x) = a^2 - b^2*d < 0
+#
+# and it is not a courtesy twin. The norm is *indefinite* in d, so half of the
+# non-zero extensions land here -- 1 + 2*sqrt 3 has norm -11, one of the cases
+# the GT law provably cannot state (there is no positive raw pair equal to -11,
+# so no hZ exists for it; PROVING.md round five measured that the same product
+# built against the positive spelling 11 comes out -1). With this law that
+# extension is statable, and `probe.payoff.bend` states it.
+#
+# The spelling is round four's negative one: `Rat{Rat.num(0n, 1n+bp), 1n+dp}`,
+# i.e. -(1+bp)/(1+dp), and hZ says the norm *is* that rational. Nat.cmp(0n, 1n+bp)
+# computes to LT on constructors, so Rat.div against it reduces by conversion to
+# a product by the reciprocal -- and the reciprocal here is
+# `Rat{Rat.num(0n, 1n+dp), 1n+bp}`, the *negative* coordinate shape, not the GT
+# reciprocal with a coordinate flipped (measured in round four; the fill below
+# relies on it).
+#
+# Between them the two laws cover every extension whose norm is non-zero. They
+# do not cover norm = 0, and that is correct rather than a gap: a^2 = b^2*d can
+# happen for non-zero x when d is a perfect square (x = 2 + sqrt 4 = 4), and
+# such an extension is a zero divisor with no inverse to state.
+law QExt.inv.value.lt:
+  for +d: Nat
+  for +x: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +bp: Nat
+  for +dp: Nat
+  for +hZ: {R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp} == QExt.norm(d, x) : R.Rat}
+  {QExt.mul(d, x,
+     QExt{R.Rat.div(QExt.re(x), R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp}),
+          R.Rat.div(R.Rat.neg(QExt.im(x)), R.Rat{R.Rat.num(0n, 1n+bp), 1n+dp})})
+   == QExt.one() : QExt}

@@ -61,15 +61,16 @@ law of its sibling via `def <alias>.<name>(...)`:
 - `src/qext_proofs.bend` — fills both qext.bend laws.
 - `src/qrat.bend` — `QExt` over `Rat`: the type, `QExt.nat`/`zero`/`one`/
   `add`/`neg`/`sub`/`mul`/`conj`/`norm`, `QExt.of` (the six-coordinate
-  abbreviation the composing law is stated with), and the nine laws, ending in
-  `QExt.inv.value.gt` — the division payoff `1/x = conj(x)/norm(d,x)`, stated
-  for a positive norm spelled as a raw pair (PROVING.md, round five). Its
-  coefficients are rat.bend's `Rat` (`import ./rat.bend as R`); there is no
-  second copy of the Rat layer.
+  abbreviation the composing law is stated with), and the ten laws, ending in
+  `QExt.inv.value.gt` and `QExt.inv.value.lt` — the division payoff
+  `1/x = conj(x)/norm(d,x)`, stated once per sign of the norm, each with the
+  norm spelled as a raw pair of that sign plus `hZ` saying the norm *is* that
+  rational (PROVING.md, rounds five and six). Its coefficients are rat.bend's
+  `Rat` (`import ./rat.bend as R`); there is no second copy of the Rat layer.
 - `src/qrat_proofs.bend` — fills every qrat.bend law, and only those: the two
   coordinate witnesses, the two `QExt.mul` coordinate chains, the six algebra
-  fills, and the three behind the payoff (one product rearrangement per
-  coordinate, plus the composing chain).
+  fills, and the six behind the payoff (one product rearrangement per coordinate
+  per sign, plus the composing chain).
   The Rat laws it calls (`R.Rat.add_comm`, `R.Rat.mul_comm`,
   `R.Rat.add_assoc`, `R.Rat.neg_neg`) are rat.bend's own, filled by the
   `rat_proofs.bend` import — the same three-file arrangement
@@ -86,9 +87,10 @@ law of its sibling via `def <alias>.<name>(...)`:
   `Rat.neg_mul` the payoff's rearrangements need.
 - `src/rat_proofs.bend` — fills every rat.bend law.
 - `probe.bend` — consumer check for the ten division laws.
-- `probe.payoff.bend` — consumer check for the payoff: the conversion the design
-  rests on, `QExt.inv.value.gt` from the caller's side at a variable `x`, and
-  `1/(2 + sqrt 2) = (2 - sqrt 2)/2` at literals.
+- `probe.payoff.bend` — consumer check for the payoff: the two conversions the
+  design rests on (positive and negative divisor spelling), each payoff law from
+  the caller's side at a variable `x`, and `1/(2 + sqrt 2) = (2 - sqrt 2)/2`
+  and `1/(1 + 2*sqrt 3) = (1 - 2*sqrt 3)/(-11)` at literals.
 - `scratch.bend` — smoke test with a `main`.
 
 Check with `node bend2/main.ts <file>` from a bend checkout. The five
@@ -99,9 +101,9 @@ laws-only files intentionally fail with
 is the smoke test -- it has a `main`, so it prints the `Rat.inv` triple it
 computes instead of that line. The count is
 transitive over imports: nat.bend 128, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 223 = 128 Nat + 32 Int + 63 Rat, qrat.bend 232 = 128 Nat +
-32 Int + 63 Rat + 9 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own nine laws).
+QExt, rat.bend 223 = 128 Nat + 32 Int + 63 Rat, qrat.bend 233 = 128 Nat +
+32 Int + 63 Rat + 10 QExt (it imports rat.bend itself, so its count is
+rat.bend's plus its own ten laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -422,23 +424,29 @@ Known gaps, in dependency order:
    Rat chains over the coefficients -- `Rat.mul_neg` twice in the real
    coordinate, once in the imaginary one, then `Rat.mul_comm`/`Rat.add_comm`
    and `Rat.add_neg` to reach zero.
-   The division form itself, `QExt.inv.value.gt`, is **in** as well -- the tenth
-   name on this list and the last one:
+   The division form itself is **in** on both sides of zero:
+   `QExt.inv.value.gt` and `QExt.inv.value.lt` state
    `x * (conj(x)/norm) = 1` with the divisor's sign in the *spelling*, i.e. the
-   norm written as a positive raw pair `(1+ap)/(1+dp)` plus `hZ` saying the norm
-   *is* that rational. Two things make it cheap, and both are measurements:
+   norm written as a raw pair `(1+ap)/(1+dp)` when positive and
+   `-(1+bp)/(1+dp)` when negative, plus `hZ` saying the norm *is* that rational.
+   Two things make them cheap, and both are measurements:
    `Rat.div` against a spelled divisor already unfolds to `mul(a, reciprocal)`
-   by conversion at a *variable* dividend (no law, no rewrite -- the conversion
-   `probe.payoff.bend` records), and the fill is then `QExt.mul_conj`'s own
-   rearrangement with the reciprocal carried through it: `mul_neg`, the new
-   `neg_mul` twice, `mul_add_left` backwards, one `cong` against `hZ`, and
-   `Rat.mul_inv.gt`. The new Rat laws it needed -- `Rat.neg.den.pos` and
-   `Rat.neg_mul` (negation on the *left*; `Rat.mul_neg` cannot be turned
-   around) -- are in `rat.bend` too. `probe.payoff.bend` calls the law from the
-   caller's side at a variable `x` and at `1/(2 + sqrt 2) = (2 - sqrt 2)/2`.
-   What that law does *not* cover is a negative norm, and that is a real gap
-   rather than a spelling choice: the norm is indefinite in `d`, so
-   `1 + 2*sqrt 3` (norm -11) has no positive spelling and no `hZ` exists for it.
-   Measured: that extension against the positive spelling 11 multiplies out to
-   **-1**. An LT twin of the payoff law is the next unit on this side.
+   by conversion at a *variable* dividend (no law, no rewrite -- the conversions
+   `probe.payoff.bend` records), and each fill is then `QExt.mul_conj`'s own
+   rearrangement with the reciprocal carried through it: `mul_neg`, `neg_mul`
+   twice, `mul_add_left` backwards, one `cong` against `hZ`, and
+   `Rat.mul_inv.gt`/`.lt`. The Rat laws the GT half needed -- `Rat.neg.den.pos`
+   and `Rat.neg_mul` (negation on the *left*; `Rat.mul_neg` cannot be turned
+   around) -- are in `rat.bend` too. `probe.payoff.bend` calls both laws from
+   the caller's side at a variable `x`, and at `1/(2 + sqrt 2) = (2 - sqrt 2)/2`
+   and `1/(1 + 2*sqrt 3) = (1 - 2*sqrt 3)/(-11)`.
+   The LT half is not a courtesy twin: the norm is indefinite in `d`, so
+   `1 + 2*sqrt 3` (norm -11) has no positive spelling at all and no `hZ` exists
+   for the GT law -- measured, that extension against the positive spelling 11
+   multiplies out to **-1**. The pair of laws covers every extension with a
+   non-zero norm; norm = 0 is correctly uncovered, because `a^2 = b^2 d` is
+   reachable for non-zero `x` when `d` is a square (`x = 2 + sqrt 4 = 4`), and
+   such an extension is a zero divisor with no inverse to state. What is still
+   out of reach on this side is the *branch-free* form, for the same stuck
+   `Nat.cmp` reason as the division laws.
 3. Binary nats for performance (unary `Nat` is O(value)).
