@@ -842,6 +842,19 @@ law div_self:
   for +ap: Nat
   {Nat.div(1n+ap, 1n+ap) == 1n : Nat}
 
+# div_self.pos: a/a = 1 for a positive a that is *not* written as a successor.
+# div_self's spelling is what div_exact consumes, and a successor is what keeps
+# the divisor's match reducing; a divisor that arrives as an operation's output
+# -- Nat.sub(np,nn) out of a GT branch, a div/gcd term out of a normalization --
+# has neither, and carries its positivity as a witness instead, the same
+# hypothesis Rat.add_neg takes. The fill is the case split div_self cannot do:
+# a = 0 contradicts the witness (Nat.cmp(0,0) is EQ, and EQ is not LT), and
+# a = 1 + ap is div_self itself.
+law div_self.pos:
+  for +a: Nat
+  for +p: {Nat.cmp(0n, a) == LT{} : Cmp}
+  {Nat.div(a, a) == 1n : Nat}
+
 # Difference-pair helpers
 # =======================
 #

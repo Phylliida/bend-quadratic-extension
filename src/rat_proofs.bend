@@ -4480,6 +4480,32 @@ def R.Rat.mk.diag(T, d, pd):
         I.Int{Nat.div(u, G), Nat.div(u, G)}, I.Int{0n, 0n}, num),
       Equal.cong(Nat, R.Rat, v => R.Rat{I.Int{0n, 0n}, v}, Nat.div(d, G), 1n, den)))
 
+# Rat.zero_mul: the numerator needs nothing. Int.mul destructures both
+# arguments and every one of its four products carries the zero literal, so
+# Int.mul(Int.zero(), xn) is Int{0n,0n} by computation; what is left is
+# mk(Int{0,0}, Nat.mul(1, xd)), which is Rat.mk.diag's shape -- a diagonal
+# numerator, and a zero numerator is diagonal in the difference presentation.
+# Its positivity hypothesis is Nat.mul(1, xd), so the witness is mul_pos with
+# the positivity of the literal 1 for free. Nothing needs the successor
+# spelling div_self wants: mk.diag is stated over a positivity witness, and its
+# own fill is where pos_witness turns d into 1 + (d - 1).
+def R.Rat.zero_mul(x, px):
+  match x:
+    case R.Rat{+xn, +xd}:
+      Equal.trans(R.Rat,
+        R.Rat.mk(I.Int.mul(I.Int.zero(), xn), Nat.mul(1n, xd)),
+        R.Rat.mk(I.Int.zero(), Nat.mul(1n, xd)),
+        R.Rat.zero(),
+        Equal.cong(I.Int, R.Rat, v => R.Rat.mk(v, Nat.mul(1n, xd)),
+          I.Int.mul(I.Int.zero(), xn), I.Int.zero(),
+          Equal.trans(I.Int,
+            I.Int.mul(I.Int.zero(), xn),
+            I.Int.mul(xn, I.Int.zero()),
+            I.Int.zero(),
+            I.Int.mul_comm(I.Int.zero(), xn),
+            I.Int.mul_zero(xn))),
+        R.Rat.mk.diag(0n, Nat.mul(1n, xd), N.mul_pos(1n, xd, {==}, px)))
+
 # Rat.mul_neg: -1 is the whole proof. Rat.neg_eq_mul_negone rewrites the
 # negated factor under a congruence, and what is left is
 #
@@ -5509,3 +5535,50 @@ def R.Rat.div_add.gt(ap, dp, x, y, px, py):
 
 def R.Rat.div_add.lt(bp, dp, x, y, px, py):
   R.Rat.mul_add_left.arb(x, y, R.Rat{R.Rat.num(0n, 1n+dp), 1n+bp}, px, py, {==})
+
+# Rat.mul.eq_zero: the chain x = x*1 = x*(y*q) = (x*y)*q = 0*q = 0, one leg per
+# step and no rewriting machinery. The only structural fact used is that x is
+# spelled Rat{n,d}, which is what Rat.mul_one is stated over; everything else
+# is the arbitrary-value mul_assoc.arb and zero_mul, with the three positivity
+# hypotheses passed straight through.
+def Rat.mul_eq_zero.chain(+n: I.Int, +d: Nat,
+                          +fx: {R.Rat.mk(n, d) == R.Rat{n, d} : R.Rat},
+                          +pd: {Nat.cmp(0n, d) == LT{} : Cmp},
+                          +y: R.Rat,
+                          +py: {Nat.cmp(0n, R.Rat.denof(y)) == LT{} : Cmp},
+                          +q: R.Rat,
+                          +pq: {Nat.cmp(0n, R.Rat.denof(q)) == LT{} : Cmp},
+                          +hq: {R.Rat.mul(y, q) == R.Rat.one() : R.Rat},
+                          +hz: {R.Rat.mul(R.Rat{n, d}, y) == R.Rat.zero() : R.Rat})
+  -> {R.Rat{n, d} == R.Rat.zero() : R.Rat}:
+  Equal.trans(R.Rat,
+    R.Rat{n, d},
+    R.Rat.mul(R.Rat{n, d}, R.Rat.mul(y, q)),
+    R.Rat.zero(),
+    Equal.trans(R.Rat,
+      R.Rat{n, d},
+      R.Rat.mul(R.Rat{n, d}, R.Rat.one()),
+      R.Rat.mul(R.Rat{n, d}, R.Rat.mul(y, q)),
+      Equal.sym(R.Rat, R.Rat.mul(R.Rat{n, d}, R.Rat.one()), R.Rat{n, d},
+        R.Rat.mul_one(n, d, fx)),
+      Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(R.Rat{n, d}, v),
+        R.Rat.one(), R.Rat.mul(y, q),
+        Equal.sym(R.Rat, R.Rat.mul(y, q), R.Rat.one(), hq))),
+    Equal.trans(R.Rat,
+      R.Rat.mul(R.Rat{n, d}, R.Rat.mul(y, q)),
+      R.Rat.mul(R.Rat.mul(R.Rat{n, d}, y), q),
+      R.Rat.zero(),
+      Equal.sym(R.Rat,
+        R.Rat.mul(R.Rat.mul(R.Rat{n, d}, y), q),
+        R.Rat.mul(R.Rat{n, d}, R.Rat.mul(y, q)),
+        R.Rat.mul_assoc.arb(R.Rat{n, d}, y, q, pd, py, pq)),
+      Equal.trans(R.Rat,
+        R.Rat.mul(R.Rat.mul(R.Rat{n, d}, y), q),
+        R.Rat.mul(R.Rat.zero(), q),
+        R.Rat.zero(),
+        Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(v, q),
+          R.Rat.mul(R.Rat{n, d}, y), R.Rat.zero(), hz),
+        R.Rat.zero_mul(q, pq))))
+
+def R.Rat.mul_eq_zero(n, d, fx, pd, y, py, q, pq, hq, hz):
+  Rat.mul_eq_zero.chain(n, d, fx, pd, y, py, q, pq, hq, hz)

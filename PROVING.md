@@ -4242,3 +4242,78 @@ rather than more QExt restatements. `QExt.mul_one` (0.35 s) is the last qrat law
 restating, with the caveat its own comment records: at an arbitrary value `x * 1 = x` is
 *false* -- the product comes back normalized -- so its stuck form has to carry the
 canonical presentation as a hypothesis, exactly as this round did for conj_mul.
+
+## The zero-product law at the Rat level: what "the goal's written form" means, and a grammar corner (measured)
+
+The goal this round was the Rat-level zero-product law -- the forcing lemma the
+roadmap names for "no zero divisors when the norm is non-zero". It is landed, as
+`Rat.mul_eq_zero`, with `Rat.zero_mul` under it and `Nat.div_self.pos` added to the
+Nat inventory on the way. The two measured facts below are the round's real content;
+earlier rounds had not hit either.
+
+**The statement: the disjunction moves into the caller's hands.** "x*y = 0 implies
+x = 0 or y = 0" has no form here. An equation has two sides, not a disjunction, and a
+hypothesis is evidence of a *true* equation -- so "y is non-zero" cannot be handed
+over either. The form that is expressible is the unit form:
+
+    x * y = 0   and   y * q = 1   ==>   x = 0
+
+with q a right inverse of y. That is what `Rat.mul_inv.gt`/`.lt` produce, and their
+branch evidence *is* what "y is non-zero" means in this development (round four says
+so in as many words), so the law carries no sign at all: no GT/LT hypothesis, no
+numerator spelling, only the equation, and the branch lives in whoever supplies hq.
+The fill is the chain the statement is shaped around --
+x = x*1 = x*(y*q) = (x*y)*q = 0*q = 0 -- which is `Rat.mul_one` read backwards, hq
+under a congruence, `Rat.mul_assoc.arb` read backwards, hz under a congruence, and
+`Rat.zero_mul`: five citations, no rewriting machinery.
+
+**Measured: a fill's type has to be the goal's *written* form, not its normal form.**
+The first attempt at `Rat.zero_mul` was a single `Rat.mk.diag` call -- the law that
+says a diagonal numerator over a positive denominator is zero, which is what a zero
+product's mk produces -- and it was rejected in a way no earlier round had produced:
+
+    expected : {Rat.mk(Int.mul(Int{0n,0n}, xn), Nat.add(xd, 0n)) == Rat{Int{0n,0n},1n} : Rat}
+    observed : {Rat{Int{Nat.div.fin(Nat.divmod(0n, ...)), ...}, Nat.div.fin(...)} == ... : Rat}
+
+Both sides denote the same value and each subterm of the first reduces to the matching
+subterm of the second, and the check still fails: the comparison is on the *written*
+term. `Rat.mul(Rat.zero(), Rat{xn,xd})` unfolds (delta) to
+`Rat.mk(Int.mul(Int.zero(), xn), Nat.mul(1n, xd))` with the arguments not further
+reduced, and a `{==}` leg does not bridge that to a differently written term -- nor
+does a `{==}`-leg between two spellings of the same value. What bridges it is an
+explicit `Equal.cong` over the equation between the numerator's two spellings
+(`Int.mul_comm` then `Int.mul_zero`) with both endpoints written out. The working fill
+is that cong followed by `Rat.mk.diag` at `Nat.mul(1, xd)` with `mul_pos` for the
+positivity. The rule to carry forward: a `{==}` leg proves an equation that holds by
+computation, but only when the two sides are written the same way -- every earlier
+fill in this repo happens to be, which is why this had not come up.
+
+**Measured: a qualified def name takes bare parameters only.** Writing the fill as
+`def R.Rat.mul_eq_zero(n: I.Int, d: Nat, fx: {...}, ...)` -- parameters typed, or
+marked with `+` -- is a *parse* error ("expected : a name / observed : '+'"), while the
+same header parses in a file of its own and while the unqualified helper
+`def Rat.add_neg.coords(+xp: Nat, ...)` has used typed parameters all along. Bare
+parameters, on the other side, leave every parameter's type at `Quant`, and the
+return-type ascription then fails to match ("expected : int.Int / observed : Quant").
+The way through is the wrapper the repo already uses for its biggest fills: the chain
+lives in a typed helper in the file's own namespace (`Rat.mul_eq_zero.chain`) and the
+law's fill is one call to it, `def R.Rat.mul_eq_zero(n, d, fx, ...)`, whose bare
+parameters the helper's signature pins. `Rat.add_neg.coords`/`R.Rat.add_neg` is the
+same shape one level down.
+
+**What the Nat side needed, and what it did not.** `Nat.div_self` is stated over
+`1 + ap`, and `Nat.div` does not reduce at a variable divisor (`divmod` matches on the
+divisor), so `div(a, a) = 1` for an `a` that is merely *positive* was a real gap:
+`Nat.div_self.pos` is that law, a case split whose `0n` branch is `Empty.absurd` over
+`lt_ne_eq` against the positivity witness and whose successor branch is the landed law.
+The fill that landed does not need it in the end -- `Rat.mk.diag` is stated over a
+positivity witness rather than a successor spelling, and reaches `1 + ap` itself with
+`pos_witness`. So it stays as inventory, the missing case of a published family, and
+the honest note is that nothing cites it yet.
+
+**Status.** All five `src/*_proofs.bend` check, `probe.bend` (two new caller-side
+defs and a literal instance) checks, `probe.payoff.bend` checks, `scratch.bend` prints
+its triple. Law counts, transitive over imports: nat 129, int 32, qext 34, rat **229**
+(+1 Nat, +2 Rat), qrat **256**. What is still open is the QExt half of the unit: the
+zero-divisor statement itself -- `x*y = 0` with a non-zero norm giving `y = 0` -- for
+which this law, `QExt.mul_inv` and `QExt.norm.mul` are the machinery.

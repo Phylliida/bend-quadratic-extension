@@ -1024,6 +1024,14 @@ def NL.div_zero(d):
 def NL.div_self(ap):
   NL.div_exact(1n+ap, ap, 1n, NL.mul_one(1n+ap))
 
+def NL.div_self.pos(a, p):
+  match a:
+    case 0n:
+      Empty.absurd({Nat.div(0n, 0n) == 1n : Nat},
+        NL.lt_ne_eq(Equal.sym(Cmp, EQ{}, LT{}, p)))
+    case 1n+ap:
+      NL.div_self(ap)
+
 def NL.sub_zero_left(a):
   match a:
     case 0n:
