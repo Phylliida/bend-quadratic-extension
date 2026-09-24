@@ -1093,6 +1093,97 @@ def Q.QExt.add_neg(x, gx, hx):
         qext.re(B1, A1, R.Rat.zero(), R.Rat.add_neg(xa, gx)),
         qext.im(R.Rat.zero(), B1, R.Rat.zero(), R.Rat.add_neg(xb, hx)))
 
+# QExt.mul_zero: three Rat.zero_mul rewrites and one qext.nat.mul_zero per
+# coordinate, each carried by a congruence, and then Rat.add(0, 0) -- which
+# reduces to Rat.zero() on its own (both numerator products carry a zero
+# literal and Nat.mul(1, 1) is 1 by computation), so the last leg is `{==}`.
+# The two coordinate witnesses are the same qext.re/qext.im pair every QExt
+# fill of a sum uses.
+def Q.QExt.mul_zero(d, x, gx, hx):
+  match x:
+    case Q.QExt{+xa, +xb}:
+      +A1 = R.Rat.add(R.Rat.mul(R.Rat.zero(), xa),
+                      R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), xb)))
+      +B1 = R.Rat.add(R.Rat.mul(R.Rat.zero(), xb), R.Rat.mul(R.Rat.zero(), xa))
+      +eA = Equal.trans(R.Rat, A1,
+              R.Rat.add(R.Rat.zero(), R.Rat.zero()),
+              R.Rat.zero(),
+              Equal.trans(R.Rat, A1,
+                R.Rat.add(R.Rat.mul(R.Rat.zero(), xa), R.Rat.zero()),
+                R.Rat.add(R.Rat.zero(), R.Rat.zero()),
+                Equal.cong(R.Rat, R.Rat,
+                  v => R.Rat.add(R.Rat.mul(R.Rat.zero(), xa), v),
+                  R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), xb)), R.Rat.zero(),
+                  Equal.trans(R.Rat,
+                    R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), xb)),
+                    R.Rat.mul(Q.QExt.nat(d), R.Rat.zero()),
+                    R.Rat.zero(),
+                    Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(Q.QExt.nat(d), v),
+                      R.Rat.mul(R.Rat.zero(), xb), R.Rat.zero(), R.Rat.zero_mul(xb, hx)),
+                    qext.nat.mul_zero(d))),
+                Equal.cong(R.Rat, R.Rat, v => R.Rat.add(v, R.Rat.zero()),
+                  R.Rat.mul(R.Rat.zero(), xa), R.Rat.zero(), R.Rat.zero_mul(xa, gx))),
+              {==})
+      +eB = Equal.trans(R.Rat, B1,
+              R.Rat.add(R.Rat.zero(), R.Rat.zero()),
+              R.Rat.zero(),
+              Equal.trans(R.Rat, B1,
+                R.Rat.add(R.Rat.zero(), R.Rat.mul(R.Rat.zero(), xa)),
+                R.Rat.add(R.Rat.zero(), R.Rat.zero()),
+                Equal.cong(R.Rat, R.Rat,
+                  v => R.Rat.add(v, R.Rat.mul(R.Rat.zero(), xa)),
+                  R.Rat.mul(R.Rat.zero(), xb), R.Rat.zero(), R.Rat.zero_mul(xb, hx)),
+                Equal.cong(R.Rat, R.Rat, v => R.Rat.add(R.Rat.zero(), v),
+                  R.Rat.mul(R.Rat.zero(), xa), R.Rat.zero(), R.Rat.zero_mul(xa, gx))),
+              {==})
+      Equal.trans(Q.QExt,
+        Q.QExt.mul(d, Q.QExt.zero(), Q.QExt{xa, xb}),
+        Q.QExt{R.Rat.zero(), B1},
+        Q.QExt.zero(),
+        qext.re(B1, A1, R.Rat.zero(), eA),
+        qext.im(R.Rat.zero(), B1, R.Rat.zero(), eB))
+
+# QExt.mul_eq_zero: one leg per step of the chain, and the only interesting
+# choice is which of the six positivity witnesses goes where -- QExt.mul_assoc
+# is called at (y, x, zi), so the first four are the spelled y's coordinates
+# (successor denominators, hence `{==}`) and the last two are zi's.
+def Q.QExt.mul_eq_zero(d, np, nn, dp, mq, mn, dq, f1, f2, x, gx, hx, zi, hi, gzi, hzi, hz):
+  +Y = Q.QExt.of(np, nn, dp, mq, mn, dq)
+  Equal.trans(Q.QExt,
+    Q.QExt.of(np, nn, dp, mq, mn, dq),
+    Q.QExt.mul(d, Y, Q.QExt.mul(d, x, zi)),
+    Q.QExt.zero(),
+    Equal.trans(Q.QExt,
+      Y,
+      Q.QExt.mul(d, Y, Q.QExt.one()),
+      Q.QExt.mul(d, Y, Q.QExt.mul(d, x, zi)),
+      Equal.sym(Q.QExt, Q.QExt.mul(d, Y, Q.QExt.one()), Y,
+        Q.QExt.mul_one(d, np, nn, dp, mq, mn, dq, f1, f2)),
+      Equal.cong(Q.QExt, Q.QExt, v => Q.QExt.mul(d, Y, v),
+        Q.QExt.one(), Q.QExt.mul(d, x, zi),
+        Equal.sym(Q.QExt, Q.QExt.mul(d, x, zi), Q.QExt.one(), hi))),
+    Equal.trans(Q.QExt,
+      Q.QExt.mul(d, Y, Q.QExt.mul(d, x, zi)),
+      Q.QExt.mul(d, Q.QExt.mul(d, Y, x), zi),
+      Q.QExt.zero(),
+      Equal.sym(Q.QExt,
+        Q.QExt.mul(d, Q.QExt.mul(d, Y, x), zi),
+        Q.QExt.mul(d, Y, Q.QExt.mul(d, x, zi)),
+        Q.QExt.mul_assoc(d, Y, x, zi, {==}, {==}, gx, hx, gzi, hzi)),
+      Equal.trans(Q.QExt,
+        Q.QExt.mul(d, Q.QExt.mul(d, Y, x), zi),
+        Q.QExt.mul(d, Q.QExt.zero(), zi),
+        Q.QExt.zero(),
+        Equal.trans(Q.QExt,
+          Q.QExt.mul(d, Q.QExt.mul(d, Y, x), zi),
+          Q.QExt.mul(d, Q.QExt.mul(d, x, Y), zi),
+          Q.QExt.mul(d, Q.QExt.zero(), zi),
+          Equal.cong(Q.QExt, Q.QExt, v => Q.QExt.mul(d, v, zi),
+            Q.QExt.mul(d, Y, x), Q.QExt.mul(d, x, Y), Q.QExt.mul_comm(d, Y, x)),
+          Equal.cong(Q.QExt, Q.QExt, v => Q.QExt.mul(d, v, zi),
+            Q.QExt.mul(d, x, Y), Q.QExt.zero(), hz)),
+        Q.QExt.mul_zero(d, zi, gzi, hzi))))
+
 # QExt.neg_add / QExt.mul_neg / QExt.neg_mul
 # ==========================================
 #

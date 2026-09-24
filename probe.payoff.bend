@@ -494,3 +494,65 @@ def probe.norm.mul.instance()
     Q.QExt.conj_mul(2n, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}}, Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n+1n}},
       1n, 0n, 1n, 1n, 0n, 1n,
       {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}))
+
+# QExt.mul_zero and QExt.mul_eq_zero from a caller's side. The zero-divisor law
+# is the last one the roadmap was waiting on, so it gets both shapes: the law
+# over its own sixteen hypotheses, and an instance where every hypothesis is
+# `{==}` -- including hz, which needs the product to compute to QExt.zero().
+
+def probe.use.mul_zero(+d: Nat, +x: Q.QExt,
+                       +gx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(x))) == LT{} : Cmp},
+                       +hx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(x))) == LT{} : Cmp})
+  -> {Q.QExt.mul(d, Q.QExt.zero(), x) == Q.QExt.zero() : Q.QExt}:
+  Q.QExt.mul_zero(d, x, gx, hx)
+
+def probe.use.mul_eq_zero(+d: Nat,
+                          +np: Nat, +nn: Nat, +dp: Nat,
+                          +mq: Nat, +mn: Nat, +dq: Nat,
+                          +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp)
+                                == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat},
+                          +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq)
+                                == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat},
+                          +x: Q.QExt,
+                          +gx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(x))) == LT{} : Cmp},
+                          +hx: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(x))) == LT{} : Cmp},
+                          +zi: Q.QExt,
+                          +hi: {Q.QExt.mul(d, x, zi) == Q.QExt.one() : Q.QExt},
+                          +gzi: {Nat.cmp(0n, R.Rat.denof(Q.QExt.re(zi))) == LT{} : Cmp},
+                          +hzi: {Nat.cmp(0n, R.Rat.denof(Q.QExt.im(zi))) == LT{} : Cmp},
+                          +hz: {Q.QExt.mul(d, x, Q.QExt.of(np, nn, dp, mq, mn, dq))
+                                == Q.QExt.zero() : Q.QExt})
+  -> {Q.QExt.of(np, nn, dp, mq, mn, dq) == Q.QExt.zero() : Q.QExt}:
+  Q.QExt.mul_eq_zero(d, np, nn, dp, mq, mn, dq, f1, f2, x, gx, hx, zi, hi, gzi, hzi, hz)
+
+# 1 + sqrt 2 over radicand 2 has inverse -1 + sqrt 2, since (1+x)(-1+x) = x^2 - 1
+# = 1. The zero factor is spelled QExt.of(0,0,0,0,0,0) -- the canonical zero
+# written through the six-coordinate spelling, which is what makes the
+# conclusion (not the hypothesis) the thing the chain has to reach.
+def probe.mul_eq_zero.instance()
+  -> {Q.QExt.of(0n, 0n, 0n, 0n, 0n, 0n) == Q.QExt.zero() : Q.QExt}:
+  Q.QExt.mul_eq_zero(2n, 0n, 0n, 0n, 0n, 0n, 0n,
+    {==}, {==},
+    Q.QExt{R.Rat{I.Int{1n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}},
+    {==}, {==},
+    Q.QExt{R.Rat{I.Int{0n, 1n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}},
+    {==}, {==}, {==},
+    {==})
+
+# The hypothesis is not cosmetic. At d = 4 the element -2 + sqrt 4 has norm
+# 4 - 4 = 0, and it is a genuine zero divisor: (-2 + x)(2 + x) = x^2 - 4 = 0 at
+# x^2 = 4. Neither factor is zero (their real coordinates are -2 and 2), so with
+# norm(x) = 0 the conclusion y = 0 is simply false and QExt.mul_eq_zero must say
+# nothing -- which is why the law carries the inverse as a hypothesis instead.
+def probe.zero_divisor.d4()
+  -> {Q.QExt.mul(4n,
+        Q.QExt{R.Rat{I.Int{0n, 2n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}},
+        Q.QExt{R.Rat{I.Int{2n, 0n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}})
+      == Q.QExt.zero() : Q.QExt}:
+  {==}
+
+def probe.zero_divisor.d4.norm()
+  -> {Q.QExt.norm(4n,
+        Q.QExt{R.Rat{I.Int{0n, 2n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}})
+      == R.Rat.zero() : R.Rat}:
+  {==}

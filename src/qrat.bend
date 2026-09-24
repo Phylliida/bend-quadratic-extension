@@ -549,6 +549,73 @@ law QExt.mul_one:
   {QExt.mul(d, QExt.of(np, nn, dp, mq, mn, dq), QExt.one())
    == QExt.of(np, nn, dp, mq, mn, dq) : QExt}
 
+# QExt.mul_zero: 0 * x = 0. Componentwise like QExt.add_zero, and it is the
+# step a zero-product argument ends on -- the product that has to be shown zero
+# is 0 * (an inverse whose spelling the proof cannot control).
+#
+# Each coordinate needs Rat.zero_mul, the mirror of Rat.mul_zero, and the reason
+# it is a law of its own is in its own comment: with the zero on the left the
+# numerator collapses by computation but the *denominator* does not. The real
+# coordinate also carries the one product whose left factor is the radicand
+# coefficient QExt.nat(d) -- a denominator of base 1, so no Rat.mul_zero spelling
+# reaches it -- which is qext.nat.mul_zero. The positivity hypotheses are what
+# Rat.zero_mul asks for, per coordinate, exactly as QExt.add_neg takes them.
+law QExt.mul_zero:
+  for +d: Nat
+  for +x: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  {QExt.mul(d, QExt.zero(), x) == QExt.zero() : QExt}
+
+# QExt.mul_eq_zero
+# ================
+#
+#     x * zi = 1   and   x * y = 0   ==>   y = 0
+#
+# -- "no zero divisors when the norm is non-zero", the statement the roadmap
+# names, in the form this language can carry. Two things travel as hypotheses
+# rather than as assumptions:
+#
+#   * "norm(d, x) is non-zero" arrives as the *unit witness*: zi is x's inverse
+#     and hi is the equation x * zi = 1. That is what the two payoff laws
+#     QExt.mul_inv.gt/.lt produce (norm positive, norm negative), and their
+#     branch evidence is what "non-zero" means in this development -- so this
+#     law carries no sign and never mentions the norm.
+#   * y is spelled, at QExt.of's six coordinates with the two Rat.mk.fixed
+#     bridges. That is not cosmetic: y * 1 = y is false at an unreduced
+#     coordinate (the product comes back normalized -- measured in round five),
+#     so QExt.mul_one, and with it any law whose chain starts by turning y into
+#     y * 1, has a variable form only at the canonical presentation. The bridges
+#     are the same pair QExt.mul_one itself asks for.
+#
+# The fill is the chain the statement is shaped around,
+#
+#     y = y*1 = y*(x*zi) = (y*x)*zi = (x*y)*zi = 0*zi = 0
+#
+# with QExt.mul_one backwards, hi under a congruence, QExt.mul_assoc backwards
+# (the only law here wanting positivity witnesses -- six, of which four are
+# `{==}` because y is spelled), QExt.mul_comm under a congruence, hz under a
+# congruence, and QExt.mul_zero to finish.
+law QExt.mul_eq_zero:
+  for +d: Nat
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +mq: Nat
+  for +mn: Nat
+  for +dq: Nat
+  for +f1: {R.Rat.mk(R.Rat.num(np, nn), 1n+dp) == R.Rat{R.Rat.num(np, nn), 1n+dp} : R.Rat}
+  for +f2: {R.Rat.mk(R.Rat.num(mq, mn), 1n+dq) == R.Rat{R.Rat.num(mq, mn), 1n+dq} : R.Rat}
+  for +x: QExt
+  for +gx: {Nat.cmp(0n, R.Rat.denof(QExt.re(x))) == LT{} : Cmp}
+  for +hx: {Nat.cmp(0n, R.Rat.denof(QExt.im(x))) == LT{} : Cmp}
+  for +zi: QExt
+  for +hi: {QExt.mul(d, x, zi) == QExt.one() : QExt}
+  for +gzi: {Nat.cmp(0n, R.Rat.denof(QExt.re(zi))) == LT{} : Cmp}
+  for +hzi: {Nat.cmp(0n, R.Rat.denof(QExt.im(zi))) == LT{} : Cmp}
+  for +hz: {QExt.mul(d, x, QExt.of(np, nn, dp, mq, mn, dq)) == QExt.zero() : QExt}
+  {QExt.of(np, nn, dp, mq, mn, dq) == QExt.zero() : QExt}
+
 # QExt.add_zero: x + 0 = x, at the canonical presentation -- the additive twin
 # of QExt.mul_one, and the same restriction for the same reason. Measured, at the
 # unreduced real coordinate Rat{Int{2,0}, 2}: x + 0 comes back Rat{Int{1,0}, 1},
