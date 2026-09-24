@@ -144,7 +144,13 @@ law of its sibling via `def <alias>.<name>(...)`:
   at literals.
 - `scratch.bend` — smoke test with a `main`.
 
-Check with `node bend2/main.ts <file>` from a bend checkout. The five
+Check with `bun bend2/main.ts <file>` from a bend checkout -- the checker has
+required Bun for its CLI since the 2.0.24/2.0.27 line (the guard is
+`import.meta.main` in `bend2/main.ts`, so importing the module still works under
+Node; `bun` is in the nix store on this box, and `nix shell nixpkgs#bun -c bun
+bend2/main.ts <file>` is the durable form). This checkout is on **Bend 2.0.27**
+(`bend` @ `d3790917`), fast-forwarded from a 2.0.5-era tree in PROVING round
+eighteen; every gate below was re-run there and the law counts are unchanged. The five
 `*_proofs.bend` files are the gates and print `All terms check.`, as do the
 two `probe*.bend` consumer files; the
 laws-only files intentionally fail with
@@ -612,9 +618,20 @@ Known gaps, in dependency order:
    then `gcd(c*c, 1)` and `Nat.gcd` cannot start on a product. The measurements,
    the route and the laws' own comments are in qrat.bend and PROVING.md, rounds
    ten through seventeen.
-3. A binary-nat layer for proof land. The compiled lanes are already binary -- the
-   C lane maps `Nat` to W64 with native `nat_add`/`nat_mul`/`nat_divmod`
-   (`comp.ts:161`, `comp.ts:255`), and the JS lane uses BigInt -- but in proof
-   land a literal is a tower of `Succ` around `Zero` (`bend.ts:2245`), so literal
-   size *is* term size, and every `Nat` operation is defined by recursion over
-   that tower.
+3. Big-number arithmetic for proof land. Two ceilings remain, and round eighteen
+   measured both after the checker update that removed the first one. The compiled
+   lanes are already binary -- the C lane maps `Nat` to W64 with native
+   `nat_add`/`nat_mul`/`nat_divmod` (`comp.ts:161`, `comp.ts:255`), and the JS lane
+   uses BigInt -- and in proof land a nat literal is now *one `Lit` node*
+   (`bend.ts`; CHANGELOG 2.0.24, PRs #907/#924), which unfolds one constructor at a
+   time when it is compared, matched or checked: literal size is no longer term
+   size, and literals up to 10^7 check in 0.17 s. What is left is that **`Nat`
+   operations still evaluate by recursion over the tower**, so arithmetic on
+   literal operands overflows the machine stack at about 10^3 (`Nat.mul`, `Nat.div`
+   and `Nat.gcd` all recurse; measured), and that **a nat literal is capped at
+   4294967295n** (`bend.ts:2352`, a 32-bit ceiling). The cheap fix for the first is
+   a reducer fast path -- when both operands are literals, compute natively as the
+   compiled lanes already do, and box the result as a literal; the second needs
+   either bignum literals in the checker or a proved bignum type built on
+   `Word(n)`'s bit vectors (`base.bend`). Which of those a sketch actually needs is
+   a measurement, not a guess: see `TOWER-PLAN.md` §4.2.

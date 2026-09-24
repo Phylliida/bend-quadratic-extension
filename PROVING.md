@@ -4434,3 +4434,70 @@ caller-side, one literal instance, two boundary citations and their two norm/pro
 twins); `scratch.bend` prints its triple. Law counts, transitive over imports: nat 129,
 int 32, qext 34, rat 229, qrat **265** (+7 QExt: the five identities and the two
 boundary instances).
+
+## The checker update: the literal wall was upstream all along (measured)
+
+Round seventeen ended with a measurement that reframed the next unit: a nat literal in
+proof land is a `Succ` tower, and beyond about 10^3 nodes the checker did not get slow,
+it **died** -- "the machine stack overflowed", reported in 0.26 s, at depths 10^4 and
+above. The question that followed was whether to build a binary representation for
+proof land. This round checked the checker's own history first, and the answer was that
+the work had already been done upstream.
+
+**The update.** The `bend` checkout at `0b7e2b11` (2026-09-18, a 2.0.5-era tree) was
+fast-forwarded to `d3790917` (2026-09-23, **Bend 2.0.27**) -- 214 commits, ours an
+ancestor of theirs, nothing of ours ahead, so a clean `--ff-only` with no merge. The
+canonical repo is `bendlang/bend` (the one this project's README links); the checkout's
+own `origin` is `phenomenon0/bend`, which was already in sync at the old commit. The old
+SHA is recorded here because reverting is a `git checkout 0b7e2b11`.
+
+**Why that was the fix.** CHANGELOG 2.0.24 (2026-09-21): *"A string or nat literal is
+one `Lit` node in the checker (PRs #907 and #924): a literal unfolds one constructor at
+a time when it is compared, matched or checked, so 50 defs of 1000-char strings check in
+0.14 s and 74 MB instead of 4 s and 2.6 GB, **a 200k-char literal checks instead of
+overflowing the stack**, ... and `1n+0n` is `1n`."* Exactly the failure we measured,
+fixed two days after our checkout's commit.
+
+**Measured after the update** (same probe, `Nat.sub(K, 0n) == K` for K = 10^k):
+
+| K | before (node, old checker) | after (2.0.27) |
+|---|---|---|
+| 10^3 | 0.34 s, ok | 0.36 s, ok |
+| 10^4 | 0.26 s, **stack overflow** | 0.18 s, ok |
+| 10^5 | 0.28 s, **stack overflow** | 0.17 s, ok |
+| 10^6 | 0.87 s, **stack overflow** | 0.19 s, ok |
+| 10^7 | -- | 0.17 s, ok |
+
+**The gates, re-run on 2.0.27.** Every one passes and every count is identical: five
+`src/*_proofs.bend` (`nat_proofs` "All terms check.", int 32, qext 34, rat 229, qrat
+265), `probe.bend` 1.85 s, `probe.payoff.bend` 4.34 s, `scratch.bend` printing its
+triple. The library checks got faster, 0.33-0.44 s down to 0.18-0.36 s.
+
+**The invocation changed, and it needs Bun.** `bend2/main.ts` now guards its CLI with
+`if (import.meta.main) { if (typeof Bun === "undefined") { say("bend runs on Bun...");
+exit(1) } }`, so `node bend2/main.ts <file>` prints the install line and exits; the
+`else` branch registers a Node module hook, so *importing* the module still works from
+Node. Bun 1.3.11 is already in this box's nix store, which is what these runs used.
+`nix shell nixpkgs#bun -c bun ...` is the durable form, but it could not be verified
+inside this session's file sandbox -- nix's fetcher cache lives outside the workspace
+and the write is denied -- so it is documented as the form to use, not as a measured
+one. `bend.ts` is human-written and marked do-not-edit in its own `AGENTS.md`.
+
+**Two ceilings remain, both now measured.** Arithmetic on literal operands still
+recurses over the tower -- `Nat.mul`, `Nat.div` and `Nat.gcd` at 10^3 and 10^4 operands
+stack-overflow -- and a nat literal is capped at `4294967295n` (`bend.ts:2352`, 32-bit),
+so at 10^5 the probe fails with *"expected : a nat literal up to 4294967295n"* rather
+than computing. The `Lit` node fixed storage, comparison and matching; it did not make
+the *operations* native.
+
+**What that does to the plan.** The "build the binary representation first" question is
+answered in halves. The storage half was already fixed upstream, so writing concrete
+numbers -- even ten-million-sized ones -- is fine now, and `TOWER-PLAN.md` §4.2 and
+README item 3 were rewritten to say so. The arithmetic half is a *reducer* change of the
+same kind as the `Lit` node: when both operands of a `Nat` operation are literals,
+compute natively as the compiled lanes already do (`comp.ts:161` maps `Nat` to W64 with
+native `nat_add`/`nat_mul`/`nat_divmod`) and box the result as a literal. That is a
+proposal for the checker's owner, not a patch this repo carries. The bignum half --
+coordinates past 2^32 -- is a later question whose shape should be decided by measured
+coordinate sizes from real sketches, with `Word(n)`'s bit vectors in `base.bend` as the
+obvious substrate.
