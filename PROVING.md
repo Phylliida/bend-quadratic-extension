@@ -4379,3 +4379,58 @@ coordinates, which is the same conversion cost round thirteen profiled, and remo
 would mean not calling the published laws at their own presentations -- that is, giving
 up exactly the coverage the file exists for. Law counts, transitive over imports: nat
 129, int 32, qext 34, rat 229, qrat **258** (+2 QExt: `mul_zero`, `mul_eq_zero`).
+
+## The norm's identities, and the spelled presentation costing 6.7 seconds again (measured)
+
+The last items on the QExt inventory, and a repeat of round fourteen's lesson in a
+new place: `QExt.conj_neg`, `QExt.norm.zero`, `QExt.norm.one`, `QExt.norm.conj`,
+`QExt.norm.neg` are in, and the `d = 4` boundary moved from the probe file into the
+library as `QExt.zero_divisor.d4` and `QExt.zero_divisor.d4.norm`.
+
+**Three of them are free or nearly so.** `QExt.conj_neg` is the *same term* on both
+sides once the projections come off -- conj(-x) has real `re(neg x) = -re(x)` and
+imaginary `-im(neg x) = -(-im(x))`, and -(conj x) has `-re(conj x) = -re(x)` and
+`-im(conj x) = -(-im(x))` -- so the fill is the match and `{==}`. `QExt.norm.zero` and
+`QExt.norm.one` are one `qext.nat.mul_zero` step each plus a closing `{==}`: the first
+product in each reduces on its own (0*0 and 1*1), the second is `QExt.nat(d)*0` whose
+left factor has denominator 1 and so is out of reach of every `Rat.mul_zero` spelling,
+and after it `Rat.add(0, -0)` is `Rat.zero()` and `Rat.add(1, -0)` is `Rat.one()` by
+computation.
+
+**The two invariances cost 13 seconds at the spelled presentation, and 0.2 after
+restating.** `QExt.norm.conj` and `QExt.norm.neg` were first written the way
+`QExt.conj_conj` is, over `QExt.of`'s six coordinates with the coprimality hypotheses
+that `Rat.mul.neg_neg.reduced` wants. The fills checked, and the file went from 2.3 s
+to **15.3 s**: prefix cuts (at true def boundaries -- a cut inside a def aborts the
+parse in 0.4 s and reports "expected : a term / observed : end of input", which is
+what three of the first cuts were doing before the numbers were believed) put
+`norm.conj` at **+6.4 s** and `norm.neg` at **+6.7 s**, while `norm.zero`, `norm.one`
+and both boundary instances cost about +0.1 s each. This is exactly round thirteen's
+mechanism: at spelled coordinates each conversion normalizes through mk chains, and
+the cost is in the *conversion*, not in the proof. Restating both laws at arbitrary
+`x`, with the spelling the identity needs supplied as a hypothesis (`him` names the
+imaginary coordinate as `Rat.of(mq,mn,dq)`; `norm.neg` also takes `hre`) drops the
+file to **2.58 s** -- the fills become three-step transports at stuck terms, spelling
+out to the named pair, applying the reduced law, and spelling back -- and the spelled
+statement survives as the *instance*, which is what the new
+`probe.norm.neg.instance` writes: at `x := QExt.of's` coordinates both naming
+hypotheses are `{==}`. Round fourteen did this to `QExt.conj_mul`; this round is the
+same fix applied to two more laws, and the numbers are the same order.
+
+**The boundary is stated at literals, and that is measured rather than lazy.** The
+parametric form over a radicand `c*c` -- `(-c + x)(c + x) = x^2 - c^2 = 0` -- stops one
+step short of the canonical form: the two real coordinates multiply to the difference
+pair `Int{0, c*c}`, whose magnitude is `Nat.mul(c,c)`, and `mk`'s divisor is then
+`gcd(mul(c,c), 1)`. `Nat.gcd` splits on its first argument (`a = 0` or `a = 1 + ap`), so
+it cannot start on a product, and the reduction stalls before the numerator can be seen
+to be zero. A general statement would need the scaling half of the normalization again
+-- the `Rat.mk.scale` family and its Nat witnesses -- which is a unit of its own; the
+instance is what records the boundary, and its comment says so. Both halves close by
+`{==}`, so the record costs nothing.
+
+**Status.** All five `src/*_proofs.bend` check at 0.33-0.44 s; `probe.bend` 1.65 s and
+`probe.payoff.bend` 3.71 s check (the latter up 0.55 s for eleven new defs: six
+caller-side, one literal instance, two boundary citations and their two norm/probe
+twins); `scratch.bend` prints its triple. Law counts, transitive over imports: nat 129,
+int 32, qext 34, rat 229, qrat **265** (+7 QExt: the five identities and the two
+boundary instances).

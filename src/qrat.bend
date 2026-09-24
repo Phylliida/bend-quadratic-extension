@@ -389,6 +389,19 @@ law QExt.conj_conj:
                            R.Rat{R.Rat.num(mq, mn), 1n+dq}}))
    == QExt{R.Rat{R.Rat.num(np, nn), 1n+dp}, R.Rat{R.Rat.num(mq, mn), 1n+dq}} : QExt}
 
+# QExt.conj_neg: conj(-x) = -conj(x) -- conjugation commutes with negation, the
+# last coordinatewise compatibility the two operations were missing.
+#
+# It is free: both sides are the *same* term. conj(-x) has real coordinate
+# re(neg x) = -re(x) and imaginary -im(neg x) = -(-im(x)); -(conj x) has real
+# -re(conj x) = -re(x) and imaginary -im(conj x) = -(-im(x)). What makes the law
+# worth stating rather than leaving to whoever needs it is only that the
+# projections have to reduce, so the statement is over arbitrary x and the fill
+# opens with the match every QExt fill opens with.
+law QExt.conj_neg:
+  for +x: QExt
+  {QExt.conj(QExt.neg(x)) == QExt.neg(QExt.conj(x)) : QExt}
+
 # QExt.conj_mul: conj(x*y) = conj(x)*conj(y) -- the multiplicativity of the
 # conjugate, and with QExt.conj_add the pair that makes conj a ring automorphism
 # of QExt.
@@ -530,6 +543,115 @@ law QExt.norm.mul:
 # canonical value supplies by `{==}` at a literal and with Rat.mk.fixed in
 # general.
 #
+# The boundary: the hypothesis of QExt.mul_eq_zero cannot be dropped
+# ================================================================
+#
+# At d = 4 the element -2 + sqrt 4 has norm 4 - 4 = 0, and it is a genuine zero
+# divisor: (-2 + x)(2 + x) = x^2 - 4 = 0 at x^2 = 4. Neither factor is zero --
+# their real coordinates are -2 and 2 -- so with norm(d, x) = 0 the conclusion
+# "y = 0" is false, and that is precisely why QExt.mul_eq_zero carries the
+# inverse as a hypothesis instead of a non-zero-ness condition on x. Together
+# with QExt.mul_inv.gt/.lt the two instances say the extension's units are
+# exactly the elements of non-zero norm, and nothing weaker separates them from
+# the zero divisors.
+#
+# They are stated at literals, and the parametric form over a radicand c*c is
+# *not* available at this presentation -- measured while writing them: the two
+# factors' real coordinates multiply to the difference pair Int{0, c*c}, whose
+# magnitude is Nat.mul(c,c), and mk's divisor is then gcd(mul(c,c), 1). Nat.gcd
+# cannot start on a product (its first argument has to be a constructor to take
+# the a = 0 / a = 1 + ap split), so the reduction stops one step short of the
+# canonical form and a general statement would need the scaling half of the
+# normalization -- the Rat.mk.scale family -- all over again. The instances are
+# what record the boundary; PROVING.md round seventeen says which step it
+# would take.
+law QExt.zero_divisor.d4:
+  {QExt.mul(4n,
+     QExt{R.Rat.of(0n, 2n, 0n), R.Rat.of(1n, 0n, 0n)},
+     QExt{R.Rat.of(2n, 0n, 0n), R.Rat.of(1n, 0n, 0n)})
+   == QExt.zero() : QExt}
+
+# The same element's norm, which is what closes the door: it is 0, so no law in
+# the library turns the element into a unit, and QExt.mul_eq_zero has no premise
+# to offer.
+law QExt.zero_divisor.d4.norm:
+  {QExt.norm(4n, QExt{R.Rat.of(0n, 2n, 0n), R.Rat.of(1n, 0n, 0n)})
+   == R.Rat.zero() : R.Rat}
+
+# The norm's own identities
+# =========================
+#
+# norm(d, x) is multiplicative (QExt.norm.mul above); these four say where it
+# lands on the two constants and how it behaves under the two operations that
+# leave it alone. With QExt.norm.mul that is the whole story of the norm as a
+# function: it factors through conjugation, it is even, and it sends 0 to 0 and
+# 1 to 1.
+#
+# QExt.norm.zero and QExt.norm.one need no presentation: their arguments are the
+# constants, so every product in them reduces. The other two are stated at
+# QExt.of's spelling, because the Rat identity they rest on --
+# Rat.mul.neg_neg.reduced, negating both factors of a product is invisible --
+# holds at a *reduced* pair and nowhere else (at an unreduced spelling the two
+# sides differ; measured on Rat{Int{2,0},2} in round eleven). QExt.norm.conj
+# needs coprimality of the imaginary coordinate alone, since conjugation negates
+# only that one; QExt.norm.neg needs both.
+
+# QExt.norm.zero: norm(d, 0) = 0. The first product is 0*0 and reduces on its
+# own; the second is QExt.nat(d)*0, whose left factor has denominator 1 and so is
+# out of reach of every Rat.mul_zero spelling -- qext.nat.mul_zero is that step --
+# and after it the sum is Rat.add(0, -0), which is 0 by computation.
+law QExt.norm.zero:
+  for +d: Nat
+  {QExt.norm(d, QExt.zero()) == R.Rat.zero() : R.Rat}
+
+# QExt.norm.one: norm(d, 1) = 1, the same shape with 1*1 and 0*0 in place of the
+# two zero products.
+law QExt.norm.one:
+  for +d: Nat
+  {QExt.norm(d, QExt.one()) == R.Rat.one() : R.Rat}
+
+# QExt.norm.conj: the norm is invariant under conjugation -- norm(d, conj x) =
+# norm(d, x). Conjugation negates the imaginary coordinate, so the identity is
+# Rat.mul.neg_neg.reduced (negating both factors of a product is invisible)
+# inside the radicand product.
+#
+# Stated at arbitrary x, with the spelling that law needs supplied as a
+# hypothesis: him names the imaginary coordinate as Rat.of(mq,mn,dq) and h is
+# its coprimality. The spelled statement is exactly the instance
+# x := QExt.of(np,nn,dp,mq,mn,dq), where him is `{==}` -- and it is *not* the
+# form to state it in, measured: at those coordinates the two sides normalize
+# through mk chains, and the fill cost 6.4 s of a 15.3 s file. At arbitrary
+# values both sides are stuck terms and the same three-step transport is a
+# short walk (PROVING.md rounds thirteen and seventeen).
+law QExt.norm.conj:
+  for +d: Nat
+  for +x: QExt
+  for +mq: Nat
+  for +mn: Nat
+  for +dq: Nat
+  for +him: {QExt.im(x) == R.Rat.of(mq, mn, dq) : R.Rat}
+  for +h: {N.Nat.gcd(R.Rat.mag(mq, mn), 1n+dq) == 1n : Nat}
+  {QExt.norm(d, QExt.conj(x)) == QExt.norm(d, x) : R.Rat}
+
+# QExt.norm.neg: the norm is even -- norm(d, -x) = norm(d, x). Negation touches
+# both coordinates, so the identity is Rat.mul.neg_neg.reduced once per
+# coordinate, and both spellings travel as hypotheses for the reason above: the
+# spelled form of this law cost another 6.7 s, the restated one is a walk.
+law QExt.norm.neg:
+  for +d: Nat
+  for +x: QExt
+  for +np: Nat
+  for +nn: Nat
+  for +dp: Nat
+  for +hre: {QExt.re(x) == R.Rat.of(np, nn, dp) : R.Rat}
+  for +g: {N.Nat.gcd(R.Rat.mag(np, nn), 1n+dp) == 1n : Nat}
+  for +mq: Nat
+  for +mn: Nat
+  for +dq: Nat
+  for +him: {QExt.im(x) == R.Rat.of(mq, mn, dq) : R.Rat}
+  for +h: {N.Nat.gcd(R.Rat.mag(mq, mn), 1n+dq) == 1n : Nat}
+  {QExt.norm(d, QExt.neg(x)) == QExt.norm(d, x) : R.Rat}
+
 # The real coordinate is where the work is, and not by symmetry: QExt.mul's real
 # coordinate multiplies the radicand coefficient QExt.nat(d) by the imaginary
 # product, and QExt.nat(d) is Rat{Rat.num(d,0), 1} -- a denominator of base 1,
