@@ -4317,3 +4317,65 @@ its triple. Law counts, transitive over imports: nat 129, int 32, qext 34, rat *
 (+1 Nat, +2 Rat), qrat **256**. What is still open is the QExt half of the unit: the
 zero-divisor statement itself -- `x*y = 0` with a non-zero norm giving `y = 0` -- for
 which this law, `QExt.mul_inv` and `QExt.norm.mul` are the machinery.
+
+## The zero-divisor law: the norm becomes a unit witness, and y a spelling (measured)
+
+The unit's second half, and the statement the roadmap has been pointing at since the
+norm was proved multiplicative: no zero divisors when the norm is non-zero. It is in
+as `QExt.mul_eq_zero`, with `QExt.mul_zero` under it and two new payoff probes. Both
+fills checked on the first run; the round's content is the shape of the statement, and
+one measurement that says the hypothesis cannot be weakened.
+
+**The two things that travel as hypotheses.** "norm(d,x) is non-zero" never appears in
+the law. What appears is a *unit witness*: `zi`, an inverse of x, together with
+`hi : x * zi = 1`. That is exactly what `QExt.mul_inv.gt`/`.lt` produce -- one per sign
+of the norm's spelling -- and their branch evidence is what "non-zero" means in this
+development, so the law carries no sign at all and the norm is not mentioned. The other
+hypothesis is the spelling of y: `QExt.of`'s six coordinates plus the two
+`Rat.mk.fixed` bridges that `QExt.mul_one` asks for. That one is not stylistic either.
+`y * 1 = y` is false at an unreduced coordinate (the product comes back normalized --
+round five measured it), so `QExt.mul_one` has a variable form only at the canonical
+presentation, and a chain whose first step is `y = y * 1` inherits that restriction.
+The fill is then the chain the statement is shaped around,
+
+    y = y*1 = y*(x*zi) = (y*x)*zi = (x*y)*zi = 0*zi = 0
+
+with `QExt.mul_one` backwards, hi under a congruence, `QExt.mul_assoc` backwards,
+`QExt.mul_comm` under a congruence, hz under a congruence, and `QExt.mul_zero` to
+finish. `QExt.mul_assoc` is the only law in the chain wanting positivity witnesses --
+six of them, and four are `{==}` because y is spelled, so the fill's only real choice
+is which witness goes in which slot.
+
+**`QExt.mul_zero`, the step the chain ends on**, is componentwise like `QExt.add_zero`:
+each coordinate is one or two `Rat.zero_mul` rewrites (a congruence each) plus
+`qext.nat.mul_zero` for the one product whose left factor is the radicand coefficient -- a
+Rat whose denominator is the base 1, which no `Rat.mul_zero` spelling reaches -- and the
+last legs are `{==}`, because `Rat.add(0, 0)` reduces to `Rat.zero()` on its own (both
+numerator products carry a zero literal and `Nat.mul(1, 1)` computes to 1). `Rat.zero_mul`
+is what made this cheap, and that is what the previous round added it for: with the zero
+on the left the numerator of a Rat product collapses by computation but the denominator
+does not, and the way through is `Rat.mk.diag`, which takes a positivity witness rather
+than a successor spelling.
+
+**The hypothesis is not cosmetic (measured).** At `d = 4` the element `-2 + sqrt 4` has
+norm `4 - 4 = 0` and is a genuine zero divisor: `(-2 + x)(2 + x) = x^2 - 4 = 0` at
+`x^2 = 4`. `probe.payoff.bend` records both halves at literals -- the product is
+`QExt.zero()` and the norm is `Rat.zero()` -- and each closes by `{==}`, so the witness
+costs nothing to state. Neither factor is zero, so with `norm(d,x) = 0` the conclusion
+`y = 0` is simply false: nothing weaker than "the norm is non-zero" can carry this law,
+and the honest statement of what the extension has is a *conditional*: units are not zero
+divisors, and every element with non-zero norm is a unit.
+
+**Status, and one honest caveat about the one-second rule.** All five
+`src/*_proofs.bend` check, and they are now 0.34-0.44 s each. `probe.bend` (1.70 s) and
+`probe.payoff.bend` (3.16 s, four new defs: two caller-side, one literal instance of the
+zero-divisor law, and the `d = 4` witness pair) both check. The two consumer files are
+*above* one second and this unit did not change that -- 1.76 s and 3.02 s before it -- so
+the rule holds for the library and not for the consumer tests. A prefix bisect of
+`probe.payoff.bend` (twelve of its thirty-nine defs 2.53 s, twenty 2.67 s, twenty-six
+2.58 s, thirty-two 3.10 s) shows the cost is spread across the caller-side defs with no
+hotspot: what each one pays is instantiating a law whose fill is stated over spelled
+coordinates, which is the same conversion cost round thirteen profiled, and removing it
+would mean not calling the published laws at their own presentations -- that is, giving
+up exactly the coverage the file exists for. Law counts, transitive over imports: nat
+129, int 32, qext 34, rat 229, qrat **258** (+2 QExt: `mul_zero`, `mul_eq_zero`).

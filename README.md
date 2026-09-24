@@ -153,8 +153,8 @@ is the smoke test -- it has a `main`, so it prints the `Rat.inv` triple it
 computes instead of that line. The count is
 transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
 QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 256 = 129 Nat +
-32 Int + 68 Rat + 27 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own twenty-seven laws).
+32 Int + 68 Rat + 29 QExt (it imports rat.bend itself, so its count is
+rat.bend's plus its own twenty-nine laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -585,9 +585,21 @@ Known gaps, in dependency order:
    draft of it exhausted a 4 GB heap in 41 seconds, and the first fill at that
    presentation was killed past four minutes. Restated at stuck terms, with the
    three norms named by hypotheses, the fill checks and costs nothing
-   measurable. What is still open on this side is "no zero divisors when the norm
-   is non-zero". The measurements, the route and the laws' own comments are in
-   qrat.bend and PROVING.md, rounds ten through twelve.
+   measurable. **No zero divisors when the norm is non-zero** is in as well, in
+   the form this language can carry: `QExt.mul_eq_zero` states that `x*y = 0`
+   together with `x*zi = 1` gives `y = 0`. The non-zero norm travels as that
+   unit witness -- `zi` is the inverse the two payoff laws produce, and their
+   branch evidence *is* what "non-zero" means here -- so the law carries no sign
+   and never mentions the norm; and `y` is spelled at `QExt.of`'s six
+   coordinates, because `y*1 = y` is false at an unreduced coordinate and
+   `QExt.mul_one` is the first step of the chain. Its companion
+   `QExt.mul_zero` (`0*x = 0`, the step the chain ends on) is componentwise like
+   `QExt.add_zero` and needs the new `Rat.zero_mul` underneath. The hypothesis is
+   exactly as strong as it has to be: at `d = 4` the element `-2 + sqrt 4` has
+   norm zero and really is a zero divisor -- `(-2+x)(2+x) = x^2 - 4 = 0` -- which
+   `probe.payoff.bend` records at literals. The measurements, the route and the
+   laws' own comments are in qrat.bend and PROVING.md, rounds ten through
+   sixteen.
 3. A binary-nat layer for proof land. The compiled lanes are already binary -- the
    C lane maps `Nat` to W64 with native `nat_add`/`nat_mul`/`nat_divmod`
    (`comp.ts:161`, `comp.ts:255`), and the JS lane uses BigInt -- but in proof
