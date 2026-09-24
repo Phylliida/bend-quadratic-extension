@@ -64,7 +64,10 @@ The constraints this lane has measured, which the plan below is built around:
 - A def whose name is qualified by the import alias (`R.Rat.foo`) takes bare
   parameters only; typed parameters need a helper in the file's own namespace
   (round fifteen).
-- Proof-land `Nat` is a tower of `Succ`, so literal size is term size (README item 3).
+- Literal *storage* is no longer a problem (Bend 2.0.24 made a nat literal one
+  `Lit` node; 10^7 checks in 0.17 s, round eighteen), but literal *arithmetic* still
+  is: `Nat.mul`/`div`/`gcd` recurse over the tower and overflow the stack at about
+  10^3, and a nat literal is capped at 4294967295n.
 
 ## 3. Two things bend gives us for free
 
@@ -116,13 +119,34 @@ encoding — one giant nested term — is 3³⁰ nodes even though the mathemati
 linear in the depth. Bend terms are trees; whether the checker shares a `let`-bound or
 `def`-named value, or substitutes it textually, decides the encoding. §6.1 measures it.
 
-### 4.2 Unary literals
+### 4.2 Big numbers: what is fixed, and what is not
 
-Proof-land `Nat` is a `Succ` tower (README item 3), so literal size *is* term size.
-Any chain whose inputs are concrete rationals of real size is impractical in proof
-land until the binary-nat layer lands. The sequencing consequence, which the plan
-adopts: **prove the algorithm generically, over variables** — where bend is cheapest —
-and keep concrete instances tiny until then.
+Measured in round eighteen, against Bend 2.0.27:
+
+| | status |
+|---|---|
+| Writing a literal (`1000000n`) | **Fixed.** One `Lit` node since 2.0.24; 10^7 checks in 0.17 s, and the 10^4 that used to overflow the stack is gone. |
+| Comparing, matching, checking a literal | **Fixed.** The node unfolds one constructor at a time. |
+| Arithmetic *on* literals (`Nat.mul`, `div`, `gcd`) | **Broken.** Still recursive over the tower; stack overflow at ~10^3. |
+| Magnitude | **Capped at 4294967295n** (`bend.ts:2352`). No bignum literals. |
+
+So the sequencing consequence changes shape. It is no longer "avoid literals"; it is:
+
+- **Arithmetic on concrete numbers belongs in the compiled lane.** Proof-land
+  reasoning stays generic, over variables, where bend is cheapest — and that is the
+  same discipline the plan needed anyway (§5).
+- **A reducer fast path is the cheap fix for arithmetic**: when both operands of a
+  `Nat` operation are literals, compute natively the way the compiled lanes already
+  do and box the result as a literal. That is a checker change of the same kind as
+  the `Lit` node, not a proof project.
+- **A bignum type is a separate, later question**, and its shape should be decided by
+  measured coordinate sizes rather than assumed: `Word(n)`'s bit vectors in
+  `base.bend` are the obvious substrate, and a proved bignum would need the same
+  refinement discipline as anything else here — keep the unary `Nat` laws as the
+  spec and prove the binary operations against them.
+
+`bend.ts` is human-written and marked do-not-edit in its own `AGENTS.md`, so the
+fast path is a proposal for its owner, not a patch this repo carries.
 
 ## 5. The invariant
 
@@ -273,8 +297,11 @@ cost is visibly not exponential in the step index.
 - **Exact ordering, Sturm–Tarski, separation bounds.** Step 4's interval path covers
   the practical queries; DESIGN §6 keeps the exact route as the fallback and §7 keeps
   the fast path soundness-only.
-- **Binary nats.** Required before concrete coordinates of real size are practical
-  (README item 3), not required for the generic algorithm.
+- **Bignum literals and a literal-arithmetic fast path.** Both are checker-side
+  (§4.2). The first is what a sketch with 20-digit coordinates would need; the second
+  is what makes proofs about *moderately* sized concrete numbers possible at all.
+  Neither is needed for the generic algorithm, and neither is needed to *write*
+  numbers any more.
 - **Minimal-polynomial recognition (LLL/PSLQ).** An untrusted optimization; DESIGN §8
   explicitly allows the untrusted side to hand over pre-collapsed towers.
 - **Cross-tower comparison.** Needs a compositum; see §1.
