@@ -556,3 +556,58 @@ def probe.zero_divisor.d4.norm()
         Q.QExt{R.Rat{I.Int{0n, 2n}, 1n}, R.Rat{I.Int{1n, 0n}, 1n}})
       == R.Rat.zero() : R.Rat}:
   {==}
+
+# The norm and conjugation identities from a caller's side, plus the boundary
+# instances cited from a consumer and one literal instance of the invariance.
+
+def probe.use.conj_neg(+x: Q.QExt)
+  -> {Q.QExt.conj(Q.QExt.neg(x)) == Q.QExt.neg(Q.QExt.conj(x)) : Q.QExt}:
+  Q.QExt.conj_neg(x)
+
+def probe.use.norm.zero(+d: Nat)
+  -> {Q.QExt.norm(d, Q.QExt.zero()) == R.Rat.zero() : R.Rat}:
+  Q.QExt.norm.zero(d)
+
+def probe.use.norm.one(+d: Nat)
+  -> {Q.QExt.norm(d, Q.QExt.one()) == R.Rat.one() : R.Rat}:
+  Q.QExt.norm.one(d)
+
+def probe.use.norm.conj(+d: Nat, +x: Q.QExt,
+                        +mq: Nat, +mn: Nat, +dq: Nat,
+                        +him: {Q.QExt.im(x) == R.Rat.of(mq, mn, dq) : R.Rat},
+                        +h: {N.Nat.gcd(R.Rat.mag(mq, mn), 1n+dq) == 1n : Nat})
+  -> {Q.QExt.norm(d, Q.QExt.conj(x)) == Q.QExt.norm(d, x) : R.Rat}:
+  Q.QExt.norm.conj(d, x, mq, mn, dq, him, h)
+
+def probe.use.norm.neg(+d: Nat, +x: Q.QExt,
+                       +np: Nat, +nn: Nat, +dp: Nat,
+                       +hre: {Q.QExt.re(x) == R.Rat.of(np, nn, dp) : R.Rat},
+                       +g: {N.Nat.gcd(R.Rat.mag(np, nn), 1n+dp) == 1n : Nat},
+                       +mq: Nat, +mn: Nat, +dq: Nat,
+                       +him: {Q.QExt.im(x) == R.Rat.of(mq, mn, dq) : R.Rat},
+                       +h: {N.Nat.gcd(R.Rat.mag(mq, mn), 1n+dq) == 1n : Nat})
+  -> {Q.QExt.norm(d, Q.QExt.neg(x)) == Q.QExt.norm(d, x) : R.Rat}:
+  Q.QExt.norm.neg(d, x, np, nn, dp, hre, g, mq, mn, dq, him, h)
+
+# The spelled statement is the instance: at x := QExt.of's six coordinates both
+# naming hypotheses are `{==}`, which is what the restatement moved out of the
+# law and into the caller. norm(2, 1 + sqrt 2) = norm(2, -1 - sqrt 2) = -1.
+def probe.norm.neg.instance()
+  -> {Q.QExt.norm(2n, Q.QExt.neg(Q.QExt{R.Rat.of(1n, 0n, 0n), R.Rat.of(1n, 0n, 0n)}))
+      == Q.QExt.norm(2n, Q.QExt{R.Rat.of(1n, 0n, 0n), R.Rat.of(1n, 0n, 0n)}) : R.Rat}:
+  Q.QExt.norm.neg(2n, Q.QExt{R.Rat.of(1n, 0n, 0n), R.Rat.of(1n, 0n, 0n)},
+    1n, 0n, 0n, {==}, {==}, 1n, 0n, 0n, {==}, {==})
+
+# The boundary, cited rather than re-proved: -2 + sqrt 4 is a genuine zero
+# divisor over radicand 4 and its norm is zero.
+def probe.zero_divisor.law()
+  -> {Q.QExt.mul(4n,
+        Q.QExt{R.Rat.of(0n, 2n, 0n), R.Rat.of(1n, 0n, 0n)},
+        Q.QExt{R.Rat.of(2n, 0n, 0n), R.Rat.of(1n, 0n, 0n)})
+      == Q.QExt.zero() : Q.QExt}:
+  Q.QExt.zero_divisor.d4()
+
+def probe.zero_divisor.law.norm()
+  -> {Q.QExt.norm(4n, Q.QExt{R.Rat.of(0n, 2n, 0n), R.Rat.of(1n, 0n, 0n)})
+      == R.Rat.zero() : R.Rat}:
+  Q.QExt.zero_divisor.d4.norm()

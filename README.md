@@ -153,8 +153,8 @@ is the smoke test -- it has a `main`, so it prints the `Rat.inv` triple it
 computes instead of that line. The count is
 transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
 QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 256 = 129 Nat +
-32 Int + 68 Rat + 29 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own twenty-nine laws).
+32 Int + 68 Rat + 36 QExt (it imports rat.bend itself, so its count is
+rat.bend's plus its own thirty-six laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
@@ -597,9 +597,21 @@ Known gaps, in dependency order:
    `QExt.add_zero` and needs the new `Rat.zero_mul` underneath. The hypothesis is
    exactly as strong as it has to be: at `d = 4` the element `-2 + sqrt 4` has
    norm zero and really is a zero divisor -- `(-2+x)(2+x) = x^2 - 4 = 0` -- which
-   `probe.payoff.bend` records at literals. The measurements, the route and the
-   laws' own comments are in qrat.bend and PROVING.md, rounds ten through
-   sixteen.
+   `probe.payoff.bend` records at literals. The norm's own identities close the
+   story: `norm(d, 0) = 0`, `norm(d, 1) = 1`, `norm(d, conj x) = norm(d, x)` and
+   `norm(d, -x) = norm(d, x)`, so with `norm.mul` the norm factors through
+   conjugation, is even, and lands on the two constants -- and `conj(-x) =
+   -conj(x)` is free (both sides are the same term once the projections come
+   off). The two invariances are stated at arbitrary `x` with the spelled
+   coordinate supplied as a hypothesis rather than at `QExt.of`'s coordinates:
+   the spelled form cost 6.4 s and 6.7 s of a 15.3 s file, the restated one is a
+   three-step transport at stuck terms, and the spelled statement survives as the
+   instance where the hypothesis is `{==}`. The boundary is a pair of laws as
+   well, `QExt.zero_divisor.d4` and its norm, at literals only -- a parametric
+   version over a radicand `c*c` stops one step short, because `mk`'s divisor is
+   then `gcd(c*c, 1)` and `Nat.gcd` cannot start on a product. The measurements,
+   the route and the laws' own comments are in qrat.bend and PROVING.md, rounds
+   ten through seventeen.
 3. A binary-nat layer for proof land. The compiled lanes are already binary -- the
    C lane maps `Nat` to W64 with native `nat_add`/`nat_mul`/`nat_divmod`
    (`comp.ts:161`, `comp.ts:255`), and the JS lane uses BigInt -- but in proof

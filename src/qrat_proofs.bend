@@ -1361,6 +1361,18 @@ def Q.QExt.conj_conj(np, nn, dp, mq, mn, dq, h):
   qext.im(RE, R.Rat.neg(R.Rat.neg(IM)), IM,
     R.Rat.neg_neg(Nat.cmp(mq, mn), mq, mn, dq, {==}, h))
 
+# QExt.conj_neg: both sides are literally the same term once the projections
+# come off, which is what the match is for -- with x a variable neither
+# QExt.re(QExt.neg(x)) nor QExt.im(QExt.conj(x)) reduces on its own.
+def QExt.conj_neg.go(+x: Q.QExt)
+  -> {Q.QExt.conj(Q.QExt.neg(x)) == Q.QExt.neg(Q.QExt.conj(x)) : Q.QExt}:
+  match x:
+    case Q.QExt{+xa, +xb}:
+      {==}
+
+def Q.QExt.conj_neg(x):
+  QExt.conj_neg.go(x)
+
 # Q.QExt.conj_mul
 # ===============
 #
@@ -1638,6 +1650,143 @@ def Q.QExt.norm.mul(d, x, y, nx, ny, nxy, gx, hx, gy, hy, gxy, hxy, hnx, hny, hn
             leg4,
             leg5))))
 
+
+# The norm's identity laws: QExt.norm.zero and QExt.norm.one are one
+# qext.nat.mul_zero step each (the first zero product reduces on its own, the
+# second cannot: QExt.nat(d) has denominator 1), and then Rat.add(0, -0) is
+# Rat.zero() and Rat.add(1, -0) is Rat.one() by computation. The other two are
+# one call of Rat.mul.neg_neg.reduced per negated coordinate, under the
+# congruence that reaches it.
+def Q.QExt.norm.zero(d):
+  Equal.trans(R.Rat,
+    Q.QExt.norm(d, Q.QExt.zero()),
+    R.Rat.add(R.Rat.mul(R.Rat.zero(), R.Rat.zero()),
+              R.Rat.neg(R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), R.Rat.zero())))),
+    R.Rat.zero(),
+    {==},
+    Equal.trans(R.Rat,
+      R.Rat.add(R.Rat.mul(R.Rat.zero(), R.Rat.zero()),
+                R.Rat.neg(R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), R.Rat.zero())))),
+      R.Rat.add(R.Rat.mul(R.Rat.zero(), R.Rat.zero()), R.Rat.neg(R.Rat.zero())),
+      R.Rat.zero(),
+      Equal.cong(R.Rat, R.Rat,
+        v => R.Rat.add(R.Rat.mul(R.Rat.zero(), R.Rat.zero()), v),
+        R.Rat.neg(R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), R.Rat.zero()))),
+        R.Rat.neg(R.Rat.zero()),
+        Equal.cong(R.Rat, R.Rat, v => R.Rat.neg(v),
+          R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), R.Rat.zero())),
+          R.Rat.zero(),
+          Equal.trans(R.Rat,
+            R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), R.Rat.zero())),
+            R.Rat.mul(Q.QExt.nat(d), R.Rat.zero()),
+            R.Rat.zero(),
+            Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(Q.QExt.nat(d), v),
+              R.Rat.mul(R.Rat.zero(), R.Rat.zero()), R.Rat.zero(), {==}),
+            qext.nat.mul_zero(d)))),
+      {==}))
+
+def Q.QExt.norm.one(d):
+  Equal.trans(R.Rat,
+    Q.QExt.norm(d, Q.QExt.one()),
+    R.Rat.add(R.Rat.mul(R.Rat.one(), R.Rat.one()),
+              R.Rat.neg(R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), R.Rat.zero())))),
+    R.Rat.one(),
+    {==},
+    Equal.trans(R.Rat,
+      R.Rat.add(R.Rat.mul(R.Rat.one(), R.Rat.one()),
+                R.Rat.neg(R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), R.Rat.zero())))),
+      R.Rat.add(R.Rat.mul(R.Rat.one(), R.Rat.one()), R.Rat.neg(R.Rat.zero())),
+      R.Rat.one(),
+      Equal.cong(R.Rat, R.Rat,
+        v => R.Rat.add(R.Rat.mul(R.Rat.one(), R.Rat.one()), v),
+        R.Rat.neg(R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), R.Rat.zero()))),
+        R.Rat.neg(R.Rat.zero()),
+        Equal.cong(R.Rat, R.Rat, v => R.Rat.neg(v),
+          R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), R.Rat.zero())),
+          R.Rat.zero(),
+          Equal.trans(R.Rat,
+            R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.zero(), R.Rat.zero())),
+            R.Rat.mul(Q.QExt.nat(d), R.Rat.zero()),
+            R.Rat.zero(),
+            Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(Q.QExt.nat(d), v),
+              R.Rat.mul(R.Rat.zero(), R.Rat.zero()), R.Rat.zero(), {==}),
+            qext.nat.mul_zero(d)))),
+      {==}))
+
+def Q.QExt.norm.conj(d, x, mq, mn, dq, him, h):
+  match x:
+    case Q.QExt{+xa, +xb}:
+      +XIM = R.Rat.of(mq, mn, dq)
+      Equal.cong(R.Rat, R.Rat,
+        v => R.Rat.sub(R.Rat.mul(xa, xa), R.Rat.mul(Q.QExt.nat(d), v)),
+        R.Rat.mul(R.Rat.neg(xb), R.Rat.neg(xb)),
+        R.Rat.mul(xb, xb),
+        Equal.trans(R.Rat,
+          R.Rat.mul(R.Rat.neg(xb), R.Rat.neg(xb)),
+          R.Rat.mul(R.Rat.neg(XIM), R.Rat.neg(XIM)),
+          R.Rat.mul(xb, xb),
+          Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(R.Rat.neg(v), R.Rat.neg(v)),
+            xb, XIM, him),
+          Equal.trans(R.Rat,
+            R.Rat.mul(R.Rat.neg(XIM), R.Rat.neg(XIM)),
+            R.Rat.mul(XIM, XIM),
+            R.Rat.mul(xb, xb),
+            R.Rat.mul.neg_neg.reduced(mq, mn, dq, mq, mn, dq, h, h),
+            Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(v, v), XIM, xb,
+              Equal.sym(R.Rat, xb, XIM, him)))))
+
+def Q.QExt.norm.neg(d, x, np, nn, dp, hre, g, mq, mn, dq, him, h):
+  match x:
+    case Q.QExt{+xa, +xb}:
+      +XRE = R.Rat.of(np, nn, dp)
+      +XIM = R.Rat.of(mq, mn, dq)
+      +eRE = Equal.trans(R.Rat,
+          R.Rat.mul(R.Rat.neg(xa), R.Rat.neg(xa)),
+          R.Rat.mul(R.Rat.neg(XRE), R.Rat.neg(XRE)),
+          R.Rat.mul(xa, xa),
+          Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(R.Rat.neg(v), R.Rat.neg(v)),
+            xa, XRE, hre),
+          Equal.trans(R.Rat,
+            R.Rat.mul(R.Rat.neg(XRE), R.Rat.neg(XRE)),
+            R.Rat.mul(XRE, XRE),
+            R.Rat.mul(xa, xa),
+            R.Rat.mul.neg_neg.reduced(np, nn, dp, np, nn, dp, g, g),
+            Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(v, v), XRE, xa,
+              Equal.sym(R.Rat, xa, XRE, hre))))
+      +eIM = Equal.trans(R.Rat,
+          R.Rat.mul(R.Rat.neg(xb), R.Rat.neg(xb)),
+          R.Rat.mul(R.Rat.neg(XIM), R.Rat.neg(XIM)),
+          R.Rat.mul(xb, xb),
+          Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(R.Rat.neg(v), R.Rat.neg(v)),
+            xb, XIM, him),
+          Equal.trans(R.Rat,
+            R.Rat.mul(R.Rat.neg(XIM), R.Rat.neg(XIM)),
+            R.Rat.mul(XIM, XIM),
+            R.Rat.mul(xb, xb),
+            R.Rat.mul.neg_neg.reduced(mq, mn, dq, mq, mn, dq, h, h),
+            Equal.cong(R.Rat, R.Rat, v => R.Rat.mul(v, v), XIM, xb,
+              Equal.sym(R.Rat, xb, XIM, him))))
+      Equal.trans(R.Rat,
+        R.Rat.sub(R.Rat.mul(R.Rat.neg(xa), R.Rat.neg(xa)),
+                  R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(R.Rat.neg(xb), R.Rat.neg(xb)))),
+        R.Rat.sub(R.Rat.mul(R.Rat.neg(xa), R.Rat.neg(xa)),
+                  R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(xb, xb))),
+        R.Rat.sub(R.Rat.mul(xa, xa), R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(xb, xb))),
+        Equal.cong(R.Rat, R.Rat,
+          v => R.Rat.sub(R.Rat.mul(R.Rat.neg(xa), R.Rat.neg(xa)),
+                         R.Rat.mul(Q.QExt.nat(d), v)),
+          R.Rat.mul(R.Rat.neg(xb), R.Rat.neg(xb)), R.Rat.mul(xb, xb), eIM),
+        Equal.cong(R.Rat, R.Rat,
+          v => R.Rat.sub(v, R.Rat.mul(Q.QExt.nat(d), R.Rat.mul(xb, xb))),
+          R.Rat.mul(R.Rat.neg(xa), R.Rat.neg(xa)), R.Rat.mul(xa, xa), eRE))
+
+# The boundary instances: both sides reduce on their own at literals, so the
+# fills are the computation itself.
+def Q.QExt.zero_divisor.d4():
+  {==}
+
+def Q.QExt.zero_divisor.d4.norm():
+  {==}
 
 # The division payoff
 # ===================
