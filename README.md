@@ -37,7 +37,7 @@ case analysis, and that case analysis is what the switch removed. See
 Laws and proofs live in separate files; each `*_proofs.bend` fills every
 law of its sibling via `def <alias>.<name>(...)`:
 
-- `src/nat.bend` — the 128 Nat/Cmp laws (including the `Nat.divmod` and
+- `src/nat.bend` — the 129 Nat/Cmp laws (including the `Nat.divmod` and
   `Nat.gcd` blocks, the exact-division block, the difference-pair helpers, the
   scaling/divisibility bridges, `div_cross` -- the exact-division cross
   product the Rat value lemma is built from -- the cross-sum lemmas the Int
@@ -151,9 +151,9 @@ laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO), and `scratch.bend`
 is the smoke test -- it has a `main`, so it prints the `Rat.inv` triple it
 computes instead of that line. The count is
-transitive over imports: nat.bend 128, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 226 = 128 Nat + 32 Int + 66 Rat, qrat.bend 253 = 128 Nat +
-32 Int + 66 Rat + 27 QExt (it imports rat.bend itself, so its count is
+transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
+QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 256 = 129 Nat +
+32 Int + 68 Rat + 27 QExt (it imports rat.bend itself, so its count is
 rat.bend's plus its own twenty-seven laws).
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
@@ -209,7 +209,17 @@ Known gaps, in dependency order:
    laws:
    `add_comm`, `mul_comm`, `sub_eq_add_neg`, and the identity laws
    (`add_zero`, `zero_add`, `mul_one`, `one_mul`, `mul_zero`) for canonical
-   values. `Rat.mul_assoc` is now proved as well — the first law that
+   values, plus `zero_mul` — `0 * x = 0` for a positive denominator, which is
+   not the mirror of `mul_zero` by reduction: with the zero on the left the
+   numerator collapses on its own but the denominator does not, and the way
+   through is `Rat.mk.diag` (a diagonal numerator over a *positive* denominator
+   is zero — no successor spelling, no coprimality). On top of it sits
+   `Rat.mul_eq_zero`, the zero-product law in the unit form a proof can use:
+   `x*y = 0` together with a right inverse `y*q = 1` gives `x = 0`. There is no
+   disjunction in an equation, so the branch is the caller's: whoever knows `y`
+   is non-zero hands over the inverse `Rat.mul_inv` produced, and its branch
+   evidence *is* the non-zero-ness — which is why that law carries no sign at
+   all. `Rat.mul_assoc` is now proved as well — the first law that
    composes two *normalized* results, and the template for the rest. Its
    statement is over `Rat{Rat.num(np,nn), 1n+dp}` (the difference-pair
    presentation `Rat.mk.fixed` and the value lemma use, comparison as a

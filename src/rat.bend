@@ -303,6 +303,24 @@ law Rat.mul_zero:
   for +dp: Nat
   {Rat.mul(Rat{n, 1n+dp}, Rat.zero()) == Rat.zero() : Rat}
 
+# Rat.zero_mul: 0 * x = 0. The mirror of Rat.mul_zero, and it needs no
+# successor spelling anywhere: the numerator is Int.mul(Int.zero(), xn), whose
+# four products all carry the zero literal, and what is left after that is
+# mk(Int{0,0}, Nat.mul(1, xd)) -- a diagonal numerator, which is what a zero
+# numerator is in the difference presentation, so Rat.mk.diag applies with the
+# positivity of Nat.mul(1, xd) from mul_pos. div_self's 1 + ap spelling never
+# comes up: mk.diag is stated over a positivity witness and supplies the
+# spelling itself (pos_witness, in its own fill).
+#
+# The positivity hypothesis is what that needs, and it is not cosmetic: at
+# xd = 0 mk's divisor is gcd(0, 0) = 0, the denominator division is div(0,0) = 0
+# and the result is Rat{Int{0,0}, 0}, which no law compares with Rat.zero() --
+# the same stance Rat.add_neg records for a zero denominator.
+law Rat.zero_mul:
+  for +x: Rat
+  for +px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}
+  {Rat.mul(Rat.zero(), x) == Rat.zero() : Rat}
+
 # Scaling
 # =======
 #
@@ -1657,3 +1675,40 @@ law Rat.div_add.lt:
   {Rat.div(Rat.add(x, y), Rat{Rat.num(0n, 1n+bp), 1n+dp})
    == Rat.add(Rat.div(x, Rat{Rat.num(0n, 1n+bp), 1n+dp}),
               Rat.div(y, Rat{Rat.num(0n, 1n+bp), 1n+dp})) : Rat}
+
+# Rat.mul_eq_zero
+# ===============
+#
+#
+#     x * y = 0   and   y * q = 1   ==>   x = 0
+#
+# -- the zero-product law: a product is zero only if a factor is, in the form a
+# proof can *use*. "x*y = 0 implies x = 0 or y = 0" has no form in this
+# language (an equation has two sides, not a disjunction), so the branch is the
+# caller's to take: whoever knows y is non-zero hands over a right inverse q.
+# That is exactly what Rat.mul_inv's two branches produce, and their branch
+# evidence *is* what "y is non-zero" means here -- so no sign appears in this
+# law at all: no GT/LT hypothesis, no numerator spelling, only y * q = 1.
+#
+# The fill is the four-step chain the statement is shaped around,
+#
+#     x = x*1 = x*(y*q) = (x*y)*q = 0*q = 0
+#
+# with Rat.mul_one read backwards, the inverse equation carried by a congruence,
+# Rat.mul_assoc.arb read backwards, the zero equation carried by a congruence,
+# and Rat.zero_mul to finish. x is spelled Rat{n,d} because Rat.mul_one is
+# stated over that spelling (fx is its canonicality hypothesis), and the three
+# denominators are positive because mul_assoc.arb's normalization asks for them
+# -- not a canonicality condition, the same hypothesis that law's callers pass.
+law Rat.mul_eq_zero:
+  for +n: I.Int
+  for +d: Nat
+  for +fx: {Rat.mk(n, d) == Rat{n, d} : Rat}
+  for +pd: {Nat.cmp(0n, d) == LT{} : Cmp}
+  for +y: Rat
+  for +py: {Nat.cmp(0n, Rat.denof(y)) == LT{} : Cmp}
+  for +q: Rat
+  for +pq: {Nat.cmp(0n, Rat.denof(q)) == LT{} : Cmp}
+  for +hq: {Rat.mul(y, q) == Rat.one() : Rat}
+  for +hz: {Rat.mul(Rat{n, d}, y) == Rat.zero() : Rat}
+  {Rat{n, d} == Rat.zero() : Rat}
