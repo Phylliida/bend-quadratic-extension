@@ -117,7 +117,7 @@ The nested representation is compact only if sub-terms are *reused* rather than
 duplicated. A geometric step uses the previous point three or four times, so a naive
 encoding — one giant nested term — is 3³⁰ nodes even though the mathematical object is
 linear in the depth. Bend terms are trees; whether the checker shares a `let`-bound or
-`def`-named value, or substitutes it textually, decides the encoding. §6.1 measures it.
+`def`-named value, or substitutes it textually, decides the encoding. §6.1 measured it in round nineteen: the checker shares.
 
 ### 4.2 Big numbers: what is fixed, and what is not
 
@@ -186,6 +186,35 @@ Time each. Read the curves:
 | 2 or 3 linear, 1 exponential | Encode chains as a sequence of named definitions; the certificate is a list of steps. Plan proceeds as written. |
 | All three exponential | The checker substitutes and duplicates. Every goal must then be built one level at a time by law application, and the certificate format is a chain of *small* goals from day one. Step 5 changes shape. |
 | All three linear or near-linear | The checker shares substantively. The plan is unconstrained; keep the invariant anyway for the checker's own sanity. |
+
+**Measured, round nineteen** (Bend 2.0.27, the box's nix-store Bun; each row is one
+probe file and the times include the ~0.17 s startup these runs sit on):
+
+| encoding | depths | source size | time |
+|---|---|---|---|
+| 1, written out as one expression | 5, 10, 20, 30, 50, 100 nested `Nat.add` | under 2 KB at 100 | 0.16-0.18 s, flat |
+| 2, one `def` per level, each naming the previous twice | 5, 10, 15, 20, 25, 30 | 1 KB at 30 | 0.17-0.18 s, flat |
+| 2 again, but with the goal *forcing* the value | 13, 15, 17, 19, 21, 23, 25, 30 | 1 KB | 0.17-0.18 s, flat |
+
+Encoding 2 is the answer, and it is stronger than the plan required. The level-30 value
+is a tree of 2^30 nodes if it is ever materialized, and a goal that forces it --
+`{P.fst(A30()) == 1n}`, which has to peel thirty levels before it can compare -- checks
+in 0.18 s, the same as depth 5. So the checker neither substitutes a named definition
+into the caller's term nor builds the tree: reduction is lazy and the value stays
+shared. The plan proceeds as written, and Step 5's certificate is a list of named steps.
+
+Encoding 3 could not be built as §6.1 sketches it, for a structural reason rather than
+a surprising one: *"expected : a filled definition (an unfilled law is a dead claim:
+live code cannot use it)"*. A `law` in `src/*.bend` is a statement awaiting its fill in
+`src/*_proofs.bend`, and until that fill exists nothing may call it. A chain of law
+applications therefore has to be written where the fills are -- which is where Step 5's
+certificate work happens anyway -- so that probe belongs there, not here. What decided
+the representation is measured, and it decided for encoding 2.
+
+Two syntax facts the probes paid for, worth having before Step 1: a type is
+`type P is Data:` with its constructor on the following line; and a projector is a
+plain `def` with a destructuring body (`P{+f, +s} = p`, then `f`), not a derived field
+access, so `def P.fst(p: P) -> Nat:` works but its name must not collide with a field.
 
 ### 6.2 Does induction over a user-defined recursive type work in fills?
 
@@ -332,7 +361,11 @@ presentation costs in §2's third bullet; the existence of recursive datatypes a
 value-indexed type families in `bend2/base.bend` (§3.2, §6.2); that `QExt` is already
 parameterized by its radicand.
 
-**Not measured, and load-bearing:** whether the checker shares terms (§4.1, §6.1);
-whether fills can induct over a user-defined recursive type and whether a type index
-can carry a tower (§3.2, §6.2); the actual cost curve of a 30-step chain in bend; and
-every step of §7.
+**Measured since (round nineteen):** the checker shares terms, and a 30-deep chain of
+named definitions costs the same as a 5-deep one, even when the goal forces the value
+(§6.1).
+
+**Not measured, and load-bearing:** whether fills can induct over a user-defined
+recursive type and whether a type index can carry a tower (§3.2, §6.2) -- probe 6.2 is
+next; the cost of a chain written as law applications, which can only be measured where
+laws are filled (§6.1); and every step of §7.

@@ -4501,3 +4501,74 @@ proposal for the checker's owner, not a patch this repo carries. The bignum half
 coordinates past 2^32 -- is a later question whose shape should be decided by measured
 coordinate sizes from real sketches, with `Word(n)`'s bit vectors in `base.bend` as the
 obvious substrate.
+
+## The literal-arithmetic fast path: four operations, a wrapper, and the cost of touching a hot loop (measured)
+
+Round seventeen's proposal -- compute `Nat` operations natively when their operands are
+literals -- became a branch, and the branch is parked rather than proposed: it works, but
+the interesting result is where the *cost* came from and what it says about editing
+`bend.ts`.
+
+**What the wall is.** Not literal storage (2.0.24's one `Lit` node is fine) and not step
+count: `Nat.add`, `Nat.mul`, `Nat.div` and `Nat.mod` are not tail-recursive, so a literal
+operand costs its value in nested `Succ` on the way out, and `divmod`'s loop runs the
+dividend. Measured on the parent commit, before any patch: `mul` dies between 100^2 and
+300^2, `add` between 10^4 and 3*10^4, while `sub` and `cmp` are fine at 10^8 -- *both are
+tail-recursive, so both were dropped from the fix*, which is why the table has four
+operations and not six. `div(10^8, 10^4)` does not finish in 180 s unpatched.
+
+**Three placements, timed interleaved** against the parent on `probe.payoff.bend`, this
+repo's arithmetic-heavy gate. Inside `term_wnf`'s `App` case: **+5.5%**. Same plus a
+magnitude gate: **+9.4%**. At the `Ref` case, where the operator's name is already in
+hand: **+5.5%, then +11%** in a later run -- and a control whose gate could never fire,
+which broke coverage and so proved the fast path was doing nothing, *still cost +5%*. The
+lines themselves are the cost: a few statements inside that loop, whatever they do.
+Moving the call out of the loop into a wrapper at `term_wnf`'s entry -- the loop then
+differs from upstream by zero lines -- measured -1.3% and +2.5% on two interleaved runs,
+minima 4.31 s vs 4.31 s and 4.25 s vs 4.38 s, i.e. inside run-to-run noise.
+
+**Two folds, both tried and both rejected on measurement**, which is why the fast path
+exists at all. Folding `Succ(Lit(k))` to `Lit(k+1)` inside `term_higher` breaks
+elaborating `base.bend` itself -- `expected : Word(32n) / observed : Word.Con` at
+`IO.fork`'s `Chan.new(A, 1)`, because `lit_step` peels *any* numeric literal as
+`Zero`/`Succ` with no type in scope. Folding at the reducer's `App` frame (through
+`term_apply`) is sound where it fires and moves no wall: the cost is paid in nested
+forcing of lazy cells, not at any site a fold can reach.
+
+**State.** Branch `nat-prim-literals` on the `phylliida` fork at `54aa1206`: 44 lines in
+`bend2/bend.ts` plus a 30-line `tests/base/nat_lit_arith.bend` that the parent commit
+fails with *"the machine stack overflowed"* and the branch prints `2` for. Verified on
+the branch: every gate here, plus coverage of `add(10^6,1)`, `mul(10^4,10^4)`,
+`div(10^8,10^4)`, `mod(10^6,7)` and a nested `add(mul(8100,12345),5499)`. Parked by
+choice -- no PR, no issue -- so it stays a measurement, not a claim.
+
+## Step 0.1 of the tower plan: the checker shares, so a chain is a list of named definitions (measured)
+
+The plan's first probe asked whether the checker shares terms, because a geometric step
+uses the previous point three or four times and a naive encoding of a 30-deep chain is
+3^30 nodes. Three encodings, each at a range of depths, one probe file per run, 0.17-0.18 s
+being the floor these runs sit on (checker startup):
+
+- **Written out as one expression** (nested `Nat.add`, small values): flat to depth 100,
+  under 2 KB of source.
+- **One `def` per level, each naming the previous twice**: flat from depth 5 to 30, 1 KB
+  of source at 30.
+- **The same, with the goal forcing the value** (`{P.fst(A30()) == 1n}`, which has to peel
+  thirty levels before it can compare): *also* flat, 0.18 s.
+
+The third row decides it. If the checker materialized the value it would be building a
+2^30-node tree; if it substituted named definitions into the caller's term, the goal
+itself would explode. Neither happens: reduction is lazy and the value stays shared. The
+plan proceeds as written, and Step 5's certificate is a list of named steps -- the same
+arrangement the Verus lane reached from the other direction.
+
+The law-application encoding could not be built as §6.1 sketches it, and the reason is
+worth keeping: *"expected : a filled definition (an unfilled law is a dead claim: live code
+cannot use it)"*. A `law` in `src/*.bend` is a statement awaiting its fill in
+`src/*_proofs.bend`, and nothing may call it until that fill exists -- so a chain of law
+applications belongs in the `*_proofs.bend` file, which is where Step 5's work happens
+anyway. Recorded in `TOWER-PLAN.md` §6.1 with the numbers.
+
+Two syntax facts the probe paid for, now in the plan: a type is `type P is Data:` with its
+constructor on the following line (not `type P: P{...}`), and a projector is a plain `def`
+with a destructuring body (`P{+f, +s} = p`, then `f`), not a derived field access.
