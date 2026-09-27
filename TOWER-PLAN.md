@@ -1341,6 +1341,39 @@ The one caller affected was `add.clean`'s own fill, whose two `add.depth` calls 
 265, tower 244; `probe.bend`, `probe.payoff.bend`, `probe.tower.depth.bend` check; `scratch.bend`
 prints its inversion triple.
 
+
+### `mul.depth`'s Ext/Ext bookkeeping is verified (round forty-one)
+
+The one part of the remaining depth law that could not be reasoned out on paper was the assembly
+inside its Ext/Ext arm, the chains through `add.depth` and the evidence. It is now a checked file,
+`probe.tower.mul.depth.arm.bend`, which assumes the three recursive facts and proves the assembly:
+
+    mul(1n+g, Ext{rx, ix, dx}, Ext{ry, iy, dy})
+      == Ext{Tower.add(mul(g, rx, ry), mul(g, mul(g, ix, iy), dx)), ..., dx}
+
+so its depth is `1n + depth(add(M1, M2))` while `depth(Ext{rx, ix, dx})` is `1n + depth(rx)`, and
+what has to hold together is `depth(add(M1, M2)) == depth(rx)`. The file builds it as:
+
+- `depth(mul(g, ix, iy)) == depth(rx)` from the inner product's depth fact and the evidence's
+  `hri` relation (assumed in the probe as `hi`);
+- `depth(M1) == depth(M2)` from `depth(M1) == depth(rx)`, that chain, and the second product fact,
+  with two `Equal.sym`s for orientation;
+- `add.depth(M1, M2, ...)` -- callable now with only the depth hypothesis, which is what round
+  forty bought -- giving `depth(add(M1, M2)) == depth(M1)`;
+- a `cong` under `u => 1n + u` after one more `trans`.
+
+Three orientation and linearity slips on the way, each caught by the checker: a chain whose middle
+step needed the evidence relation rather than a product fact, `hc2` used in the wrong direction,
+and `hc1` used three times without its `+` mark.
+
+**What the full fill still needs**, now known exactly: the three recursive facts above (from
+`mul.depth` on `(rx, ry)`, on `(ix, iy)`, and on `(mul(g, ix, iy), dx)`), the evidence relations
+each call needs (`hri` chains for the depth equalities, `hrd` for the coordinate-to-radicand
+relation), the `cmp(1n+a, 1n+g) == LT{}` hypothesis reducing to `cmp(a, g) == LT{}` for free, and
+twenty arms -- four for the fuel-zero case, sixteen paired shapes of which four are substantive
+(fuel zero with an Ext operand, and the `(Ext, Ext)`, `(Ext, Base)`, `(Ext, Bad)`, `(Ext, Fuel)`
+arms of the successor case).
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

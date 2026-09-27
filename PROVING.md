@@ -5769,3 +5769,37 @@ The single caller affected was `add.clean`'s fill, whose two `add.depth` calls h
 **Gates.** All six proof files `All terms check.`; counts nat 129, int 32, qext 34, rat 229, qrat
 265, tower 244; `probe.bend`, `probe.payoff.bend`, `probe.tower.depth.bend` check; `scratch.bend`
 prints its inversion triple. Landed on `radicand-intrinsic`.
+
+## Round forty-one -- `mul.depth`'s Ext/Ext bookkeeping is verified
+
+The last thing about the depth law that could not be settled by reasoning was the assembly inside
+its Ext/Ext arm. It is checked now, in `probe.tower.mul.depth.arm.bend`, which assumes the three
+recursive facts and proves the rest:
+
+    def T.Tower.mul.depth.arm(+g: Nat, +rx, +ix, +dx, +ry, +iy, +dy: T.Tower,
+        hi: {T.depth(ix) == T.depth(rx) : Nat},
+        +hc1: {T.depth(T.mul(g, rx, ry)) == T.depth(rx) : Nat},
+        hci: {T.depth(T.mul(g, ix, iy)) == T.depth(ix) : Nat},
+        hc2: {T.depth(T.mul(g, T.mul(g, ix, iy), dx)) == T.depth(T.mul(g, ix, iy)) : Nat})
+      -> {T.depth(T.mul(Nat.add(1n, g), T.Ext{rx, ix, dx}, T.Ext{ry, iy, dy}))
+          == T.depth(T.Ext{rx, ix, dx}) : Nat}:
+      ...
+
+      All terms check.
+
+The argument: `mul(1n+g, Ext{rx, ix, dx}, Ext{ry, iy, dy})` unfolds to
+`Ext{add(M1, M2), ..., dx}` with `M1 = mul(g, rx, ry)` and `M2 = mul(g, mul(g, ix, iy), dx)`, so
+its depth is `1n + depth(add(M1, M2))` against a right-hand side of `1n + depth(rx)`. What must
+hold is `depth(add(M1, M2)) == depth(rx)`: chain `depth(mul(g, ix, iy)) == depth(rx)` from `hci`
+and `hi`, then `depth(M1) == depth(M2)` from `hc1`, that chain and `hc2` with two `Equal.sym`s,
+then `add.depth(M1, M2, ...)` -- callable with only the depth hypothesis since round forty --
+and a final `cong` under `u => 1n + u`.
+
+Three slips, all caught by the checker and all mine: a chain whose middle step needed the
+evidence relation rather than a product fact; `hc2` passed in the wrong direction; and `hc1` used
+three times without its `+` mark.
+
+**The full fill is now assembly**, with nothing unknown left: the three recursive facts above, the
+evidence relations each recursive call needs (`hri` chains and `hrd`), the fuel hypothesis
+reducing for free from `cmp(1n+a, 1n+g) == LT{}` to `cmp(a, g) == LT{}`, twenty arms (four fuel
+zero, sixteen paired shapes, four substantive), and this assembly in the `(Ext, Ext)` one.
