@@ -4913,3 +4913,83 @@ The clean statement of a law wants the radicand as an *index* (so operands share
 construction); the operations want it as *data* (`mul` must multiply by it). The level
 family cannot supply the index: it dispatches on `t`, and no radicand element is
 determined by `t`. An operations record passed per level is the untested reconciliation.
+
+## Round twenty-six -- No dictionaries in bend: the operations record is not expressible, and the design question closes
+
+Round twenty-five ended with one untested reconciliation: index the element by the
+radicand and pass the operations in per level. Four probes, all tiny, and the answer is
+no -- for two independent reasons.
+
+**P1 -- a `Data` type cannot hold a function field.**
+
+    type Ops<-K: Data> is Data:
+      OpsRec{add: K -> K -> K, mul: K -> K -> K}
+
+    Error:
+    - expected : Data
+    - observed : Type
+    Context:
+    - K : Data
+    Location: OpsRec
+
+Function types have kind `Type`; a `Data` declaration's fields must have kind `Data`.
+
+**P2 -- the parenthesised arrow spelling is a Sigma, not a function type.**
+
+    type Ops2<-K: Data> is Data:
+      OpsRec2{add: (K, K) -> K, mul: (K, K) -> K}
+
+    Error:
+    - expected : Type
+    - observed : Sigma
+    Location: OpsRec2
+
+So function types are written with bare arrows (`K -> K -> K`), and that is the kind
+information worth keeping: they are `Type`-kinded, which is exactly why P1 fails.
+
+**P3 -- a def cannot take a type parameter.** With the radicand as an index and a
+dependent parameter type (both fine on their own):
+
+    def EB.k(+K: Type, +dr: K, x: EB.Ext<K, dr>, y: EB.Ext<K, dr>) -> EB.Ext<K, dr>:
+      x
+
+    Error:
+    - expected : Data
+    - observed : Type
+    Location: EB.k
+
+**P4 -- and `Data` instead of `Type` does not help.** The same def with `+K: Data`: the
+same error, `expected : Data / observed : Type`, at the def. Nor is it about the
+function type specifically:
+
+    def Ops.add(+K: Type, f: K -> K -> K, x: K, y: K) -> K:
+      f(x, y)
+
+    Error:
+    - expected : Data
+    - observed : Type
+    Location: Ops.add
+
+Def parameters must be data values. Bend therefore has no type parameters and no
+function parameters: no dictionaries, no type classes, no operations records. This is
+not a limitation of the family syntax -- dependent parameter types are fine, and P1 of
+round twenty-five (`u: LB.Elem(d)`) checked as a signature, failing only in the body.
+
+**What it settles.** Operations must be dispatched on a *value*, which is what route B's
+level family does (`def ElemC(t: LB.Tower) -> Data`). The radicand can thus be a type
+index or a value but never both, and the carrying design of round twenty-five is the only
+expressible shape rather than one option among several. Its accepted cost stands:
+elements whose carried radicands disagree are unprovable, not untypeable.
+
+The residual hole is narrower than that sounds. Elements at different *levels* are
+already untypeable under route B, since the Ext case is indexed by the radicand tower --
+`Elem.Ext<d>` -- so two elements at `Ext<d1>` and `Ext<d2>` cannot be passed to the same
+operation. What remains open is two different elements representing the *same* radicand
+at the same index. Pinning the carried field to the index is exactly the embedding, which
+fails in the Ext case with `expected : Elem(d) / observed : Elem(re)` (round twenty-five
+P2), and indexing the element by the radicand *element* would need a def generic in that
+element's type, which P3/P4 rule out. The hole is structural in bend as it stands. Two
+ways out, both unmeasured: an upstream bend feature (type or function parameters), or a
+working embedding -- which for a *base* radicand is trivial (`Base{v} -> EBase{v}`) and
+fails only when the radicand is itself a tower, i.e. exactly the nested-radicand case a
+deep chain produces.

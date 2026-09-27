@@ -604,6 +604,51 @@ itself blocked above). The untested design that could reconcile them is an
 operations *record* passed per level, so that a radicand-indexed `Ext` type has the
 coefficient ring's `add`/`mul` in hand; that is the next probe, and it is unmeasured.
 
+
+### The operations record is not expressible, and why that settles the design (round twenty-six)
+
+Round twenty-five left one reconciliation untested: index the element type by the
+radicand, and hand the operations in per level. Three measurements close it.
+
+**A `Data` type cannot hold a function field.** `type Ops<-K: Data> is Data:
+OpsRec{add: K -> K -> K, mul: K -> K -> K}` fails with
+`expected : Data / observed : Type` at the field. Function types have kind `Type`, and a
+`Data` declaration wants fields of kind `Data`. (The parenthesised spelling is worse --
+`(K, K) -> K` parses as a `Sigma`: `expected : Type / observed : Sigma`. Function types
+are written with bare arrows.)
+
+**A def cannot take a type or a function parameter.** Three variants, one message:
+
+    def EB.k(+K: Type, +dr: K, x: EB.Ext<K, dr>, y: EB.Ext<K, dr>) -> EB.Ext<K, dr>
+    def EB.k(+K: Data, +dr: K, x: EB.Ext<K, dr>, y: EB.Ext<K, dr>) -> EB.Ext<K, dr>
+    def Ops.add(+K: Type, f: K -> K -> K, x: K, y: K) -> K
+
+all fail with `expected : Data / observed : Type`, located at the def. Def parameters
+must be data values, so bend has no type parameters and no function parameters: no
+dictionaries, no type classes. Dependent parameter types are fine (`u: LB.Elem(d)` checks
+in round twenty-five's P1 -- the error there was in the body), so it is specifically the
+*type-valued* and *function-valued* parameters that are impossible.
+
+**What that settles.** Operations have to be dispatched on a *value*, which is what
+route B's level family does. The radicand can therefore be a type index or a value, never
+both, and the carrying design (round twenty-five) is not a preference but the only
+expressible shape: the radicand rides in the data, and the family supplies the operations
+for the level below. Its one accepted cost stands -- two elements claiming different
+radicands are *unprovable*, not *untypeable*.
+
+Worth stating precisely, because it bounds the search: elements at *different levels* are
+already untypeable under route B, since the Ext case is indexed by the radicand tower
+(`Elem.Ext<d>`). The residual hole is narrower than it sounds -- two different elements
+representing the *same* radicand, at the same index. Pinning the carried field to its
+index is exactly the embedding, which fails at the cross-radicand step
+(`expected : Elem(d) / observed : Elem(re)`, P2). Indexing the element by the radicand
+*element* instead would need a def generic in that element's type -- measured impossible
+above. So the residual hole is structural in bend as it stands, not an oversight in the
+design. Closing it needs either an upstream bend feature or a working embedding; the
+embedding fails only in the Ext case, and for a *base* radicand it is trivially
+available (`Base{v} -> EBase{v}`), which is why a nested-radicand chain is the case that
+needs it.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a
