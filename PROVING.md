@@ -5404,3 +5404,55 @@ marker at any depth, so no silent zero enters from a level mismatch or an exhaus
 hypotheses are obligations bend cannot express as types, so this is a guarantee about correct
 callers: pass operands of unequal depth and the result is `Bad`, which the consumer is forced
 to handle rather than mistake for a number.
+
+## Round thirty-three -- The fuel obligation splits, and its extension case surfaces the radicand question
+
+**Landed and proved: the base shape.**
+
+    law Tower.mul.fuel.base:
+      for +g: Nat
+      for +d: Tower
+      for a: R.Rat
+      for b: R.Rat
+      Tower.clean(Tower.mul(1n+g, d, Base{a}, Base{b}))
+
+Fill is `T.CleanOk{}`: the successor arm takes the Base/Base branch and returns
+`Base{Rat.mul(a, b)}`. Tower's count goes 242 to 243.
+
+**Blocked: the extension shape, and not by fuel arithmetic.** The statement that mirrors
+`add.clean` -- clean operands, equal depth, `hrd: {depth(x) == 1n + depth(d)}`, and
+`hf: {Nat.cmp(depth(x), f) == LT{}}` -- cannot support its own recursion. `mul`'s Ext/Ext arm
+calls `mul(g, d, rx, ry)` at the level below x, and the caller's `hrd` gives, after
+cancellation, `depth(rx) == depth(d)`: `rx` and `d` are siblings. The sub-level call would
+need a relation one level further down that the statement does not supply. Measured directly:
+
+    def T.Tower.hrd.down(+d: T.Tower, +rx: T.Tower, +ix: T.Tower, +dx: T.Tower,
+        hrd: {T.Tower.depth(T.Ext{rx, ix, dx}) == Nat.add(1n, T.Tower.depth(d)) : Nat})
+      -> {T.Tower.depth(rx) == Nat.add(1n, T.Tower.depth(d)) : Nat}:
+      N.succ_inj(T.Tower.depth(rx), T.Tower.depth(d), hrd)
+
+    Error:
+    - expected : {src/tower.Tower.depth(rx) == 1n+src/tower.Tower.depth(d) : Nat}
+    - observed : {src/tower.Tower.depth(rx) == src/tower.Tower.depth(d) : Nat}
+    Context:
+    - hrd : {1n+src/tower.Tower.depth(rx) == 1n+src/tower.Tower.depth(d) : Nat}
+    Location: T.Tower.hrd.down
+
+Three distinct claims, kept apart:
+
+1. Measured: the needed hypothesis is not derivable from the caller's.
+2. Reasoned, not measured: a sub-level multiplication's radicand is the sub-level's own, not
+   `d`. `mul` threads `d` unchanged through every recursive call, so from depth two up the
+   `sqrt(d) * sqrt(d) = d` term multiplies by the caller's radicand. That is the radicand-chain
+   wall of rounds twenty-six and twenty-seven appearing in the untyped design -- and there it
+   was a typing obstruction, whereas here it is a question about values.
+3. Untested: whether `mul`'s values are wrong for nested towers at all. A proof obstruction is
+   not a semantics proof; the statement I chose may be the wrong shape. The next unit tests it
+   numerically -- two depth-2 towers with rational coefficients, product known by hand,
+   compared against the printed value the way `scratch.bend` checks the inversion triple.
+
+Until then `mul` is verified for depth-1 towers only. If the threading changes, `mul.ext`'s
+statement and the fuel obligation restate with it.
+
+**Gates after this round.** All six proof files print `All terms check.`; counts nat 129, int
+32, qext 34, rat 229, qrat 265, tower 243; `probe.bend` and `probe.payoff.bend` check.

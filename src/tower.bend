@@ -265,6 +265,21 @@ law Tower.add.clean:
   for h: {Tower.depth(x) == Tower.depth(y) : Nat}
   Tower.clean(Tower.add(d, x, y))
 
+# Fuel sufficiency at the bottom shape
+# ===================================
+#
+# Two rational elements need no structure to multiply, so one step of fuel is
+# always enough and the radicand is never touched. This is the base case of the
+# obligation; the extension case is where the recursion has to descend a level,
+# and that is a separate question (see TOWER-PLAN section 7, round thirty-three).
+
+law Tower.mul.fuel.base:
+  for +g: Nat
+  for +d: Tower
+  for a: R.Rat
+  for b: R.Rat
+  Tower.clean(Tower.mul(1n+g, d, Base{a}, Base{b}))
+
 # zero at the bottom level is a zero
 law Tower.zero.base:
   for v: R.Rat

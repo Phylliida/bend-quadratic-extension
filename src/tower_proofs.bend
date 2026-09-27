@@ -146,3 +146,6 @@ def T.Tower.add.clean(d, x, y, hd, hx, hy, h):
       Empty.absurd(T.Tower.clean(T.Tower.add(d, x, T.Bad{})), hy)
     case _ T.Fuel{}:
       Empty.absurd(T.Tower.clean(T.Tower.add(d, x, T.Fuel{})), hy)
+
+def T.Tower.mul.fuel.base(g, d, a, b):
+  T.CleanOk{}
