@@ -1141,6 +1141,39 @@ induction: from `cmp(1+depth(rx), 1+g) == LT{}` to `cmp(depth(rx), g) == LT{}`, 
 the library's `cmp_lt_succ_r` family is for. `add`'s mark `+hd` is now unused in the depth fill
 and harmless.
 
+
+### The fuel obligation, narrowed to one missing law (round thirty-six)
+
+**Landed**: `law Tower.mul.fuel.zero: {Tower.mul(0n, d, x, y) == Fuel{} : Tower}` with a
+`{==}` fill. Fuel zero is definitionally the failure case -- `mul`'s first arm is `case 0n:
+Fuel{}` -- so this holds for every pair of operands, markers included. Tower's count is 244.
+
+**The induction step is free.** Stripping the successor from `cmp(1+a, 1+b)` needs no lemma:
+`Nat.cmp` is a checker built-in that computes on structure, so `cmp(1+depth(rx), 1+g)` reduces
+to `cmp(depth(rx), g)` and the recursive call's fuel bound is the caller's hypothesis. The
+library's own `cmp_eq` fill relies on the same reduction. (`cmp_lt_succ_r` is the wrong
+direction: it weakens `a < b` to `a < 1+b`.)
+
+**What the extension case still needs is one law, `Tower.mul.depth`.** In `mul`'s Ext/Ext arm
+the second recursive call takes an operand that is *itself a result*:
+
+    Tower.mul(g, Tower.rad(rx), Tower.mul(g, Tower.rad(rx), ix, iy), d)
+
+so the fuel bound for that call needs `depth(mul(g, rad(rx), ix, iy)) == depth(ix)`, i.e. a depth
+law for `mul` -- the analogue of the `add.depth` already landed. `mul.depth` is itself an
+induction (its Ext/Ext arm combines the two recursive depth facts through `add.depth`, which
+needs the coordinates' depths to agree, which the evidence's `hri` chains provide), and once it
+is in place `mul.fuel.ext` follows with:
+
+    for hrd: {Tower.depth(x) == Nat.add(1n, Tower.depth(d)) : Nat}
+
+the level-discipline hypothesis the `sqrt(d)*sqrt(d) = d` term needs, since that term multiplies
+by `d` and its depth has to match the coordinates'.
+
+So the plan is: `Tower.mul.depth`, then `law Tower.mul.fuel.ext` with clean operands, equal
+depth, `hrd`, and `hf: {Nat.cmp(Tower.depth(x), f) == LT{}}`. Nothing about the radicand chain
+blocks either of them any more -- that is what the threading fix bought.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

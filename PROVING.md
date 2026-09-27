@@ -5571,3 +5571,37 @@ never landed, and its fill was blocked by exactly the hypothesis this round remo
 recursion no longer needs a relation between the coordinates and the caller's radicand. What
 remains is the fuel-inequality induction: `cmp(1+depth(rx), 1+g) == LT{}` to
 `cmp(depth(rx), g) == LT{}`, the library's `cmp_lt_succ_r` family. `main` is untouched.
+
+## Round thirty-six -- The fuel obligation narrowed to one missing law
+
+**Landed.** `law Tower.mul.fuel.zero: {Tower.mul(0n, d, x, y) == Fuel{} : Tower}`, filled `{==}`.
+`mul`'s first arm is `case 0n: Fuel{}`, so fuel zero is the failure case for every pair of
+operands, markers included. Tower's count goes 243 to 244, and the proofs gate stays green.
+
+**The induction step needs no lemma.** Stripping the successor from `cmp(1+a, 1+b)` looks like it
+should need a cancellation law; `cmp_lt_succ_r` is the wrong direction (it weakens `a < b` to
+`a < 1+b`). It is not needed at all: `Nat.cmp` is a checker built-in that computes on structure,
+so `cmp(1+depth(rx), 1+g)` reduces to `cmp(depth(rx), g)` and the recursive call's fuel bound is
+exactly the caller's hypothesis. The library's own `cmp_eq` fill relies on the same reduction,
+which is where the expectation comes from; the fill will confirm it.
+
+**One law is missing: `Tower.mul.depth`.** In `mul`'s Ext/Ext arm the second recursive call
+takes an operand that is itself a result,
+
+    Tower.mul(g, Tower.rad(rx), Tower.mul(g, Tower.rad(rx), ix, iy), d)
+
+so its fuel bound needs `depth(mul(g, rad(rx), ix, iy)) == depth(ix)` -- a depth law for `mul`,
+the analogue of the landed `add.depth`. That law is an induction whose Ext/Ext arm combines the
+two recursive depth facts through `add.depth` (which wants the coordinates' depths to agree, and
+the evidence's `hri` fields plus the equal-depth hypothesis provide that). With it in place,
+`mul.fuel.ext` follows with the level-discipline hypothesis
+
+    for hrd: {Tower.depth(x) == Nat.add(1n, Tower.depth(d)) : Nat}
+
+which the `sqrt(d)*sqrt(d) = d` term needs, since that term multiplies by `d` and `d`'s depth has
+to match the coordinates'.
+
+Nothing about the radicand chain blocks either law now. That is what the threading fix bought:
+round thirty-three measured the same obligation as blocked because the recursion needed a
+relation the caller's hypotheses could not give, and now the radicand is read off the operand
+instead.

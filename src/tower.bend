@@ -301,6 +301,12 @@ law Tower.add.clean:
 # obligation; the extension case is where the recursion has to descend a level,
 # and that is a separate question (see TOWER-PLAN section 7, round thirty-three).
 
+law Tower.mul.fuel.zero:
+  for +d: Tower
+  for +x: Tower
+  for +y: Tower
+  {Tower.mul(0n, d, x, y) == Fuel{} : Tower}
+
 law Tower.mul.fuel.base:
   for +g: Nat
   for +d: Tower

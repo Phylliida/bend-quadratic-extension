@@ -170,3 +170,6 @@ def T.Tower.add.clean(x, y, d, hx, hy, hd, h):
 
 def T.Tower.mul.fuel.base(g, d, a, b):
   T.CleanOk{}
+
+def T.Tower.mul.fuel.zero(d, x, y):
+  {==}
