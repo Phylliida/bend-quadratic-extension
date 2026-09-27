@@ -74,17 +74,6 @@ def Tower.lift(+t: Tower, d: Tower) -> Tower:
 # right one off the operand, so the recursion descends without the caller having to
 # thread a chain of radicands.
 
-def Tower.rad(t: Tower) -> Tower:
-  match t:
-    case Base{v}:
-      t
-    case Ext{re, im, d}:
-      d
-    case Bad{}:
-      Bad{}
-    case Fuel{}:
-      Fuel{}
-
 # One level's arithmetic, generically
 # ===================================
 #
@@ -105,12 +94,12 @@ def Tower.rad(t: Tower) -> Tower:
 # mul reduces with sqrt(d) * sqrt(d) = d: the im*im term is multiplied by d, an
 # element of the level below, exactly as the depth-1 QExt.mul does.
 
-def Tower.add(x: Tower, y: Tower, +d: Tower) -> Tower:
+def Tower.add(x: Tower, y: Tower) -> Tower:
   match x y:
     case Base{a} Base{b}:
       Base{R.Rat.add(a, b)}
-    case Ext{+rx, +ix, dx} Ext{ry, iy, dy}:
-      Ext{Tower.add(rx, ry, Tower.rad(rx)), Tower.add(ix, iy, Tower.rad(rx)), d}
+    case Ext{rx, ix, dx} Ext{ry, iy, dy}:
+      Ext{Tower.add(rx, ry), Tower.add(ix, iy), dx}
     case Fuel{} _:
       Fuel{}
     case _ Fuel{}:
@@ -140,7 +129,7 @@ def Tower.neg(x: Tower) -> Tower:
 # diagnosis from Bad: it says the caller's fuel was too small, not that the
 # operands disagreed about their level.
 
-def Tower.mul(+f: Nat, +d: Tower, x: Tower, y: Tower) -> Tower:
+def Tower.mul(+f: Nat, x: Tower, y: Tower) -> Tower:
   match f:
     case 0n:
       Fuel{}
@@ -149,13 +138,9 @@ def Tower.mul(+f: Nat, +d: Tower, x: Tower, y: Tower) -> Tower:
         case Base{a} Base{b}:
           Base{R.Rat.mul(a, b)}
         case Ext{+rx, +ix, +dx} Ext{+ry, +iy, +dy}:
-          Ext{Tower.add(Tower.mul(g, Tower.rad(rx), rx, ry),
-                        Tower.mul(g, Tower.rad(rx),
-                          Tower.mul(g, Tower.rad(rx), ix, iy), d),
-                        Tower.rad(rx)),
-              Tower.add(Tower.mul(g, Tower.rad(rx), rx, iy),
-                        Tower.mul(g, Tower.rad(rx), ix, ry), Tower.rad(rx)),
-              d}
+          Ext{Tower.add(Tower.mul(g, rx, ry), Tower.mul(g, Tower.mul(g, ix, iy), dx)),
+              Tower.add(Tower.mul(g, rx, iy), Tower.mul(g, ix, ry)),
+              dx}
         case Fuel{} _:
           Fuel{}
         case _ Fuel{}:
@@ -246,7 +231,8 @@ type Tower.Clean is Data:
 # discipline generally.
 type Tower.Clean.Ext<-re: Tower, -im: Tower, -d: Tower> is Data:
   CleanExt{cre: Tower.clean(re), cim: Tower.clean(im), cd: Tower.clean(d),
-           hri: {Tower.depth(re) == Tower.depth(im) : Nat}}
+           hri: {Tower.depth(re) == Tower.depth(im) : Nat},
+           hrd: {Tower.depth(re) == Tower.depth(d) : Nat}}
 
 def Tower.clean(t: Tower) -> Data:
   match t:
@@ -276,22 +262,18 @@ def Tower.clean(t: Tower) -> Data:
 law Tower.add.depth:
   for +x: Tower
   for +y: Tower
-  for +d: Tower
   for hx: Tower.clean(x)
   for hy: Tower.clean(y)
-  for +hd: Tower.clean(d)
   for h: {Tower.depth(x) == Tower.depth(y) : Nat}
-  {Tower.depth(Tower.add(x, y, d)) == Tower.depth(x) : Nat}
+  {Tower.depth(Tower.add(x, y)) == Tower.depth(x) : Nat}
 
 law Tower.add.clean:
   for +x: Tower
   for +y: Tower
-  for +d: Tower
   for hx: Tower.clean(x)
   for hy: Tower.clean(y)
-  for +hd: Tower.clean(d)
   for h: {Tower.depth(x) == Tower.depth(y) : Nat}
-  Tower.clean(Tower.add(x, y, d))
+  Tower.clean(Tower.add(x, y))
 
 # Fuel sufficiency at the bottom shape
 # ===================================
@@ -302,17 +284,15 @@ law Tower.add.clean:
 # and that is a separate question (see TOWER-PLAN section 7, round thirty-three).
 
 law Tower.mul.fuel.zero:
-  for +d: Tower
   for +x: Tower
   for +y: Tower
-  {Tower.mul(0n, d, x, y) == Fuel{} : Tower}
+  {Tower.mul(0n, x, y) == Fuel{} : Tower}
 
 law Tower.mul.fuel.base:
   for +g: Nat
-  for +d: Tower
   for a: R.Rat
   for b: R.Rat
-  Tower.clean(Tower.mul(1n+g, d, Base{a}, Base{b}))
+  Tower.clean(Tower.mul(1n+g, Base{a}, Base{b}))
 
 # zero at the bottom level is a zero
 law Tower.zero.base:
@@ -347,19 +327,17 @@ law Tower.lift.zero:
 law Tower.add.base:
   for a: R.Rat
   for b: R.Rat
-  for +d: Tower
-  {Tower.add(Base{a}, Base{b}, d) == Base{R.Rat.add(a, b)} : Tower}
+  {Tower.add(Base{a}, Base{b}) == Base{R.Rat.add(a, b)} : Tower}
 
 law Tower.add.ext:
-  for +rx: Tower
-  for +ix: Tower
+  for rx: Tower
+  for ix: Tower
   for dx: Tower
-  for +ry: Tower
-  for +iy: Tower
+  for ry: Tower
+  for iy: Tower
   for dy: Tower
-  for +d: Tower
-  {Tower.add(Ext{rx, ix, dx}, Ext{ry, iy, dy}, d)
-   == Ext{Tower.add(rx, ry, Tower.rad(rx)), Tower.add(ix, iy, Tower.rad(rx)), d} : Tower}
+  {Tower.add(Ext{rx, ix, dx}, Ext{ry, iy, dy})
+   == Ext{Tower.add(rx, ry), Tower.add(ix, iy), dx} : Tower}
 
 law Tower.neg.ext:
   for rx: Tower
@@ -369,30 +347,24 @@ law Tower.neg.ext:
 
 law Tower.mul.base:
   for +g: Nat
-  for +d: Tower
   for a: R.Rat
   for b: R.Rat
-  {Tower.mul(1n+g, d, Base{a}, Base{b}) == Base{R.Rat.mul(a, b)} : Tower}
+  {Tower.mul(1n+g, Base{a}, Base{b}) == Base{R.Rat.mul(a, b)} : Tower}
 
 # the sqrt(d) * sqrt(d) = d reduction, as the unfolding the plan asks for. Spelled
 # at a successor fuel, since the definition matches on the fuel.
 law Tower.mul.ext:
   for +g: Nat
-  for +d: Tower
   for +rx: Tower
   for +ix: Tower
   for dx: Tower
   for +ry: Tower
   for +iy: Tower
   for dy: Tower
-  {Tower.mul(1n+g, d, Ext{rx, ix, dx}, Ext{ry, iy, dy})
-   == Ext{Tower.add(Tower.mul(g, Tower.rad(rx), rx, ry),
-                    Tower.mul(g, Tower.rad(rx),
-                      Tower.mul(g, Tower.rad(rx), ix, iy), d),
-                    Tower.rad(rx)),
-          Tower.add(Tower.mul(g, Tower.rad(rx), rx, iy),
-                    Tower.mul(g, Tower.rad(rx), ix, ry), Tower.rad(rx)),
-          d} : Tower}
+  {Tower.mul(1n+g, Ext{rx, ix, dx}, Ext{ry, iy, dy})
+   == Ext{Tower.add(Tower.mul(g, rx, ry), Tower.mul(g, Tower.mul(g, ix, iy), dx)),
+          Tower.add(Tower.mul(g, rx, iy), Tower.mul(g, ix, ry)),
+          dx} : Tower}
 
 law Tower.one.base:
   for v: R.Rat

@@ -1276,6 +1276,42 @@ The measured cost is the same shape as the last restatement: the four `add` laws
 the fills, and the depth gate's calls. What it buys is the difference between "`add`'s result is
 well-formed only if the caller passed the right radicand" and "`add`'s result is well-formed".
 
+
+### The radicand is intrinsic to the operand, and the side condition is gone (round thirty-nine)
+
+The design round thirty-eight measured is landed on `radicand-intrinsic`, cut from
+`mul-radicand-threading` so that branch stays mergeable on its own.
+
+**Signatures.** `Tower.add(x, y)` and `Tower.mul(+f, x, y)`. The radicand is no longer a
+parameter anywhere: each arm reads it from the operand it is looking at -- an Ext's third field
+-- so `Tower.rad` and its evidence-transport helper are both deleted, the arms having become
+destructuring. Every level's radicand is now intrinsic.
+
+**The evidence carries the level discipline.** `Tower.Clean.Ext` gains
+`hrd: {Tower.depth(re) == Tower.depth(d) : Nat}`, and the cost of that field turned out to be
+exactly as predicted: from 244 TODOs unchanged in `tower.bend` (the law statements name
+`Tower.clean(...)`, not its fields), one pattern arity, and the field's *value* is free. In
+`add.clean`'s Ext/Ext arm the result is `Ext{Tower.add(rx, ry), Tower.add(ix, iy), dx}`, whose
+third field is the operand's own `dx`, so `cd` comes straight out of the operand's evidence and
+`hrd` is a two-step `Equal.trans` through `add.depth`. Nothing had to be assumed.
+
+**And the caller-side discipline disappeared with the parameter.** The two safety laws keep their
+shape -- `for +x, +y, hx: Tower.clean(x), hy: Tower.clean(y), h: {depth(x) == depth(y)}` -- with
+the `hd` hypothesis gone rather than replaced by something stricter. There is no radicand for a
+caller to get wrong because there is no radicand parameter: the tradeoff flagged in round
+thirty-seven ("`add`'s result is well-formed only when the caller passed the right radicand") does
+not arise, and `add`'s result is well-formed. The depth gate is stronger for the same reason:
+`(sqrt(5) + sqrt(2))^2` is now checked with no radicand argument at all.
+
+**Gates.** All six proof files print `All terms check.`; counts nat 129, int 32, qext 34, rat 229,
+qrat 265, tower 244; `probe.bend`, `probe.payoff.bend` and `probe.tower.depth.bend` check;
+`scratch.bend` prints its inversion triple.
+
+**Remaining.** `Tower.mul.depth`, then `Tower.mul.fuel.ext`. Both now have the level relation they
+need in the operand's evidence rather than in a hypothesis, which was the whole point of the
+change: `mul.depth`'s recursive call gets `{depth(rx) == 1n + depth(rad(rx))}`, i.e. at an Ext
+`hxr.hrd` composed with the shape, without any law having to carry it.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

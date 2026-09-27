@@ -46,10 +46,10 @@ def x2() -> T.Tower:
   T.Ext{sq5(), one1(), bigD()}
 
 def ctrl1() -> T.Tower:
-  T.Tower.mul(2n, five(), sq5(), sq5())
+  T.Tower.mul(2n, sq5(), sq5())
 
 def test2() -> T.Tower:
-  T.Tower.mul(3n, bigD(), x2(), x2())
+  T.Tower.mul(3n, x2(), x2())
 
 def want1() -> T.Tower:
   T.Ext{five(), zero(), five()}
