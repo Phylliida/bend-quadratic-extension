@@ -1037,6 +1037,63 @@ Until that test runs, `mul` should be treated as verified for depth-1 towers onl
 needs its radicand threading changed, `mul.ext`'s statement and the fuel obligation both
 restate with it.
 
+
+### Depth-2 multiplication was broken, and the markers made it visible (round thirty-four)
+
+The numeric test the fuel obstruction pointed at: level 1 lives in Q(sqrt 5), a level-1 tower
+being `Ext{p, q, Base{5}}` for `p + q*sqrt(5)`; level 2 extends that by `sqrt(D)` where D is
+the level-1 element 2, so a level-2 element is `Ext{R, I, D}` for `R + I*sqrt(2)`. The control
+multiplies `sqrt(5)` by itself at level 1. The test multiplies `sqrt(5) + sqrt(2)` by itself.
+`main` returns all three values -- control, product, hand-computed expectation -- so the runner
+prints them side by side.
+
+**Before the fix**: control `Ext{Base{5}, Base{0}, Base{5}}` = 5, correct. Product
+`Ext{Ext{Bad{}, Bad{}, D}, Ext{Bad{}, Base{2}, D}, D}` -- `Bad` where the answer should be.
+Expectation `Ext{Base{7}, Ext{Base{0}, Base{2}, Base{5}}, D}`, i.e. `7 + (2*sqrt(5))*sqrt(2)`.
+
+So `mul` could not multiply depth-2 elements at all, and the markers are what made that
+visible: before round thirty-one the same call returned `Tower.zero(D)`, a perfectly plausible
+ring element, and nothing downstream would have noticed.
+
+**Diagnosis.** `mul`'s Ext/Ext arm handed the *level-k* radicand to level-(k-1)
+multiplications -- both as the parameter the recursion threads and, through it, as the
+radicand the coordinates' own recursions would use. At depth 2 those coordinates are rationals
+and the level-1 radicand is a rational too, but the value passed was D, a level-1 tower, so the
+operands of the coordinate multiplication sat at different depths and the mixed-shape arm
+fired.
+
+**Fix** (`mul-radicand-threading`):
+
+- `Tower.rad(t)` reads a level's radicand off an operand: `d` for `Ext{re, im, d}`, and `t`
+  itself for a Base, a dummy that is never read because a Base/Base multiplication takes no
+  radicand. It is a function of the operand, so the recursion descends without a caller
+  having to thread a chain of radicands -- the thing rounds twenty-six and twenty-seven
+  could not do in the typed designs.
+- The recursive calls in `mul`'s and `add`'s Ext/Ext arms pass `Tower.rad(...)` in the
+  radicand *slot*. The `sqrt(d)*sqrt(d) = d` term's second operand stays the caller's `d`,
+  which is correct: it is the level's own radicand, and the caller supplies it. The result's
+  third field stays `d` too.
+- `add`'s parameters become `(x, y, +d)`. The termination check wants each argument unchanged
+  until one shrinks, and `add(Tower.rad(rx), rx, ry)` changed the first argument before the
+  second shrank; with the operands first, `add(rx, ry, Tower.rad(rx))` is accepted.
+- `add.ext` and `mul.ext` restate to the new unfoldings, and `add.base`, `add.depth`,
+  `add.clean` reorder their `for` lists to match.
+
+One mistake worth recording: the first attempt also replaced the `sqrt(d)*sqrt(d) = d` term's
+operand with `Tower.rad(rx)`. The control caught it -- `sqrt(5)*sqrt(5)` came out as
+`Ext{0, 0, 5}`, i.e. zero -- because at level 1 that operand is the rational 5 while
+`rad(Base{0})` is 0. Reverted.
+
+**After the fix**, printed values: control `Ext{5, 0, 5}`; product `Ext{Ext{7, 0, 5},
+Ext{0, 2, 5}, Ext{2, 0, 5}}`; expectation identical to the product. Depth-2 arithmetic is
+correct.
+
+**Still open on the branch.** `src/tower_proofs.bend` is red until its fills follow the new
+signatures: the parameter orders are mechanical, but `add.clean`'s Ext/Ext arm now needs clean
+evidence for `Tower.rad(rx)`, which is a function of a variable operand and therefore needs the
+fill to match on the coordinates' shape as well. `main` is untouched and the law statements
+themselves are unchanged apart from the reordering.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

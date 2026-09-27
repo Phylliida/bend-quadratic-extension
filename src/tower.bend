@@ -62,14 +62,39 @@ def Tower.zero(t: Tower) -> Tower:
 def Tower.lift(+t: Tower, d: Tower) -> Tower:
   Ext{t, Tower.zero(t), d}
 
+# The radicand of the level an operand sits at
+# ============================================
+#
+# A multiplication at level k needs the level's own radicand. For an operand
+# Ext{re, im, d} at level k that is d, which the caller supplies; but the
+# *coordinate* level below k has a different radicand -- the one stored inside the
+# coordinates -- and that is what the depth-2 test of round thirty-four caught:
+# the recursion was handing the level-k radicand to a level-(k-1) multiplication,
+# whose operands then sat at different depths and came back as Bad. rad reads the
+# right one off the operand, so the recursion descends without the caller having to
+# thread a chain of radicands.
+
+def Tower.rad(t: Tower) -> Tower:
+  match t:
+    case Base{v}:
+      t
+    case Ext{re, im, d}:
+      d
+    case Bad{}:
+      Bad{}
+    case Fuel{}:
+      Fuel{}
+
 # One level's arithmetic, generically
 # ===================================
 #
-# The radicand is an operation *parameter*, not something read out of the
-# operands. That is the depth-1 house style (`QExt.mul(+d, x, y)`) lifted one
-# level, and it is what makes the ring laws statable: `add(d, x, y)` and
-# `add(d, y, x)` mention one radicand, so no law needs a shape-agreement
-# hypothesis. The discipline is that callers pass the level's own radicand.
+# The radicand is an operation *parameter* for the level being combined: it is
+# what the result's third field records, and callers pass the level's own. What
+# the recursion needs is *not* that value but the radicand one level down, which
+# is a function of the operands rather than something a caller can thread --
+# Tower.rad reads it off them. Round thirty-four measured why: handing the level's
+# radicand to a coordinate-level multiplication put its operands at different
+# depths and the result came back as Bad.
 #
 # Two operands at *different* levels are not a value of the theory -- there is no
 # ring holding both -- and a call that mixes them returns Bad, not a plausible
@@ -80,12 +105,12 @@ def Tower.lift(+t: Tower, d: Tower) -> Tower:
 # mul reduces with sqrt(d) * sqrt(d) = d: the im*im term is multiplied by d, an
 # element of the level below, exactly as the depth-1 QExt.mul does.
 
-def Tower.add(+d: Tower, x: Tower, y: Tower) -> Tower:
+def Tower.add(x: Tower, y: Tower, +d: Tower) -> Tower:
   match x y:
     case Base{a} Base{b}:
       Base{R.Rat.add(a, b)}
-    case Ext{rx, ix, dx} Ext{ry, iy, dy}:
-      Ext{Tower.add(d, rx, ry), Tower.add(d, ix, iy), d}
+    case Ext{+rx, +ix, dx} Ext{ry, iy, dy}:
+      Ext{Tower.add(rx, ry, Tower.rad(rx)), Tower.add(ix, iy, Tower.rad(rx)), d}
     case Fuel{} _:
       Fuel{}
     case _ Fuel{}:
@@ -124,9 +149,12 @@ def Tower.mul(+f: Nat, +d: Tower, x: Tower, y: Tower) -> Tower:
         case Base{a} Base{b}:
           Base{R.Rat.mul(a, b)}
         case Ext{+rx, +ix, +dx} Ext{+ry, +iy, +dy}:
-          Ext{Tower.add(d, Tower.mul(g, d, rx, ry),
-                        Tower.mul(g, d, Tower.mul(g, d, ix, iy), d)),
-              Tower.add(d, Tower.mul(g, d, rx, iy), Tower.mul(g, d, ix, ry)),
+          Ext{Tower.add(Tower.mul(g, Tower.rad(rx), rx, ry),
+                        Tower.mul(g, Tower.rad(rx),
+                          Tower.mul(g, Tower.rad(rx), ix, iy), d),
+                        Tower.rad(rx)),
+              Tower.add(Tower.mul(g, Tower.rad(rx), rx, iy),
+                        Tower.mul(g, Tower.rad(rx), ix, ry), Tower.rad(rx)),
               d}
         case Fuel{} _:
           Fuel{}
@@ -246,24 +274,24 @@ def Tower.clean(t: Tower) -> Data:
 # relations for its own result: the three fields of an Ext result get their
 # relations from the depth of the coordinates that produced them.
 law Tower.add.depth:
-  for +d: Tower
   for +x: Tower
   for +y: Tower
-  for hd: Tower.clean(d)
+  for +d: Tower
   for hx: Tower.clean(x)
   for hy: Tower.clean(y)
+  for +hd: Tower.clean(d)
   for h: {Tower.depth(x) == Tower.depth(y) : Nat}
-  {Tower.depth(Tower.add(d, x, y)) == Tower.depth(x) : Nat}
+  {Tower.depth(Tower.add(x, y, d)) == Tower.depth(x) : Nat}
 
 law Tower.add.clean:
-  for +d: Tower
   for +x: Tower
   for +y: Tower
-  for +hd: Tower.clean(d)
+  for +d: Tower
   for hx: Tower.clean(x)
   for hy: Tower.clean(y)
+  for +hd: Tower.clean(d)
   for h: {Tower.depth(x) == Tower.depth(y) : Nat}
-  Tower.clean(Tower.add(d, x, y))
+  Tower.clean(Tower.add(x, y, d))
 
 # Fuel sufficiency at the bottom shape
 # ===================================
@@ -311,21 +339,21 @@ law Tower.lift.zero:
 # top of exactly these.
 
 law Tower.add.base:
-  for +d: Tower
   for a: R.Rat
   for b: R.Rat
-  {Tower.add(d, Base{a}, Base{b}) == Base{R.Rat.add(a, b)} : Tower}
+  for +d: Tower
+  {Tower.add(Base{a}, Base{b}, d) == Base{R.Rat.add(a, b)} : Tower}
 
 law Tower.add.ext:
-  for +d: Tower
-  for rx: Tower
-  for ix: Tower
+  for +rx: Tower
+  for +ix: Tower
   for dx: Tower
-  for ry: Tower
-  for iy: Tower
+  for +ry: Tower
+  for +iy: Tower
   for dy: Tower
-  {Tower.add(d, Ext{rx, ix, dx}, Ext{ry, iy, dy})
-   == Ext{Tower.add(d, rx, ry), Tower.add(d, ix, iy), d} : Tower}
+  for +d: Tower
+  {Tower.add(Ext{rx, ix, dx}, Ext{ry, iy, dy}, d)
+   == Ext{Tower.add(rx, ry, Tower.rad(rx)), Tower.add(ix, iy, Tower.rad(rx)), d} : Tower}
 
 law Tower.neg.ext:
   for rx: Tower
@@ -345,16 +373,19 @@ law Tower.mul.base:
 law Tower.mul.ext:
   for +g: Nat
   for +d: Tower
-  for rx: Tower
-  for ix: Tower
+  for +rx: Tower
+  for +ix: Tower
   for dx: Tower
-  for ry: Tower
-  for iy: Tower
+  for +ry: Tower
+  for +iy: Tower
   for dy: Tower
   {Tower.mul(1n+g, d, Ext{rx, ix, dx}, Ext{ry, iy, dy})
-   == Ext{Tower.add(d, Tower.mul(g, d, rx, ry),
-                    Tower.mul(g, d, Tower.mul(g, d, ix, iy), d)),
-          Tower.add(d, Tower.mul(g, d, rx, iy), Tower.mul(g, d, ix, ry)),
+   == Ext{Tower.add(Tower.mul(g, Tower.rad(rx), rx, ry),
+                    Tower.mul(g, Tower.rad(rx),
+                      Tower.mul(g, Tower.rad(rx), ix, iy), d),
+                    Tower.rad(rx)),
+          Tower.add(Tower.mul(g, Tower.rad(rx), rx, iy),
+                    Tower.mul(g, Tower.rad(rx), ix, ry), Tower.rad(rx)),
           d} : Tower}
 
 law Tower.one.base:
