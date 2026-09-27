@@ -538,6 +538,72 @@ unnecessary for correctness.
 **Done when.** The thirty-step chain checks, the timing is reported, and the per-step
 cost is visibly not exponential in the step index.
 
+
+### Route B's operations, measured (round twenty-five)
+
+`add` was proved under route B in round twenty-four. `mul` is where the
+`sqrt(d)*sqrt(d) = d` term forces the radicand into the term itself, and the
+measurements below settle its shape.
+
+**The radicand cannot be used as an element (measured).** A def whose body passes the
+radicand tower where a coefficient is expected:
+
+    def LB.Elem.crux(+d: LB.Tower, u: LB.Elem(d)) -> LB.Elem(d):
+      LB.Elem.add(d, u, d)
+
+fails with `expected : probe.tower.rb.Elem(d) / observed : probe.tower.rb.Tower`. So
+route A's spelling `mul(d, mul(d, ix, iy), d)` has no route B counterpart: `d` is a
+tower, not an element of the coefficient ring.
+
+**The embedding is blocked too (measured).** `def Elem.of(+t: Tower) -> Elem(t)` with
+the Ext case `EExt{Elem.of(re), Elem.of(im)}` fails with
+`expected : probe.tower.rb.Elem(d) / observed : probe.tower.rb.Elem(re)` -- a
+coefficient carries the index `re`, the field demands `Elem(d)`. This is the
+relative-ring crux, in bend, with a checker message.
+
+**A type index is legal (measured).** `type ElemT.Ext<-K: Data> is Data: TExt{re: K, im: K}`
+plus `def ElemT(t: Tower) -> Data` returning `ElemT.Ext<ElemT(d)>` checks. So the Ext
+case may be indexed by the coefficient ring itself.
+
+**So the shape that works is a carrying one**, and it checks:
+
+    type ElemC.Ext<-K: Data> is Data:
+      CExt{re: K, im: K, dr: K}      # dr = the radicand, as an element of the coefficient ring
+
+    def ElemC(t: LB.Tower) -> Data:
+      match t: Base{v} -> ElemC.Base<v>; Ext{re, im, d} -> ElemC.Ext<ElemC(d)>
+
+**And route B's `mul` needs no fuel (measured, twice).** The nested term
+`ElemC.mul(d, ElemC.mul(d, xi, yi), xdr)` checks both with a Nat fuel and at
+`ElemC.mul(+t, x, y)` with no fuel at all: 229 either way. The contrast with route A is
+the point -- route A's `mul` descends on a plain tower parameter and had to carry fuel
+precisely because nothing shrinks; route B recurses with the level index `d`, which is a
+subterm of `Ext{re, im, d}`, so the structural descent is real and the fuel-sufficiency
+law disappears from the plan.
+
+**But the carrying field does not verify radicand agreement -- and the checker proves
+it (measured).** With `law ElemC.add.comm` stated for all `x, y : ElemC(t)`, unfolding
+both sides gives
+
+    expected : ... == CExt{add(d,yr,xr), add(d,yi,xi), ydr} : ElemC.Ext<ElemC(d)>
+    observed : ... == CExt{add(d,yr,xr), add(d,yi,xi), xdr} : ElemC.Ext<ElemC(d)>
+
+The third field is the left operand's carried radicand on one side and the right
+operand's on the other, so the law is simply false unless the two agree. That is the
+improvement route A could not deliver: in route A a mismatched call returns `zero(d)`,
+indistinguishable by `depth` from a correct element, and every law holds vacuously. Here
+a mismatched call is *unprovable*. It is still not *untypeable*, which is what
+safety-by-construction would need.
+
+**The obstruction to the clean statement, named.** A hypothesis-free law wants the
+radicand as an *index* (`Elem.Ext<-K, dr: K>`), so that operands must share it by
+construction; the operations want the radicand as *data*, because `mul` has to multiply
+by it. As measured, the level family cannot supply that index -- it dispatches on the
+tower `t`, and no `dr` is determined by `t` (the embedding that would determine it is
+itself blocked above). The untested design that could reconcile them is an
+operations *record* passed per level, so that a radicand-indexed `Ext` type has the
+coefficient ring's `add`/`mul` in hand; that is the next probe, and it is unmeasured.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

@@ -4835,3 +4835,81 @@ section 7. Timings are not a signal (the probe checks in 1.7 s, importing rat_pr
 **Still unmeasured for B**: `mul` under an indexed signature (whether the
 `sqrt(d) * sqrt(d) = d` term needs the same Nat fuel the data-tower version needed), the
 other four ring laws, and target-file timings.
+
+## Round twenty-five -- Route B's operations: the radicand cannot become an element, and the carrying field is caught by the checker
+
+Route B's `add` was proved in round twenty-four. `mul` is the hard one, because the
+`sqrt(d)*sqrt(d) = d` term puts the radicand *into* the multiplication term. Four
+measurements, all on `probe.tower.rb.bend` (route B's machinery, law-free, so probes
+can import it) and its satellites.
+
+**P1 -- the radicand is not an element.** A def whose body needs exactly what `mul`
+needs (multiply a coefficient by the radicand):
+
+    def LB.Elem.crux(+d: LB.Tower, u: LB.Elem(d)) -> LB.Elem(d):
+      LB.Elem.add(d, u, d)
+
+    Error:
+    - expected : probe.tower.rb.Elem(d)
+    - observed : probe.tower.rb.Tower
+    Location: LB.Elem.crux
+
+**P2 -- the embedding is blocked, at the relative-ring crux.** `Elem.of(+t: Tower) ->
+Elem(t)`, Ext case `EExt{Elem.of(re), Elem.of(im)}`:
+
+    Error:
+    - expected : probe.tower.rb.Elem(d)
+    - observed : probe.tower.rb.Elem(re)
+    Location: LB.Elem.of
+
+(The first run of this probe reported `expected : a declared constructor` because I
+typed `EElem` for `EExt` -- my typo, not a measurement. Worth recording as a reminder:
+when an error names a constructor, check the spelling before believing it.)
+
+**P3 -- a type index is legal.** `type ElemT.Ext<-K: Data> is Data`, `TExt{re: K, im: K}`,
+and `def ElemT(t: LB.Tower) -> Data` whose Ext case returns `ElemT.Ext<ElemT(d)>`: 229
+TODOs, i.e. rat.bend's law count and nothing of mine. The element family may therefore
+be indexed by the coefficient *ring*.
+
+**P4 -- the carrying shape checks, and it does not need fuel.** With
+`ElemC.Ext<-K: Data>` of `CExt{re: K, im: K, dr: K}` (`dr` = the radicand as an element
+of the coefficient ring) and the family returning `ElemC.Ext<ElemC(d)>`, a mul whose Ext
+case is
+
+    CExt{ElemC.add(d, ElemC.mul(g, d, xr, yr),
+            ElemC.mul(g, d, ElemC.mul(g, d, xi, yi), xdr)),
+         ElemC.add(d, ElemC.mul(g, d, xr, yi), ElemC.mul(g, d, xi, yr)),
+         xdr}
+
+reports 229 -- it checks. And so does the same term with the fuel removed and the
+recursion written `ElemC.mul(d, ...)`: 229 again. Route B's `mul` needs no fuel, because
+it descends on the level index `d`, a subterm of the `Ext{re, im, d}` pattern, while
+route A descended on a plain tower parameter where nothing shrank. The fuel-sufficiency
+law leaves the plan.
+
+**P5 -- the carrying field is not verified, and the checker says so.** `law
+ElemC.add.comm` for all `x, y : ElemC(t)`, with the congruence helpers for the
+three-field constructor (`ElemC.ext.at`, `.at.cong`, `.at.cong.r`, `.pair.cong`,
+mirroring round twenty-four's recipe with the third field held fixed), fails at the Ext
+branch with
+
+    expected : {CExt{..., xdr} == CExt{..., ydr} : ElemC.Ext<ElemC(d)>}
+    observed : {CExt{..., xdr} == CExt{..., xdr} : ElemC.Ext<ElemC(d)>}
+
+The goal's third field is the *right* operand's carried radicand; the term I can build
+carries the left one's. So `add.comm` is false for elements whose carried radicands
+disagree. This is what route A could not give: route A's mismatch arms return
+`zero(d)`, which `depth` cannot distinguish from a correct element, so mismatches are
+silent and every law holds vacuously. Under route B a mismatched call is unprovable.
+It is not untypeable, which is what safety-by-construction would require.
+
+Also measured here, a cross-file rule: a probe that cites a library *law* must import
+the proofs file as well. `probe.tower.law.bend` failed with `expected : a filled
+definition (an unfilled law is a dead claim: live code cannot use it) / observed :
+src/rat.Rat.add_comm` until `import ./src/rat_proofs.bend` was added -- the same
+"unfilled law is a dead claim" rule as within a file, one level up.
+
+The clean statement of a law wants the radicand as an *index* (so operands share it by
+construction); the operations want it as *data* (`mul` must multiply by it). The level
+family cannot supply the index: it dispatches on `t`, and no radicand element is
+determined by `t`. An operations record passed per level is the untested reconciliation.
