@@ -4572,3 +4572,53 @@ anyway. Recorded in `TOWER-PLAN.md` §6.1 with the numbers.
 Two syntax facts the probe paid for, now in the plan: a type is `type P is Data:` with its
 constructor on the following line (not `type P: P{...}`), and a projector is a plain `def`
 with a destructuring body (`P{+f, +s} = p`, then `f`), not a derived field access.
+
+## Step 0.2 measured: fills induct structurally, and a value index carries a tower (measured)
+
+Both remaining Step 0 questions came back yes on the first shape that parsed, and the
+second one retires the plan's biggest named risk.
+
+**Induction in a fill.** A laws module declared a recursive user type `TL` with
+`TL.append` and `TL.sum` over it, and the law `TL.sum(TL.append(a, b)) ==
+Nat.add(TL.sum(a), TL.sum(b))` at variables -- a statement no amount of unfolding
+settles. The fill, in a second module, `match`es on `a`, closes the `Nil` branch
+definitionally (because `Nat.add(0n, x)` reduces to `x`), and in the `Con` branch calls
+*itself* on the tail: the checker accepted a fill that recurses structurally, with the
+induction hypothesis arriving at the smaller tower already stated. Two rewrites assemble
+it -- the hypothesis, flipped through `Equal.sym` because the goal's occurrence is its
+left endpoint, and one associativity step. The recipe is in TOWER-PLAN §6.2.
+
+The durable fact from that exercise is the rewrite orientation, now measured rather than
+remembered: **`%e` replaces the goal's occurrence of `e`'s right endpoint with its
+left.** `N.add_assoc` -- `(a+b)+c = a+(b+c)` -- could not rewrite `(h + sum t) + sum b`;
+its flipped twin `N.add_assoc_rev` closed the proof in one step. That is exactly why
+`nat.bend`'s `add_succ` is documented as "stated flipped so rewrites fire left-to-right",
+and it means a new law should be stated in the direction its rewrites will need. Four
+ascription/orientation combinations were tried and exactly one checked, which is the
+cheapest way to have learned it.
+
+**A tower-valued type index.** The `Word` idiom (`type Word.Con<-p: Nat>` plus `def
+Word(n: Nat) -> Data`) generalized from a `Nat` index to a tower-valued one: indexed
+constructor types `Elem.Base<-v: Nat>` and `Elem.Ext<-t: Tower>`, a type-level `def
+Elem(t: Tower) -> Data:` matching on the tower, and
+
+```
+def Elem.zero(+t: Tower, x: Elem(t)) -> Elem(t):
+  match t:
+    case TBase{v}: x
+    case TExt{re, im, d}: x
+```
+
+which checks -- the checker reduces `Elem(t)` per branch, so `x` has the right type in
+both -- and a law may quantify `for +t: Tower for +x: Elem(t)`, a dependent parameter over
+a family whose index is a runtime value. So an element type can carry its tower *in the
+type*: DESIGN §9.1's route (η) written natively, and the statement that the "relative-ring
+crux" may not exist on this side at all. Step 2's operations can be typed `Elem(t) ->
+Elem(t)` instead of carrying a tower argument through every law. §3.2 is rewritten to say
+so, with the depth-index-plus-`wf` fallback kept for the case where the laws want it.
+
+**Namespace facts, both cost by the probes.** Constructor names are global -- `Nil` and
+`Con` are taken by `base.bend`, hence `TNil`/`TCon`, while `Base` and `Ext`, the names
+Step 1's sketch uses, are free. A cross-module *pattern* names the constructor under the
+module alias with no type in the path (`case L.TNil{}:`); construction across modules was
+not exercised. Both probe files are deleted; the recipes are in the plan.

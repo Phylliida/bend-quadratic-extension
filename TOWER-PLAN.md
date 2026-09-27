@@ -106,8 +106,26 @@ the radicand as a parameter and every law about it is stated with that parameter
 explicit. Generalizing means taking the *tower* as the parameter, which is route (η)
 written natively. If the type index can carry it, the crux may not exist at all.
 
-**Unverified.** This is the first thing to probe (§6.2), because it changes the shape
-of every law above it.
+**Measured, round twenty: it generalizes.** A family indexed by a tower value checks,
+with the `Word` idiom generalized from a `Nat` index to a tower: indexed constructor types
+`Elem.Base<-v: Nat>` and `Elem.Ext<-t: Tower>`, a type-level `def Elem(t: Tower) -> Data:`
+that `match`es on the tower, and then
+
+```
+def Elem.zero(+t: Tower, x: Elem(t)) -> Elem(t):
+  match t:
+    case TBase{v}:
+      x
+    case TExt{re, im, d}:
+      x
+```
+
+for which the checker reduces `Elem(t)` per branch, so `x` typechecks in both. A law may
+quantify `for +t: Tower for +x: Elem(t)`. An element type can therefore carry its tower
+*in the type* -- route (η) written natively -- and the crux DESIGN §9.1 names may not exist
+on this side at all: Step 2's operations can be typed `Elem(t) -> Elem(t)` rather than
+carrying a tower argument through every law. The depth-index-plus-`wf` fallback stays in
+the plan for the case where the laws turn out to want it.
 
 ## 4. Two things bend makes harder
 
@@ -218,12 +236,66 @@ access, so `def P.fst(p: P) -> Nat:` works but its name must not collide with a 
 
 ### 6.2 Does induction over a user-defined recursive type work in fills?
 
-`bend2/base.bend` has `type List<a, -A: Kind(a)>: Nil{} | Con{head: A, tail: List<a, A>}`
-and `String.append` recurses and matches on it, so recursive datatypes and recursion
-over them exist. Unverified for *fills*: prove something trivial by induction on the
-tower — `lift` distributing over `add`, say — and confirm a `Nat`-indexed family can
-carry a tower index. If the index cannot carry a tower, fall back to a depth index
-plus a `wf` predicate over runtime tower data, which is the Verus arrangement.
+**Measured, round twenty: yes to both**, and the pair below is the working recipe. A
+recursive user type, two functions over it, and a statement at variables that no unfolding
+settles:
+
+```
+type TL is Data:
+  TNil{}
+  TCon{head: Nat, tail: TL}
+
+def TL.append(a: TL, b: TL) -> TL:
+  match a:
+    case TNil{}: b
+    case TCon{h, t}: TCon{h, TL.append(t, b)}
+
+def TL.sum(l: TL) -> Nat:
+  match l:
+    case TNil{}: 0n
+    case TCon{h, t}: Nat.add(h, TL.sum(t))
+
+law TL.sum.append:
+  for +a: TL
+  for +b: TL
+  {TL.sum(TL.append(a, b)) == Nat.add(TL.sum(a), TL.sum(b)) : Nat}
+```
+
+The fill lives in another module, and calls *itself* on the tail: structural induction
+written as recursion, which the checker accepts.
+
+```
+def L.TL.sum.append(a, b):
+  match a:
+    case L.TNil{}:
+      {==}
+    case L.TCon{h, t}:
+      %Equal.sym(Nat, L.TL.sum(L.TL.append(t, b)), Nat.add(L.TL.sum(t), L.TL.sum(b)),
+          L.TL.sum.append(t, b))
+        : {Nat.add(h, _) == Nat.add(Nat.add(h, L.TL.sum(t)), L.TL.sum(b)) : Nat}
+      %N.add_assoc_rev(h, L.TL.sum(t), L.TL.sum(b))
+        : {Nat.add(h, Nat.add(L.TL.sum(t), L.TL.sum(b))) == _ : Nat}
+      {==}
+```
+
+Three things it settled. The `match` refines the law's statement to the branch, and the
+`Nil` branch closes definitionally (`Nat.add(0n, x)` reduces to `x`). A fill may call
+itself on a structurally smaller argument and the *type* follows the argument, so the
+induction hypothesis arrives at the smaller tower already stated. And the rewrite
+orientation is exact: `%e` replaces the goal's occurrence of `e`'s **right** endpoint with
+its left, so a law must be stated in the direction its rewrites need -- `N.add_assoc`
+failed here and its flipped twin `N.add_assoc_rev` closed the proof in one step, the same
+reason `nat.bend`'s `add_succ` is documented "stated flipped so rewrites fire
+left-to-right". The ascription is the goal with the rewritten occurrence written as `_`
+and every other slot spelled exactly as the checker prints it.
+
+Two namespace facts the probe paid for: constructor names are **global** (`Nil` and `Con`
+are already taken by `base.bend`, hence `TNil`/`TCon`), so `Base`/`Ext` in Step 1's sketch
+are fine; and a cross-module *pattern* names the constructor under the module alias with no
+type in the path (`case L.TNil{}:`), while construction across modules was not exercised.
+
+The tower-index half of this probe is §3.2's answer; both probe files are deleted, with the
+recipes here.
 
 ## 7. Steps 1–5
 
@@ -365,7 +437,10 @@ parameterized by its radicand.
 named definitions costs the same as a 5-deep one, even when the goal forces the value
 (§6.1).
 
-**Not measured, and load-bearing:** whether fills can induct over a user-defined
-recursive type and whether a type index can carry a tower (§3.2, §6.2) -- probe 6.2 is
-next; the cost of a chain written as law applications, which can only be measured where
-laws are filled (§6.1); and every step of §7.
+**Measured since (round twenty):** fills induct structurally over a user-defined
+recursive type, and a value-indexed family carries a tower index -- both Step 0 questions
+answered yes (§3.2, §6.2).
+
+**Not measured, and load-bearing:** the cost of a chain written as law applications, which
+can only be measured where laws are filled (§6.1); the shape of `wf` (§7 Step 1); and
+every step of §7.
