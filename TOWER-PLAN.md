@@ -742,6 +742,61 @@ their laws are stateable at a variable level with no hypothesis, and the stateme
 is the first one measured in bend. `mul` is the operation that needs the radicand to
 cross between levels, and that is the operation the typed route cannot have.
 
+
+### The typed base carries provable laws (round twenty-eight)
+
+Round twenty-seven left one question: the three-index `ET` family makes a hypothesis-free
+ring law *stateable* at a variable tower level, but can it be *proved*? It can, with the
+`Rat.add_comm` recipe and nothing else -- one `Equal.cong` per coordinate composed by
+`Equal.trans` with the middle endpoint spelled out:
+
+    def ET.add.comm(t, x, y):
+      match t:
+        case T.Base{v}:
+          EBase{+a} = x
+          EBase{+b} = y
+          Equal.cong(R.Rat, ET.Base<v>, u => EBase{u},
+            R.Rat.add(a, b), R.Rat.add(b, a), R.Rat.add_comm(a, b))
+        case T.Ext{re, im, d}:
+          EExt{+u1, +w1} = x
+          EExt{+u2, +w2} = y
+          Equal.trans(ET.Ext<ET(re), ET(im), ET(d)>,
+            EExt{ET.add(re, u1, u2), ET.add(im, w1, w2)},
+            EExt{ET.add(re, u2, u1), ET.add(im, w1, w2)},
+            EExt{ET.add(re, u2, u1), ET.add(im, w2, w1)},
+            Equal.cong(ET(re), ET.Ext<ET(re), ET(im), ET(d)>,
+              u => EExt{u, ET.add(im, w1, w2)},
+              ET.add(re, u1, u2), ET.add(re, u2, u1), ET.add.comm(re, u1, u2)),
+            Equal.cong(ET(im), ET.Ext<ET(re), ET(im), ET(d)>,
+              u => EExt{ET.add(re, u2, u1), u},
+              ET.add(im, w1, w2), ET.add(im, w2, w1), ET.add.comm(im, w1, w2)))
+
+**The count is the evidence.** With the fill the file reports `Error: 11 TODOs found.` --
+exactly `src/tower.bend`'s own eleven laws, because importing
+`./src/rat_proofs.bend as RP` fills rat's 229 and the definition above fills mine. The
+unfilled version of the same file read 241 (round twenty-seven); an unattached fill here
+would read 12.
+
+**Negative control.** Returning the first `Equal.cong` alone, without the `Equal.trans`
+wrapper, is rejected as a type error rather than a syntax error, so the checker is really
+checking this fill instead of accepting it vacuously:
+
+    Error:    - expected : {EExt{ET.add(re, u1, u2), ET.add(im, w1, w2)} == EExt{ET.add(re, u2, u1), ET.add(im, w2, w1)} : ET.Ext<ET(re), ET(im), ET(d)>}    - observed : {EExt{ET.add(re, u1, u2), ET.add(im, w1, w2)} == EExt{ET.add(re, u2, u1), ET.add(im, w1, w2)} : ET.Ext<ET(re), ET(im), ET(d)>}    Context:    - re : src/tower.Tower    - im : src/tower.Tower    - d  : src/tower.Tower    - u1 : ET(re)
+
+**The direct form suffices.** A variant routing the injected element through a
+declared-return-type helper (`def ET.Ext.at(+re, +im, +d: T.Tower, u: ET(re), w: ET(im))
+-> ET.Ext<ET(re), ET(im), ET(d)>`) and spelling all three `trans` endpoints through it
+also gives 11, so both spellings pass. That matches round twenty-four: on indexed types the
+`%`-ascriptions are what fail, and direct terms avoid the wall.
+
+**What it means.** The radicand-free half of the ring is fully available in the typed
+setting -- `add` has a law at a variable tower level with no agreement hypothesis, stated
+and proved, and `neg` follows the same recipe (`EExt{ET.neg(u), ET.neg(w)}` never touches
+the radicand). `mul` remains the operation that needs the radicand to cross a level, and
+it remains impossible (round twenty-seven P3). The plan stands: route A for the
+arithmetic, `Tower.wf` evidence for the level and radicand discipline, with the `ET` base
+as a real asset if a hybrid development is ever wanted.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a
