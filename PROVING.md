@@ -4717,3 +4717,53 @@ the expected tail (`@iy -> @dy -> ...`), which settles the order fastest.
 **State.** Six gates green, the tower one at 240. Not yet done in Step 2: the five ring
 laws, the fuel-sufficiency law, and the route B probe (`Elem(t)`-indexed operations), which
 the next round runs to decide whether the indexed route is worth adopting wholesale.
+
+## Route B probed: indexed ring laws state cleanly, and the congruence step is where the index bites (measured)
+
+The bounded probe the plan asked for, run against `Elem(t)` -- the tower as a *type index*
+rather than as data.
+
+**What works.** Indexed constructor types (`Elem.Base<-v: Rat>`, `Elem.Ext<-t: Tower>`), a
+type-level `def Elem(t: Tower) -> Data` matching on the tower, and
+`def Elem.add(+t: Tower, x: Elem(t), y: Elem(t)) -> Elem(t)` all check, with each branch
+destructuring its operands because the checker reduces `Elem(t)` once `t` is a constructor.
+The ring law states at a variable context with **no shape hypothesis**:
+
+```
+law Elem.add.comm:
+  for +t: Tower
+  for +x: Elem(t)
+  for +y: Elem(t)
+  {Elem.add(t, x, y) == Elem.add(t, y, x) : Elem(t)}
+```
+
+and the probe file reports 231 TODOs = rat.bend's 229 plus those two laws, the predicted
+count. That is route B's real advantage: a mismatched-radicand call cannot be written, so
+nothing needs hypothesising away -- the crux §3.2 says may not exist, demonstrated rather
+than argued.
+
+**Where it bites.** The `Base` branch of the fill closes in one step (`Equal.sym` around
+`R.Rat.add_comm`, goal type spelled `Elem(Base{v})`). The `Ext` branch does not: rewriting
+inside the constructor needs `Equal.cong`, and its lambda cannot infer an indexed
+constructor's index at a variable context. Three spellings measured, one message:
+
+*expected : Elem(d) / observed : Elem.Ext<d>*
+
+-- the checker wants the lambda's *domain* where the codomain belongs, and the ascription's
+type makes no difference whether it is written reduced (`Elem.Ext<d>`) or unreduced
+(`Elem(LB.Ext{re, im, d})`). The untested candidate is the house helper pattern: a typed def
+`Elem.Ext.at(+d, u, xi) -> Elem.Ext<d>` so the lambda returns a declared type rather than an
+inferred constructor index. That would need one helper per congruence per constructor, which
+is the cost to weigh -- and it is a checker inference limitation, not a mathematical one.
+
+Timings are not a useful signal here: the probe file checks in ~1.6 s, dominated by the
+`rat_proofs.bend` import that completes its closure. The cost is in the number of steps and
+the wall, not the clock.
+
+**Verdict: Step 2 continues on route A.** Route B buys away the shape-agreement hypotheses
+and pays in index-spelled congruence helpers at every induction step. Route A pays once per
+operation (the `+d` parameter, and fuel for `mul`) rather than once per proof step. Route B
+stays available and measured; if route A's ring laws turn out to be dominated by shape
+hypotheses, this probe is where to restart -- with the helper-pattern fix tried first.
+
+Both probe files are deleted, with the recipes in TOWER-PLAN §7 Step 2.

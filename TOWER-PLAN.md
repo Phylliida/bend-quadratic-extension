@@ -421,6 +421,56 @@ therefore spelled at a successor fuel, `Tower.mul(1n+g, d, ...)`.
   checker prints what it expected (`@iy -> @dy -> ...`), which is the fastest way to get
   the order right.
 
+**Route B probed, round twenty-three: the statements are cleaner, the fills are not.**
+A bounded probe built the indexed route: `Elem.Base<-v: Rat>` and `Elem.Ext<-t: Tower>` as
+the indexed constructors, `def Elem(t: Tower) -> Data` matching on the tower (a rational at
+`Base`, a pair over `Elem(d)` at `Ext{re, im, d}`), and
+
+```
+def Elem.add(+t: Tower, x: Elem(t), y: Elem(t)) -> Elem(t):
+```
+
+which checks, with each branch destructuring its operands because the checker reduces
+`Elem(t)` once `t` is a constructor. The ring law then states *with no shape hypothesis at
+all*:
+
+```
+law Elem.add.comm:
+  for +t: Tower
+  for +x: Elem(t)
+  for +y: Elem(t)
+  {Elem.add(t, x, y) == Elem.add(t, y, x) : Elem(t)}
+```
+
+and that is route B's real advantage: a mismatched-radicand call cannot be written, so
+nothing has to be hypothesised away. The file checks at 231 TODOs = rat.bend's 229 plus the
+two laws, exactly as predicted.
+
+The fill is where the index bites. The `Base` branch closes in one step -- `Equal.sym`
+around `R.Rat.add_comm`, with the goal's type written as `Elem(Base{v})` -- and the `Ext`
+branch does not: rewriting inside the constructor needs `Equal.cong`, and its lambda cannot
+infer the indexed constructor's index at a *variable* context. Measured three ways with the
+same result:
+
+*expected : Elem(d) / observed : Elem.Ext<d>*
+
+The checker wants the lambda's **domain** type where the codomain belongs, so
+`u => EExt{u, ...}` is rejected no matter how the ascription's type is spelled (reduced
+`Elem.Ext<d>` or unreduced `Elem(LB.Ext{re, im, d})` both fail identically). The untested
+candidate fix is the house helper pattern -- a typed def `Elem.Ext.at(+d, u, xi) ->
+Elem.Ext<d>` so the lambda returns a *declared* type instead of an inferred constructor
+index -- but that would need one such helper per congruence per constructor, which is the
+shape of cost to weigh.
+
+**Verdict: Step 2 continues on route A.** Route B buys the disappearance of
+shape-agreement hypotheses and pays for it in index-spelled congruence helpers at every
+induction step, on a checker inference limitation rather than a mathematical one. Route A's
+cost (a `+d` parameter in every signature, and fuel for `mul`) is paid once per operation
+rather than once per proof step. Route B stays available and measured; if the ring laws on
+route A turn out to be dominated by shape hypotheses, the probe above is where to restart.
+
+Both probe files are deleted; the recipes are here and in PROVING round twenty-three.
+
 ### Step 3 — the unit test
 
 **Deliverable.** A recursive `norm` (an element of the level below), the unit test
