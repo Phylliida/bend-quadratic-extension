@@ -797,6 +797,78 @@ it remains impossible (round twenty-seven P3). The plan stands: route A for the
 arithmetic, `Tower.wf` evidence for the level and radicand discipline, with the `ET` base
 as a real asset if a hybrid development is ever wanted.
 
+
+### The witnessed route A has no teething: evidence is inert and the mismatch value is indistinguishable (round twenty-nine)
+
+Round twenty-seven concluded that the level and radicand discipline would have to be
+carried by proofs, and Step 1's `Tower.wf` evidence looked like the machinery for it.
+Measured, it is not -- for three independent reasons.
+
+**The evidence cannot be eliminated inside an operation.** Matching the evidence first,
+then the tower it is evidence about:
+
+    def T.Tower.head(+x: T.Tower, wx: T.Tower.wf(x)) -> T.Tower:
+      match wx:
+        case T.WfExt{wfre, wfim, wfd}:
+          match x:
+            case T.Ext{re, im, d}:
+              re
+
+    Error:
+    - message  : a match on a parameter or field (this name is a def or a consumed binder:
+                 give the value its own def)
+
+and the natural ordering fares no better -- matching the tower first, so that the evidence
+*should* reduce, then the evidence:
+
+    case T.Base{a} T.Base{b}:
+      match wx wy:
+        case T.TowerOk{} T.TowerOk{}:
+          T.Base{R.Rat.add(a, b)}
+
+    Error:
+    - message  : a match on a parameter or field (this name is a def or a consumed binder:
+                 give the value its own def)
+
+The mechanism is the stuck-term wall this project keeps meeting: the scrutinee's type
+`Tower.wf(x)` never reduces for a variable `x`, so the evidence is inert. It can be taken
+as a parameter, and a *law* may quantify it -- `law ... for +x: T.Tower; for +wx:
+T.Tower.wf(x)` reports 241 TODOs = `tower.bend`'s 240 plus the one law, so the statement is
+legal -- but it can never drive a dispatch. Evidence is for statements, not for operations.
+
+**Well-formedness is orthogonal to level agreement anyway.** Two towers can both be
+perfectly well-formed and still be at different levels, so the evidence could not exclude
+the mismatch even if it could be eliminated. The property that would matter is "x is at
+`d`'s level", which is a *proof obligation* about depth, not a data witness.
+
+**And the mismatch value is indistinguishable from a correct one.** The mixed arms return
+`Tower.zero(d)`, which by the landed `depth.zero` law has depth `1 + depth(d)` -- exactly
+the depth a correct sum at that level has. It is a legitimate element of the claimed ring,
+so no theorem phrased about *values* can call it wrong. Depth does not separate them, and
+nothing else does either.
+
+**What that leaves.** The only mechanism in bend that removes the silent-wrong-answer
+hazard is failing loudly: a distinguished marker returned by the mixed arms, which every
+consumer must handle explicitly because matching on `Tower` becomes non-exhaustive until
+it does. The measured cost is bounded -- 31 match/case sites in `src/tower.bend` and 3 in
+`src/tower_proofs.bend`, and no other file in the repo matches on `Base`/`Ext` (the
+interval fast path of Step 4 would be the next consumer). What it buys is that a
+wrong-level call cannot flow silently into a coordinate: reading a coordinate requires
+matching, and the marker forces a branch there.
+
+A theorem should ride with it -- well-formed, same-level inputs never produce the marker --
+and the absurdity machinery for that is in the library: `law lt_ne_eq: for e: {LT{} == EQ{} :
+Cmp}; Empty`, `gt_ne_eq`, `lt_ne_gt`, `Empty.absurd(-A: Type, e: Empty) -> A`, with
+`Nat.cmp` computing on literal zeros. **Proved.** The bridging lemma is real, with no laws of its own in the file:
+`All terms check.` So the absurdity machinery is available end to end:
+`Empty.absurd`, `lt_ne_eq`, `gt_ne_eq`, `Equal.sym`, `Equal.cong`, and `Nat.cmp`
+computing on literal zeros.
+
+The recommended change, which alters the landed public API and so is the user's call: add
+the marker constructor, return it from the four mixed arms, define `depth` and `wf` on it,
+and prove the unreachability theorem. The weaker alternative, if the API should stay put,
+is to keep the convention and rely on `depth` invariants at the consumer boundary.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

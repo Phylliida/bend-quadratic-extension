@@ -5191,3 +5191,80 @@ follows the same recipe. `mul` still cannot be written (round twenty-seven P3), 
 is the operation that needs the radicand to cross between levels. The plan is unchanged --
 route A for the arithmetic, `Tower.wf` evidence for the discipline -- with the `ET` base
 as an asset if a hybrid is ever wanted.
+
+## Round twenty-nine -- The witnessed route A has no teething: evidence is inert, and the mismatch value is indistinguishable
+
+Round twenty-seven said the level and radicand discipline would have to be carried by
+proofs, with Step 1's `Tower.wf` evidence as the machinery. Three probes say it cannot.
+
+**P1 -- matching the evidence first.** With `wx` evidence about `x`:
+
+    def T.Tower.head(+x: T.Tower, wx: T.Tower.wf(x)) -> T.Tower:
+      match wx:
+        case T.WfExt{wfre, wfim, wfd}:
+          match x:
+            case T.Ext{re, im, d}:
+              re
+        case T.TowerOk{}:
+          match x:
+            case T.Base{v}:
+              x
+
+    Error:
+    - message  : a match on a parameter or field (this name is a def or a consumed binder:
+                 give the value its own def)
+    Location:
+     8 |     case T.WfExt{wfre, wfim, wfd}:
+     9>|       match x:
+
+**P2 -- the natural ordering.** Match the tower first, so the evidence should reduce, then
+match the evidence:
+
+    def T.Tower.addW(+d: T.Tower, x: T.Tower, wx: T.Tower.wf(x),
+                     y: T.Tower, wy: T.Tower.wf(y)) -> T.Tower:
+      match x y:
+        case T.Base{a} T.Base{b}:
+          match wx wy:
+            case T.TowerOk{} T.TowerOk{}:
+              T.Base{R.Rat.add(a, b)}
+        ...
+
+    Error:
+    - message  : a match on a parameter or field (this name is a def or a consumed binder:
+                 give the value its own def)
+    Location:
+     9 |     case T.Base{a} T.Base{b}:
+    10>|       match wx wy:
+
+Same message, same obstruction. The mechanism is the stuck-term wall: the scrutinee's type
+`Tower.wf(x)` does not reduce for a variable `x`, so the evidence is inert. It is accepted
+as a parameter, and a law may quantify it -- `law T.Tower.depth.refl: for +x: T.Tower; for
++wx: T.Tower.wf(x)` reports `Error: 241 TODOs found.` = tower.bend's 240 plus one, so the
+statement is legal -- but it can never drive a dispatch.
+
+**P3 -- and even if it could, it would not help.** Well-formedness is orthogonal to level
+agreement: two towers can both be well-formed and be at different levels. The property that
+would matter is "x is at d's level", which is a proof obligation about depth, not a data
+witness.
+
+**P4 -- the mismatch value is indistinguishable.** The mixed arms return `Tower.zero(d)`,
+whose depth is `1 + depth(d)` by the landed `depth.zero` law -- exactly the depth of a
+correct sum at that level. It is a legitimate ring element, so no theorem about *values*
+can call it wrong; depth does not separate them and nothing else does.
+
+**P5 -- the absurdity machinery exists.** Surveyed: `law lt_ne_eq: for e: {LT{} == EQ{} :
+Cmp}; Empty`, `law gt_ne_eq` (`{GT{} == EQ{} : Cmp}`), `law lt_ne_gt`, `law cmp_eq`, and
+`Empty.absurd(-A: Type, e: Empty) -> A`. `Nat.cmp` is a checker built-in (no module prefix;
+`N.Nat.cmp` is rejected as a name) and computes on literal zeros, so `cmp(0n, 0n)` is
+`EQ{}` and `cmp(1n+k, 0n)` is `GT{}`. **Proved.** The bridging lemma is real, with no laws of its own in the file:
+`All terms check.` So the absurdity machinery is available end to end:
+`Empty.absurd`, `lt_ne_eq`, `gt_ne_eq`, `Equal.sym`, `Equal.cong`, and `Nat.cmp`
+computing on literal zeros.
+
+**Verdict and recommended change.** The only mechanism in bend that removes the
+silent-wrong-answer hazard is failing loudly -- a distinguished marker from the mixed arms,
+forced to be handled because matching on `Tower` becomes non-exhaustive at every consumer.
+Measured cost: 31 match/case sites in `src/tower.bend`, 3 in `src/tower_proofs.bend`, and
+no other file in the repo matches on `Base`/`Ext`. That changes the landed public API, so
+it is the user's call rather than an autonomous edit; the weaker alternative is to keep the
+convention and rely on `depth` invariants at the consumer boundary.
