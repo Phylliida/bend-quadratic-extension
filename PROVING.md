@@ -5623,3 +5623,44 @@ instead.
 `{1n + depth(re) == 1n + depth(d)}`: the level discipline itself, a property of a well-formed
 tower rather than a reduction. So `hrd` stays a hypothesis -- which is what rounds twenty-nine and
 thirty-three concluded before I briefly thought it could be avoided.
+
+## Round thirty-seven -- `mul.depth` needs the level discipline in the evidence
+
+Attempting the depth law for `mul` exposed what its recursion needs, and the measurement is
+precise. The recursion hands the next call an Ext's own coordinate, so the relation it must pass
+is about that coordinate: `depth(rx) == 1n + depth(rad(rx))`, which at `rx = Ext{p, q, r}` unfolds
+to `depth(p) == depth(r)`. What `Tower.Clean.Ext` carries is `hri`, that the two *coordinates*
+agree:
+
+    def T.Tower.level.from.clean(+re: T.Tower, +im: T.Tower, +d: T.Tower,
+        h: T.Tower.clean(T.Ext{re, im, d}))
+      -> {T.Tower.depth(re) == T.Tower.depth(d) : Nat}:
+      T.CleanExt{+cr, +ci, +cd, +hri} = h
+      hri
+
+    Error:
+    - expected : {src/tower.Tower.depth(re) == src/tower.Tower.depth(d) : Nat}
+    - observed : {src/tower.Tower.depth(re) == src/tower.Tower.depth(im) : Nat}
+    Context:
+    - cr : src/tower.Tower.clean(re)
+    - ci : src/tower.Tower.clean(im)
+    - cd : src/tower.Tower.clean(d)
+    Location: T.Tower.level.from.clean
+
+So `clean`, being a marker predicate, implies nothing about levels -- `cd` is `clean(d)`, not a
+depth relation -- and the relation the recursion needs is about a sub-tower of an operand, which
+only that operand's evidence knows.
+
+**Recommendation: put the discipline in the evidence.** `Tower.Clean.Ext` gains
+`hrd: {Tower.depth(re) == Tower.depth(d) : Nat}`. The alternative -- a hypothesis on each law
+that needs it -- fails for a recursion, because the hypothesis would have to be guessed per
+recursive call while callers cannot produce relations about sub-towers they cannot see; the
+evidence is built once per tower and transports. Round thirty-two removed `hrd` as "neither
+derivable nor needed": true of `add`, whose recursion never touches the radicand, false of `mul`,
+whose `sqrt(d)*sqrt(d) = d` term does.
+
+**The cost, up front.** The two landed safety laws gain a caller-side discipline hypothesis, and
+their fills construct their result's `hrd` from the operand's. That means `add`'s result is
+well-formed only when the caller passed the level's own radicand -- which is the discipline -- and
+it is the side-condition threading Step 1 flagged as the risk of the wf design. It is also the
+last piece `mul.depth` and `mul.fuel.ext` need.

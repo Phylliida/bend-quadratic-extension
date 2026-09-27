@@ -1187,6 +1187,59 @@ So the plan is: `Tower.mul.depth`, then `law Tower.mul.fuel.ext` with clean oper
 depth, `hrd`, and `hf: {Nat.cmp(Tower.depth(x), f) == LT{}}`. Nothing about the radicand chain
 blocks either of them any more -- that is what the threading fix bought.
 
+
+### `mul.depth` needs the level discipline in the evidence, and that is a design fork (round thirty-seven)
+
+Writing the depth law for `mul` runs into what its *recursive call* needs, and the measurement is
+sharp. The recursion hands the next call an operand that is an Ext's own coordinate, so the
+relation it must pass is about that coordinate:
+
+    depth(rx) == 1n + depth(rad(rx))     which at rx = Ext{p, q, r} unfolds to
+    depth(p) == depth(r)
+
+i.e. the coordinates and the radicand of a tower sitting at one level. What the evidence carries
+is `hri` -- the two *coordinates* agree -- and the checker says exactly why that is not enough:
+
+    def T.Tower.level.from.clean(+re: T.Tower, +im: T.Tower, +d: T.Tower,
+        h: T.Tower.clean(T.Ext{re, im, d}))
+      -> {T.Tower.depth(re) == T.Tower.depth(d) : Nat}:
+      T.CleanExt{+cr, +ci, +cd, +hri} = h
+      hri
+
+    Error:
+    - expected : {src/tower.Tower.depth(re) == src/tower.Tower.depth(d) : Nat}
+    - observed : {src/tower.Tower.depth(re) == src/tower.Tower.depth(im) : Nat}
+    Context:
+    - cr : src/tower.Tower.clean(re)
+    - ci : src/tower.Tower.clean(im)
+    - cd : src/tower.Tower.clean(d)
+
+Two things are now clear. `clean` is a *marker* predicate and can never imply anything about
+levels -- `cd` is `clean(d)`, not a depth relation -- so the discipline cannot be squeezed out of
+it. And the relation the recursion needs is about a *sub-tower of an operand*, which only that
+operand's own evidence knows.
+
+**The fork, and the recommendation.** Either
+
+(a) the evidence carries the discipline -- `Tower.Clean.Ext` gains
+`hrd: {Tower.depth(re) == Tower.depth(d) : Nat}`, so every well-formed operand hands its own level
+relation to whoever descends into it; or
+
+(b) each law that needs it takes it as a hypothesis, and callers produce it.
+
+(a) is the one that works for a recursion: the law's hypothesis would have to be guessed per
+recursive call, and callers cannot produce relations about sub-towers they cannot see, whereas the
+evidence is constructed once per tower and transports. Round thirty-two removed `hrd` from the
+evidence as "neither derivable nor needed"; that was true of `add`, whose recursion never touches
+the radicand, and false of `mul`, whose `sqrt(d)*sqrt(d) = d` term does.
+
+**What (a) costs, stated up front.** The two landed safety laws gain a caller-side discipline
+hypothesis, and their fills must construct their *result's* `hrd` from the operand's -- which
+means `add`'s result is well-formed only when the caller passed the level's own radicand, which is
+precisely the discipline. This is the "too weak and Step 2 carries side conditions everywhere"
+risk TOWER-PLAN flagged in Step 1, arriving on schedule. It is also the last piece `mul.depth`
+and `mul.fuel.ext` need.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a
