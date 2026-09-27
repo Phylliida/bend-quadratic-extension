@@ -462,12 +462,34 @@ Elem.Ext<d>` so the lambda returns a *declared* type instead of an inferred cons
 index -- but that would need one such helper per congruence per constructor, which is the
 shape of cost to weigh.
 
-**Verdict: Step 2 continues on route A.** Route B buys the disappearance of
-shape-agreement hypotheses and pays for it in index-spelled congruence helpers at every
-induction step, on a checker inference limitation rather than a mathematical one. Route A's
-cost (a `+d` parameter in every signature, and fuel for `mul`) is paid once per operation
-rather than once per proof step. Route B stays available and measured; if the ring laws on
-route A turn out to be dominated by shape hypotheses, the probe above is where to restart.
+**Verdict, revised in round twenty-four: route B is viable.** The round-twenty-three
+verdict -- continue on route A -- rested on the wall above. That wall is measured
+differently now, and the *index inference* was never the problem:
+
+- The helper pattern works. A typed def
+  `Elem.Ext.at(+d: Tower, u: Elem(d), w: Elem(d)) -> Elem.Ext<d>` makes `Equal.cong` with
+  an indexed codomain check **as a direct term**
+  (`Equal.cong(Elem(d), Elem.Ext<d>, u => Elem.Ext.at(d, u, w), a, b, e)`), which is the
+  signature `(domain, codomain, f, a, b, e)` confirmed against the checker.
+- What fails is a **`%`-script step whose ascription type is indexed**: five spellings
+  measured, one message (*expected : Elem(d) / observed : Elem.Ext<d>*), and the ascription
+  cannot be dropped at all (the checker reports *expected : ':' / observed : '%'*).
+- Build the fill out of direct terms instead and the indexed law goes through:
+  *All terms check.* The probe uses three small congruence defs (`Elem.at.cong`,
+  `Elem.at.cong.r`, and `Elem.pair.cong` composing them with `Equal.trans`) and the `Ext`
+  branch of the law's fill is then a single term application. The `Base` branch keeps its
+  `%` step, which works -- its ascription type `Elem(Base{v})` has a *plain* slot type
+  (`Rat`), while the `Ext` branch's hole sits in a slot of indexed type `Elem(d)`.
+
+So route B's cost is a small family of typed congruence defs per constructor -- three in the
+probe, about twelve lines -- plus `Equal.trans` to compose them, and the payoff is that a
+mismatched-radicand call **cannot be written at all**. That is the difference the "no errors
+can happen" requirement turns on: route A's mismatch arms return `zero(d)`, which `depth`
+cannot distinguish from a correct element of the same level, so A's safety is a convention
+enforced by review; B's safety is a type. The cost is per operation, not per checker fix.
+
+Not yet measured for B: `mul` (whether the `sqrt(d) * sqrt(d) = d` term needs the same Nat
+fuel under an indexed signature), the remaining ring laws, and the target-file timings.
 
 Both probe files are deleted; the recipes are here and in PROVING round twenty-three.
 

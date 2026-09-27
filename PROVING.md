@@ -4767,3 +4767,71 @@ stays available and measured; if route A's ring laws turn out to be dominated by
 hypotheses, this probe is where to restart -- with the helper-pattern fix tried first.
 
 Both probe files are deleted, with the recipes in TOWER-PLAN §7 Step 2.
+
+## Route B solved: the wall was the indexed %-ascription, not the index inference (measured)
+
+The probe that round twenty-three left open, finished. Route B -- the tower as a type index
+-- is **viable**, and the earlier verdict on it was wrong for a specific and now-measured
+reason.
+
+**The helper pattern works.** A typed def
+
+```
+def Elem.Ext.at(+d: Tower, u: Elem(d), w: Elem(d)) -> Elem.Ext<d>:
+  EExt{u, w}
+```
+
+makes the congruence check *as a direct term*:
+
+```
+def T3.cong.at(+d, +a, +b, +w, e: {a == b : Elem(d)})
+    -> {Elem.Ext.at(d, a, w) == Elem.Ext.at(d, b, w) : Elem.Ext<d>}:
+  Equal.cong(LB.Elem(d), LB.Elem.Ext<d>, u => LB.Elem.Ext.at(d, u, w), a, b, e)
+```
+
+That checks, and it pins `Equal.cong`'s signature as `(domain, codomain, f, a, b, e)`: the
+swapped order, both-slots-the-same, and the no-type-argument forms each fail, the last with
+*expected : Type / observed : non-inferrable term*, so the type arguments are required.
+
+**What actually fails is the `%` step.** `%Equal.cong(...)` with an indexed ascription type
+was rejected in five spellings -- `Elem.Ext<d>`, `Elem(d)`, the unreduced
+`Elem(Ext{re, im, d})`, swapped slots, and both-slots-equal -- all reporting the same pair:
+
+*expected : Elem(d) / observed : Elem.Ext<d>*
+
+and the step *does* fire underneath: the context print shows the first coordinate already
+rewritten to `add(d, yr, xr)` when the complaint arrives. Dropping the ascription is not an
+option either: the checker answers *expected : ':' / observed : '%'*, so a `%` step must
+carry one. The distinguishing feature against the *working* `Base` branch is the hole's slot
+type: there the ascription is `Elem(Base{v})` and the hole sits in a `Rat` slot, a plain
+type, whereas the `Ext` branch's hole sits in a slot of indexed type `Elem(d)`.
+
+**Direct terms avoid the wall entirely.** Three congruence defs -- `Elem.at.cong` (rewrites
+the first coordinate), `Elem.at.cong.r` (rewrites the second), and `Elem.pair.cong`
+(composing the two with `Equal.trans`) -- let the law's fill's `Ext` branch be one term
+application:
+
+```
+case LB.Ext{re, im, +d}:
+  LB.EExt{+xr, +xi} = x
+  LB.EExt{+yr, +yi} = y
+  LB.Elem.pair.cong(d,
+      LB.Elem.add(d, xr, yr), LB.Elem.add(d, yr, xr),
+      LB.Elem.add(d, xi, yi), LB.Elem.add(d, yi, xi),
+      LB.Elem.add.comm(d, xr, yr), LB.Elem.add.comm(d, xi, yi))
+```
+
+and the file reports **All terms check.** The law is therefore proved at a *variable*
+context, with no shape hypothesis anywhere: `Elem.add.comm: for +t: Tower, for +x: Elem(t),
+for +y: Elem(t) {Elem.add(t, x, y) == Elem.add(t, y, x) : Elem(t)}`.
+
+**Why this matters beyond the probe.** The whole point of route B is that a call with
+mismatched radicands has no type. Route A's version returns `zero(d)` instead -- a value
+`depth` cannot distinguish from a correct element of the same level (measured: the arms
+return the caller's own radicand's zero). So A's safety is a convention, B's is a type. The
+cost of B measured here is three defs, ~12 lines, per operation; the recipe is in TOWER-PLAN
+section 7. Timings are not a signal (the probe checks in 1.7 s, importing rat_proofs).
+
+**Still unmeasured for B**: `mul` under an indexed signature (whether the
+`sqrt(d) * sqrt(d) = d` term needs the same Nat fuel the data-tower version needed), the
+other four ring laws, and target-file timings.
