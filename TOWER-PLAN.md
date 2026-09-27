@@ -896,10 +896,12 @@ instead of flattening it. Net cost: about nine arm edits in `src/tower.bend`.
 
 **The statements survive.** The generated file checks -- its only output is a TODO count,
 no error -- so every definition, both helper proofs, and all eleven copied law *statements*
-remain legal under the marker. The count is 111 with this import set (`nat`, `nat_proofs`
-and `rat`); `src/tower.bend` alone reports 240 and a control importing the same modules
-reports the difference, so what the number tracks is unfilled laws in the graph, not
-anything about the change. Note what this does *not* measure: the fills live in
+remain legal under the marker. The count is 111 with this import set, and it is exactly explained: nat contributes
+129 laws and nat_proofs fills every one of them, so a control probe importing nat,
+nat_proofs and rat with no laws of its own reports 100 -- rat's 229 minus nat's 129 --
+and the probe's eleven copied laws bring it to 111. src/tower.bend alone reports
+240 = rat's 229 plus its own eleven. So the number tracks unfilled laws in the import
+graph and nothing about the change. Note what this does *not* measure: the fills live in
 `src/tower_proofs.bend` and were not copied, so this is the statements' legality and the
 operations' typechecking, not a re-proof that the laws still hold.
 
