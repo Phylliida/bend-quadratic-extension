@@ -1374,6 +1374,32 @@ twenty arms -- four for the fuel-zero case, sixteen paired shapes of which four 
 (fuel zero with an Ext operand, and the `(Ext, Ext)`, `(Ext, Base)`, `(Ext, Bad)`, `(Ext, Fuel)`
 arms of the successor case).
 
+
+### The last dependency, and a correction to round forty (round forty-two)
+
+Assembling `mul.depth` ran into the piece that is still missing, and it is not the bookkeeping.
+
+The level relations `hri` and `hrd` live only inside `Tower.Clean.Ext`, so any law whose proof
+needs them -- and `mul.depth`'s chains do, for the depth equalities between coordinates and
+between a coordinate and the radicand -- must take clean evidence as a hypothesis. That much is
+fine: `mul.depth`'s operands are `x` and `y`, whose evidence the caller supplies.
+
+What is not fine is its *second* recursive call, `mul(g, mul(g, ix, iy), dx)`: its first operand
+is a **product**, so proving it needs `clean(mul(g, ix, iy))`, which is a conclusion no depth law
+produces. That is `mul.clean`, and round forty's claim that the chain was down to two laws was
+wrong -- removing `add.depth`'s cleanliness hypotheses helped, but it was not this requirement.
+
+**`mul.clean` is provable, though**, which is what makes the path finite. Its Ext/Ext arm needs
+evidence for `(ix, iy)`, for `dx`, and for `mul(g, ix, iy)`: the first two come from the operand's
+own evidence (`cre`/`cim` and `cd`), and the third is the conclusion of its own recursive call. So
+the chain is three laws, in this order:
+
+    Tower.mul.clean  ->  Tower.mul.depth  ->  Tower.mul.fuel.ext
+
+with `mul.clean` the same shape as the landed `add.clean` (the four substantive arms plus the
+marker arms), `mul.depth`'s Ext/Ext arm already verified in `probe.tower.mul.depth.arm.bend`, and
+`mul.fuel.ext` the statement that has been checked since round thirty-three.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

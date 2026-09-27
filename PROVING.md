@@ -5803,3 +5803,35 @@ three times without its `+` mark.
 evidence relations each recursive call needs (`hri` chains and `hrd`), the fuel hypothesis
 reducing for free from `cmp(1n+a, 1n+g) == LT{}` to `cmp(a, g) == LT{}`, twenty arms (four fuel
 zero, sixteen paired shapes, four substantive), and this assembly in the `(Ext, Ext)` one.
+
+## Round forty-two -- The last dependency, and a correction
+
+Assembling `mul.depth` found the piece that is still missing, and it is not the bookkeeping that
+round forty-one verified.
+
+`hri` and `hrd` live only inside `Tower.Clean.Ext`, so a law whose proof needs the level relations
+must take clean evidence as a hypothesis. For `mul.depth`'s own operands that is fine -- the
+caller supplies it -- but its second recursive call is
+
+    Tower.mul(g, Tower.mul(g, ix, iy), dx)
+
+and its first operand is a *product*. Proving that call needs `clean(mul(g, ix, iy))`, which is a
+conclusion no depth law produces. That is `Tower.mul.clean`, and round forty's claim that the
+remaining chain was two laws was wrong: removing `add.depth`'s cleanliness hypotheses helped, but
+it was a different requirement from this one.
+
+**Why the path is still finite: `mul.clean` is provable.** Its Ext/Ext arm needs evidence for
+`(ix, iy)`, for `dx`, and for `mul(g, ix, iy)`. The first two come out of the operand's own
+evidence -- `cre`/`cim` and `cd` -- and the third is the conclusion of its own recursive call, so
+nothing new has to be assumed. The order is therefore
+
+    Tower.mul.clean  ->  Tower.mul.depth  ->  Tower.mul.fuel.ext
+
+with `mul.clean` shaped like the landed `add.clean`, `mul.depth`'s Ext/Ext arm already checked in
+`probe.tower.mul.depth.arm.bend`, and `mul.fuel.ext`'s statement checked since round thirty-three.
+
+**State at the end of the round budget.** `radicand-intrinsic` @ `7a5253b` plus this record; all
+six proof files `All terms check.`, counts 129/32/34/229/265/244, the three consumer gates and
+both tower gates green; `main` untouched at `5dd79dc`. The measurement, the threading fix, its
+checked gate, and the intrinsic-radicand redesign are all landed; the fuel obligation has two of
+its three facts landed and the third's recipe pinned down to the hypothesis.
