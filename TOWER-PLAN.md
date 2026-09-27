@@ -1170,6 +1170,19 @@ is in place `mul.fuel.ext` follows with:
 the level-discipline hypothesis the `sqrt(d)*sqrt(d) = d` term needs, since that term multiplies
 by `d` and its depth has to match the coordinates'.
 
+One thing tried and rejected, measured: dropping the `hrd` hypothesis in favour of a
+definitional relation. It is not definitional. `depth` reads an Ext's *first* field and `rad`
+returns its *third*, so `{depth(Ext{re, im, d}) == 1n + depth(rad(Ext{re, im, d}))}` is
+`{1n + depth(re) == 1n + depth(d)}` -- the level discipline itself, which is a property of a
+well-formed tower and not a reduction. Measured with a closed `{==}`:
+
+    Error:
+    - expected : 1n+src/tower.Tower.depth(re)
+    - observed : 1n+src/tower.Tower.depth(d)
+
+So `hrd` stays a hypothesis, which is what rounds twenty-nine and thirty-three concluded and I
+briefly thought could be avoided.
+
 So the plan is: `Tower.mul.depth`, then `law Tower.mul.fuel.ext` with clean operands, equal
 depth, `hrd`, and `hf: {Nat.cmp(Tower.depth(x), f) == LT{}}`. Nothing about the radicand chain
 blocks either of them any more -- that is what the threading fix bought.

@@ -5605,3 +5605,21 @@ Nothing about the radicand chain blocks either law now. That is what the threadi
 round thirty-three measured the same obligation as blocked because the recursion needed a
 relation the caller's hypotheses could not give, and now the radicand is read off the operand
 instead.
+
+**One thing tried and rejected.** I expected the `hrd` hypothesis to be droppable -- that
+`depth(x) == 1n + depth(rad(x))` would hold by reduction once the shape is known. It does not:
+
+    def hrd.refl(+re: T.Tower, +im: T.Tower, +d: T.Tower)
+      -> {T.Tower.depth(T.Ext{re, im, d})
+          == Nat.add(1n, T.Tower.depth(T.Tower.rad(T.Ext{re, im, d}))) : Nat}:
+      {==}
+
+    Error:
+    - expected : 1n+src/tower.Tower.depth(re)
+    - observed : 1n+src/tower.Tower.depth(d)
+    Location: hrd.refl
+
+`depth` unfolds from the *first* field, `rad` returns the *third*, so the relation is
+`{1n + depth(re) == 1n + depth(d)}`: the level discipline itself, a property of a well-formed
+tower rather than a reduction. So `hrd` stays a hypothesis -- which is what rounds twenty-nine and
+thirty-three concluded before I briefly thought it could be avoided.
