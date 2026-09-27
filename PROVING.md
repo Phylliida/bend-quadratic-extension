@@ -4672,3 +4672,48 @@ parameter used twice also needs `+`, exactly like a law's.
 **State.** The checker checkout was returned to upstream Bend 2.0.27 (`d3790917`) for this
 round's measurements, so the numbers above carry no patch: the parked `nat-prim-literals`
 branch stays on its ref for whenever it is wanted.
+## Step 2's operations: the level arithmetic lands, and the checker turns out to check termination (measured)
+
+Step 2's arithmetic is in `src/tower.bend` with its fills, and the tower gate is green at
+**240 = rat.bend's 229 plus the tower's own eleven**. `Tower.add(+d, x, y)`,
+`Tower.neg(x)`, `Tower.mul(+f, +d, x, y)` and `Tower.one(t)`, with seven laws at spelled
+constructor forms -- `add.base`, `add.ext`, `neg.ext`, `mul.base`, `mul.ext` (the
+`sqrt(d) * sqrt(d) = d` unfolding the plan's done-when asks for), `one.base`, `one.ext` --
+every fill definitional. The five *ring* laws are not proved yet; they are inductions over
+the tower and they are the rest of the step.
+
+**The radicand stays an operation parameter**, as planned, and that is what keeps the ring
+laws statable: `add(d, x, y)` and `add(d, y, x)` name one radicand, so no law carries a
+shape-agreement hypothesis. Operands at different levels are not a value of the theory, so
+the mismatched arms return the level's zero and no law reaches them.
+
+**The discovery: bend checks termination.** Writing `mul` the obvious way was rejected --
+*"expected : a decreasing self-call (arguments are read left to right: each passed
+unchanged until one shrinks)"* -- because the `sqrt(d)*sqrt(d) = d` term needs the im*im
+product multiplied by `d`, and that nests one self-call inside another's argument. Four
+shapes were measured against it:
+
+| shape | verdict |
+|---|---|
+| `mul(d, rx, ry)` -- two operands shrinking together | fine: `add` passes with exactly this |
+| a let-bound intermediate (`xy = mul(d, ix, iy)`, then `mul(d, xy, d)`) | rejected: a binding is not a subterm |
+| operand order / radicand read from the operand instead | same rejection |
+| descending on a `Nat` fuel (`case 1n+g:`, recursing with `g`) | **accepted** |
+
+So `Tower.mul` is fuel-driven, which is the shape `base.bend`'s own `Nat.gcd` takes, and
+every `mul` law is spelled at a successor fuel (`Tower.mul(1n+g, d, ...)`). Callers pass a
+fuel of at least the operands' depth; proving that enough fuel never runs out is part of
+the rest of Step 2. The same check constrains the *ring* laws from below: any induction
+whose step nests a self-call will need the same treatment.
+
+**Three exactness facts the spellings cost.** Pattern binders are *linear* -- a constructor
+field used twice needs `+` in the pattern (`case Ext{+rx, +ix, +dx}:`), or the checker says
+*"expected : iy"*, which reads like a missing variable and is not. A law's statement may
+only name its `for` parameters: `Ext{rx, ix, dx}` with no `for dx` gives *"expected : a
+defined name / observed : dx"*, so no pattern binder is implicitly quantified. And a
+fill's parameter list mirrors its law's `for` list exactly, in order -- the checker prints
+the expected tail (`@iy -> @dy -> ...`), which settles the order fastest.
+
+**State.** Six gates green, the tower one at 240. Not yet done in Step 2: the five ring
+laws, the fuel-sufficiency law, and the route B probe (`Elem(t)`-indexed operations), which
+the next round runs to decide whether the indexed route is worth adopting wholesale.
