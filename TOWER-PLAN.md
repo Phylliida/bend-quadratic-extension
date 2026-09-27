@@ -1017,7 +1017,7 @@ statement does not supply. Measured, as a small lemma asking for exactly that:
     Error:
     - expected : {src/tower.Tower.depth(rx) == 1n+src/tower.Tower.depth(d) : Nat}
     - observed : {src/tower.Tower.depth(rx) == src/tower.Tower.depth(d) : Nat}
-    - hrd : {1n+src/tower/Tower.depth(rx) == 1n+src/tower.Tower.depth(d) : Nat}
+    - hrd : {1n+src/tower.Tower.depth(rx) == 1n+src/tower.Tower.depth(d) : Nat}
 
 Three things follow, and they are not the same thing:
 
