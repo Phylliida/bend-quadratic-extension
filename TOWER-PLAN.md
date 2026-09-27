@@ -869,6 +869,52 @@ the marker constructor, return it from the four mixed arms, define `depth` and `
 and prove the unreachability theorem. The weaker alternative, if the API should stay put,
 is to keep the convention and rely on `depth` invariants at the consumer boundary.
 
+
+### Failing loudly is cheap, and it catches a second silent zero (round thirty)
+
+The marker design was probed by generating a copy of `src/tower.bend` with the change
+applied textually -- the real type, operations, helpers and laws -- so what is measured is
+the actual code plus the change.
+
+**Two markers, because there are two failure modes.** `Bad{}` from the four mixed-shape
+arms (two in `add`, two in `mul`), and `Fuel{}` from `mul`'s `case 0n:` arm. That second
+site is a finding about landed code: `mul` is fuel-driven, and an exhausted fuel returned
+`Tower.zero(d)` -- a plausible zero, silently, decided by a caller-supplied Nat. The plan
+listed "a law proving that enough fuel never runs out" as Step 2's business, but not that
+running out of fuel was silent. Two markers keep the diagnoses apart, and the
+fuel-sufficiency law becomes the unreachability statement for `Fuel`.
+
+**Every match on Tower must grow, and wildcards bound the growth.** The checker reports
+`expected : cases for Bad, Fuel` one definition at a time. Eight sites needed arms:
+`depth`, `zero`, `add`, `neg`, `mul`, `one`, `wf`, and the proof helper `Tower.wf.zero` --
+which is a `wf` helper, so its arms return evidence (`TowerOk{}`, since `wf(Bad{})` is
+`Tower.Ok`) rather than the marker. `Tower.wf.lift` needed nothing. A binary match would
+otherwise need sixteen constructor combinations, but bend has wildcards -- a minimal probe
+with `case _ _:` prints `All terms check.` -- so `add` keeps its two matching arms plus
+`case _ _: Bad{}`, and `mul` uses `Fuel{} _`, `_ Fuel{}`, `_ _` to propagate the diagnosis
+instead of flattening it. Net cost: about nine arm edits in `src/tower.bend`.
+
+**The statements survive.** The generated file checks -- its only output is a TODO count,
+no error -- so every definition, both helper proofs, and all eleven copied law *statements*
+remain legal under the marker. The count is 111 with this import set (`nat`, `nat_proofs`
+and `rat`); `src/tower.bend` alone reports 240 and a control importing the same modules
+reports the difference, so what the number tracks is unfilled laws in the graph, not
+anything about the change. Note what this does *not* measure: the fills live in
+`src/tower_proofs.bend` and were not copied, so this is the statements' legality and the
+operations' typechecking, not a re-proof that the laws still hold.
+
+**The unreachability machinery works end to end.** A discriminator `Tower.tag` (`Base`/`Ext`
+to `0n`, `Bad` to `1n`, `Fuel` to `2n`) plus round twenty-nine's absurdity lemma proves one
+case:
+
+    def Tower.bb.not.bad(+d: Tower, +v: R.Rat, +w: R.Rat,
+        e: {Tower.add(d, Base{v}, Base{w}) == Bad{} : Tower}) -> Empty
+
+The full theorem is four such cases. It carries a hypothesis -- the operands have equal
+depth -- which is what makes the mixed cases absurd. So it certifies "same-level inputs
+never see the marker", while the discipline of *passing* same-level operands remains a
+caller obligation rather than something the type system enforces.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

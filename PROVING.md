@@ -5268,3 +5268,61 @@ Measured cost: 31 match/case sites in `src/tower.bend`, 3 in `src/tower_proofs.b
 no other file in the repo matches on `Base`/`Ext`. That changes the landed public API, so
 it is the user's call rather than an autonomous edit; the weaker alternative is to keep the
 convention and rely on `depth` invariants at the consumer boundary.
+
+## Round thirty -- Failing loudly is cheap, and it finds a second silent zero
+
+The fail-loud probe was generated from `src/tower.bend` itself: the real type, operations,
+helpers and laws, with the change applied textually, so the measurement is of the actual
+code rather than a sketch.
+
+**Two markers, two failure modes.** `Bad{}` from the four mixed-shape arms -- two in `add`,
+two in `mul` -- and `Fuel{}` from `mul`'s `case 0n:` arm. The second is a finding about
+landed code: `mul` is fuel-driven, and an exhausted fuel returned `Tower.zero(d)`, a
+plausible zero decided by a caller-supplied Nat. The plan listed a fuel-sufficiency law as
+Step 2's business but not that the failure was silent; with two markers the fuel law becomes
+that marker's unreachability statement.
+
+**The checker walks the definitions.** It reports `expected : cases for Bad, Fuel` one at a
+time -- at `Tower.zero`, then `Tower.add`, then `Tower.neg`, then the proof helper
+`Tower.wf.zero`. Eight sites needed arms in all: `depth`, `zero`, `add`, `neg`, `mul`,
+`one`, `wf`, and `wf.zero`. Since `wf.zero`'s result type is `Tower.wf(Tower.zero(t))` and
+`wf(Bad{})` is `Tower.Ok`, its arms are evidence (`TowerOk{}`) rather than markers.
+`Tower.wf.lift` needed no change.
+
+**Wildcards bound the cost.** A binary match over two Towers would otherwise need sixteen
+combinations. bend has wildcard patterns -- a minimal probe with
+
+    def W.k(x: W, y: W) -> Nat:
+      match x y:
+        case WA{} WA{}:
+          0n
+        case _ _:
+          1n
+
+prints `All terms check.` -- so `add` keeps its two matching arms plus `case _ _: Bad{}`,
+and `mul` uses `Fuel{} _`, `_ Fuel{}`, `_ _` so a marker operand propagates its own
+diagnosis instead of being flattened into `Bad`.
+
+**What the file's output says.** With the change applied the probe checks: its only output
+is a TODO count, no error at all, so every definition, both helper proofs and all eleven
+copied law statements stay legal. The count is 111 under this import set (`nat`,
+`nat_proofs`, `rat`); `src/tower.bend` alone reports 240, and a control probe importing the
+same modules without any laws of its own reports the difference, so the number tracks
+unfilled laws in the import graph rather than anything the change did. What this does not
+measure: the fills live in `src/tower_proofs.bend` and were not copied into the probe, so
+the laws' *truth* under the change is untested -- only their statements' legality and the
+operations' typechecking.
+
+**The unreachability proof works end to end.** `Tower.tag` (`Base`/`Ext` to `0n`, `Bad` to
+`1n`, `Fuel` to `2n`) is the discriminator; with round twenty-nine's absurdity lemma
+(`0n == 1n+k` implies `Empty`) one case is proved:
+
+    def Tower.bb.not.bad(+d: Tower, +v: R.Rat, +w: R.Rat,
+        e: {Tower.add(d, Base{v}, Base{w}) == Bad{} : Tower}) -> Empty:
+      Empty.absurd(Empty, N.Nat.succ_ne_zero(0n,
+        Equal.cong(Tower, Nat, u => Tower.tag(u),
+          Tower.add(d, Base{v}, Base{w}), Bad{}, e)))
+
+The full theorem is four cases of that shape and carries an equal-depth hypothesis, which is
+what makes the mixed cases absurd. It certifies "same-level inputs never see the marker";
+the discipline of passing same-level operands stays a caller obligation.
