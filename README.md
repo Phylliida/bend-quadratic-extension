@@ -123,6 +123,15 @@ law of its sibling via `def <alias>.<name>(...)`:
   summands are operation outputs and the canonical `Rat.neg_add` cannot apply to
   them.
 - `src/rat_proofs.bend` — fills every rat.bend law.
+- `src/tower.bend` — Step 1 of TOWER-PLAN: the `Tower` type (an element *is* a tower
+  value -- `Base{value}` a rational, `Ext{re, im, d}` = re + im*sqrt(d) with all three
+  parts at the level below), `Tower.depth`, `Tower.zero`, `Tower.lift` (one
+  constructor, so lifting is constant-time rather than merely linear), the `Tower.wf`
+  evidence family with its two transport defs, and four laws: `zero.base`,
+  `depth.zero`, `depth.lift`, `lift.zero`.
+- `src/tower_proofs.bend` — fills all four tower.bend laws: `depth.zero` is a
+  structural induction in the fill (the match refines the law at the branch and the
+  Ext branch calls the fill itself on the tail), the other three are definitional.
 - `probe.bend` — consumer check for the ten division laws.
 - `probe.payoff.bend` — consumer check for the payoff and the operations: the
   two conversions the design rests on (positive and negative divisor spelling),
@@ -150,7 +159,7 @@ required Bun for its CLI since the 2.0.24/2.0.27 line (the guard is
 Node; `bun` is in the nix store on this box, and `nix shell nixpkgs#bun -c bun
 bend2/main.ts <file>` is the durable form). This checkout is on **Bend 2.0.27**
 (`bend` @ `d3790917`), fast-forwarded from a 2.0.5-era tree in PROVING round
-eighteen; every gate below was re-run there and the law counts are unchanged. The five
+eighteen; every gate below was re-run there and the law counts are unchanged. The six
 `*_proofs.bend` files are the gates and print `All terms check.`, as do the
 two `probe*.bend` consumer files; the
 laws-only files intentionally fail with
@@ -158,9 +167,10 @@ laws-only files intentionally fail with
 is the smoke test -- it has a `main`, so it prints the `Rat.inv` triple it
 computes instead of that line. The count is
 transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
-QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 256 = 129 Nat +
+QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 265 = 129 Nat +
 32 Int + 68 Rat + 36 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own thirty-six laws).
+rat.bend's plus its own thirty-six laws), and tower.bend 233 = rat.bend's 229 plus
+its own four.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.

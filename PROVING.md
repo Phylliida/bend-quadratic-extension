@@ -4622,3 +4622,52 @@ so, with the depth-index-plus-`wf` fallback kept for the case where the laws wan
 Step 1's sketch uses, are free. A cross-module *pattern* names the constructor under the
 module alias with no type in the path (`case L.TNil{}:`); construction across modules was
 not exercised. Both probe files are deleted; the recipes are in the plan.
+
+## Step 1 landed: the tower's structural machinery, and what wf's risk turned out to be (measured)
+
+TOWER-PLAN's Step 1 is in: `src/tower.bend` and `src/tower_proofs.bend`, with the new gate
+green. Transitive counts: **tower.bend 233** = rat.bend's 229 plus its own four; all six
+`*_proofs.bend` gates check (0.35-3.72 s), and so do `probe.bend` (1.96 s),
+`probe.payoff.bend` (4.39 s) and `scratch.bend`'s triple. The tower gate itself is 1.68 s.
+
+**What landed.** The element type is the tower: `Base{value}` a rational,
+`Ext{re, im, d}` = re + im*sqrt(d) with all three parts at the level below, so an
+element's shape *is* its level. `Tower.depth` reads it, `Tower.zero` builds the additive
+identity at a level (recursively, keeping its radicand slot), and `Tower.lift(t, d)` is
+`Ext{t, Tower.zero(t), d}` -- one constructor, so lifting is *constant*-time rather than
+merely linear. Four laws: `zero.base`, `depth.lift` and `lift.zero` definitional,
+`depth.zero` a structural induction in the fill.
+
+`depth.zero` is the Step 0.2 recipe doing real work on its first outing, and it worked
+first try: the match refines the law at the branch, the `Ext` branch calls the fill itself
+on the tail, and the orientation rule measured last round (`%e` replaces the goal's
+occurrence of `e`'s **right** endpoint with its left) dictated the flipped induction
+hypothesis through `Equal.sym`. The three definitional laws are not fillers: `lift.zero` is
+the plan's "lift distributes over the level operations" met for `zero`, which is a level
+operation and the identity of the level's addition. The `add` and `mul` cases need Step 2.
+
+**`wf`'s risk, answered as sequencing rather than shape.** The plan called `wf`'s shape the
+one real design decision in Step 1. Measured answer: its arithmetic half -- "a radicand
+positive, levels reduced" -- cannot be stated yet, because positivity needs the ordering
+that Step 2 brings; and its structural half is *automatic*, because `Ext{re, im, d}`
+requires three towers whose shape is their level, so no value can violate it. What is left
+is what the plan actually needs it for: a family `Tower.wf(t) -> Data` with a trivial leaf
+and an `Ext` case carrying the three sub-evidences, plus two *transport* defs --
+`Tower.wf.zero` and `Tower.wf.lift` -- which are structural inductions in an *indexed*
+type, the second consuming the first to build the evidence a lift needs. Those are the
+shapes Step 2's positivity evidence will take.
+
+**Three exactness facts, all load-bearing from here.** Evidence at an indexed type does not
+survive as an equation: `Tower.wf(Tower.zero(t))` and `Tower.wf(t)` have different indices
+(`Tower.Wf.Ext<zero re, zero im, d>` against `Tower.Wf.Ext<re, im, d>`) and no equation
+between them is true, which is why `wf.zero` had to become a transporting def. A type
+family must be declared *above* the def it references -- base's `Word.Con` sits above
+`Word` for the same reason; with the family below, the reference inside the def resolved
+too early and importing the file failed with a doubled module path (`tower.tower.... .Ext`,
+even though the file checked alone). And laws and defs share *one* namespace, so a law and
+a def cannot both be `Tower.wf.lift` -- the def's return type states it instead. A def
+parameter used twice also needs `+`, exactly like a law's.
+
+**State.** The checker checkout was returned to upstream Bend 2.0.27 (`d3790917`) for this
+round's measurements, so the numbers above carry no patch: the parked `nat-prim-literals`
+branch stays on its ref for whenever it is wanted.

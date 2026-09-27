@@ -40,10 +40,12 @@ per-step exactness certificates. Not a normal form that can be hashed or simplif
 
 ## 2. Where this lane stands
 
-Measured on `main` (commit `2ba4698`), transitive over imports: **nat 129, int 32,
-qext 34, rat 229, qrat 265** laws. All five `src/*_proofs.bend` check, as do
-`probe.bend` and `probe.payoff.bend`; `scratch.bend` prints its triple. The five
-library checks run in 0.33–0.44 s.
+Measured on `main` at round twenty-one (Step 0.2 committed as `3ec7043`, Step 1 landed),
+transitive over imports: **nat 129, int 32, qext 34, rat 229, qrat 265, tower 233** laws
+-- the last being rat.bend's 229 plus the tower's own four. All six `src/*_proofs.bend`
+check, as do `probe.bend` and `probe.payoff.bend`; `scratch.bend` prints its triple. The
+tower gate runs in 1.68 s, against 0.35–3.72 s for the five library gates. Both probes and
+`probe.payoff.bend` (4.39 s) were re-measured here.
 
 What that buys, at depth 1:
 
@@ -325,6 +327,38 @@ hypotheses in the style the existing laws use for positivity.
 **Risk.** The shape of `wf` is the one real design decision here: too weak and Step 2
 carries side conditions everywhere, too strong and `lift` cannot be stated.
 
+**Landed, round twenty-one.** `src/tower.bend` and `src/tower_proofs.bend`: the type as
+sketched, `depth`, `zero`, `lift`, and four laws -- `zero.base`, `depth.lift` and
+`lift.zero` definitional, `depth.zero` a structural induction in the fill. `lift(t, d)` is
+`Ext{t, Tower.zero(t), d}`, one constructor, so lifting is constant-time rather than
+merely linear; that is also why `depth.lift` and `lift.zero` are definitional.
+
+`wf` answered the risk as a *sequencing* fact rather than a shaping one. Its arithmetic
+half cannot be stated yet -- "a radicand positive, levels reduced" needs the ordering that
+Step 2 brings -- and its structural half is automatic, because `Ext{re, im, d}` requires
+three towers and an element's shape *is* its level, so no value can violate it. So `wf` is
+a family `Tower.wf(t) -> Data` with a trivial leaf and an `Ext` case carrying the three
+sub-evidences, and what it demonstrates now is *transport*: `Tower.wf.zero` and
+`Tower.wf.lift` are structural inductions in an indexed type, and the second consumes the
+first to build the evidence a lift needs. Those are the shapes Step 2's positivity
+evidence will take, which is the part of the risk that mattered.
+
+Three exactness facts the type-level work produced, all now load-bearing:
+
+- Evidence at an indexed type does not survive as an equation. `Tower.wf(Tower.zero(t))`
+  and `Tower.wf(t)` have different indices (`Tower.Wf.Ext<zero re, zero im, d>` against
+  `Tower.Wf.Ext<re, im, d>`) and no equation between them is true, so `Tower.wf.zero` is a
+  def that transports evidence, never a law that equates types.
+- A type family must be declared *above* the def it references. base's `Word.Con` sits
+  above `Word` for the same reason; with the family below, the reference inside the def
+  resolves too early and the import fails with a doubled module path.
+- Laws and defs share one namespace (`Tower.wf.lift` could not be both), and a def
+  parameter used twice needs `+`, exactly like a law's.
+
+The done-when is met for `zero` -- `Tower.lift.zero` is a level operation surviving the
+embedding, and zero is the identity of the level's addition -- while the `add` and `mul`
+cases land in Step 2, where those operations are defined.
+
 ### Step 2 — one level's arithmetic, generically
 
 **Deliverable.** `add`, `neg`, `mul` (reducing with `√d·√d = d`), `zero`, `one`, and
@@ -441,6 +475,11 @@ named definitions costs the same as a 5-deep one, even when the goal forces the 
 recursive type, and a value-indexed family carries a tower index -- both Step 0 questions
 answered yes (§3.2, §6.2).
 
+**Measured since (round twenty-one):** Step 1 is landed and its gate is green -- the tower
+type, `depth`, `zero`, `lift`, and the `wf` evidence family with two transport inductions
+(§7 Step 1). `wf`'s shape is settled as far as it can be before ordering exists.
+
 **Not measured, and load-bearing:** the cost of a chain written as law applications, which
-can only be measured where laws are filled (§6.1); the shape of `wf` (§7 Step 1); and
-every step of §7.
+can only be measured where laws are filled (§6.1); the arithmetic half of `wf`, which needs
+Step 2's ordering; the `Elem(t)`-indexed route §3.2 measured as feasible but which Step 2
+would have to adopt wholesale; and every step of §7 from Step 2 on.
