@@ -5026,3 +5026,116 @@ untypeable -- but it is available only per concrete ring, because a def generic 
 coefficient type is impossible (P3/P4). A tower of unbounded depth therefore cannot be
 covered this way, which is the point in favour of the level family and the carrying
 design despite their unprovable-not-untypeable mismatch cost.
+
+## Round twenty-seven -- The embedding and typed arithmetic are mutually exclusive
+
+Round twenty-five's P2 left the embedding failing with `expected : Elem(d) / observed :
+Elem(re)`. Three probes show that the failure depends entirely on which index keys the
+Ext fields, and that the two possible choices are the two horns of a dilemma.
+
+**P1 -- the three-index family, and the embedding works.** Fields keyed by the tower's own
+coordinate towers:
+
+    type ET.Base<-v: R.Rat> is Data:
+      EBase{r: R.Rat}
+
+    type ET.Ext<-A: Data, -B: Data, -D: Data> is Data:
+      EExt{u: A, w: B}
+
+    def ET(t: T.Tower) -> Data:
+      match t:
+        case T.Base{v}:
+          ET.Base<v>
+        case T.Ext{re, im, d}:
+          ET.Ext<ET(re), ET(im), ET(d)>
+
+    def ET.of(+t: T.Tower) -> ET(t):
+      match t:
+        case T.Base{v}:
+          EBase{v}
+        case T.Ext{re, im, d}:
+          EExt{ET.of(re), ET.of(im)}
+
+    def ET.add(+t: T.Tower, x: ET(t), y: ET(t)) -> ET(t):
+      match t:
+        case T.Base{v}:
+          EBase{+a} = x
+          EBase{+b} = y
+          EBase{R.Rat.add(a, b)}
+        case T.Ext{re, im, d}:
+          EExt{+u1, +w1} = x
+          EExt{+u2, +w2} = y
+          EExt{ET.add(re, u1, u2), ET.add(im, w1, w2)}
+
+    law ET.add.comm:
+      for +t: T.Tower
+      for +x: ET(t)
+      for +y: ET(t)
+      {ET.add(t, x, y) == ET.add(t, y, x) : ET(t)}
+
+    Error: 241 TODOs found.
+
+241 = the 240 of src/tower.bend (229 of rat plus its eleven) plus the one unfilled law,
+so every definition typechecks and the statement is legal. `ET.add` recurses on the
+coordinate towers and takes no radicand parameter at all. Note what this statement is:
+a ring law at a *variable* tower level with *no* agreement hypothesis -- exactly what the
+carrying design could not state, since `add.comm` is false there (round twenty-five P5).
+
+**P2 -- fields keyed by the radicand, and the embedding fails as before.**
+
+    type ET2.Ext<-A: Data, -B: Data, -D: Data> is Data:
+      E2Ext{u: D, w: D}
+
+    def ET2.of(+t: T.Tower) -> ET2(t):
+      match t:
+        case T.Base{v}:
+          E2Base{v}
+        case T.Ext{re, im, d}:
+          E2Ext{ET2.of(re), ET2.of(im)}
+
+    Error:
+    - expected : ET2(d)
+    - observed : ET2(re)
+    Context:
+    - re : src/tower.Tower
+    - im : src/tower.Tower
+    - d  : src/tower.Tower
+    Location: ET2.of
+
+Both coordinates in the ring at the radicand's level is what arithmetic needs; it is also
+what makes the embedding unprovable.
+
+**P3 -- and P1's family cannot multiply.** `mul` on it, with the honest formula
+(`u1*u2 + (w1*w2)*d` and `u1*w2 + w1*u2`):
+
+    Error:
+    - expected : probe.tower.e1.ET(re)
+    - observed : probe.tower.e1.ET(im)
+    Context:
+    - u1 : probe.tower.e1.ET(re)
+    - w1 : probe.tower.e1.ET(im)
+    - u2 : probe.tower.e1.ET(re)
+    - w2 : probe.tower.e1.ET(im)
+    Location: E.ET.mul
+
+The failure is the cross-coordinate product `w1 * w2`, at index `ET(im)` where `ET(re)` is
+wanted -- not the radicand term. Multiplying across the two coordinates needs them keyed
+by one type, and that is precisely the indexing P2 rules out.
+
+**Why this is structural rather than fixable.** A tower `Ext{re, im, d}` has three
+separate tower fields at the same level, with no shared index, and bend offers no way to
+state that they are at the same level: `Tower.depth` is a function returning a Nat, not a
+type index, and there is no equality on types to transport an element along. The checker
+can therefore never see `ET(re) = ET(d)`. The typed route must give up the embedding or
+the arithmetic, and route A's untyped tower -- where everything is one type -- is what
+makes the arithmetic possible in the first place. Consequence for the user's goal: the
+level and radicand discipline cannot be enforced by types in bend as it stands; it has to
+be carried by proofs, for which Step 1's machinery already exists and is already indexed
+by dependent tower indices (`type Tower.Wf.Ext<-re: Tower, -im: Tower, -d: Tower>` with
+fields `Tower.wf(re)`, `Tower.wf(im)`, `Tower.wf(d)`).
+
+The constructive residue: the `ET` family is a sound base for the radicand-free part of
+the ring. `add`, `neg` and their laws are stateable at a variable level with no
+hypothesis, and the statement in P1 is the first such law measured in bend. Its fill is
+the obvious next unit. `mul` is the operation that needs the radicand to cross a level,
+and it is the one the typed route cannot have.

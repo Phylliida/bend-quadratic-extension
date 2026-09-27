@@ -667,6 +667,81 @@ covers one concrete ring at a time and cannot cover a tower of unbounded depth. 
 why the carrying design stands, and the residual hole is the price of covering the tower
 at all.
 
+
+### The embedding and typed arithmetic are mutually exclusive (round twenty-seven)
+
+Round twenty-five's P2 showed the embedding `Elem.of(t) : Elem(t)` failing with
+`expected : Elem(d) / observed : Elem(re)`. That failure turns out to depend entirely on
+which index keys the Ext fields, and the two choices give the two horns of a dilemma.
+
+**Key the fields by the tower's own coordinates and the embedding works.** With
+
+    type ET.Ext<-A: Data, -B: Data, -D: Data> is Data:
+      EExt{u: A, w: B}
+
+    def ET(t: T.Tower) -> Data:
+      match t:
+        case T.Base{v}: ET.Base<v>
+        case T.Ext{re, im, d}: ET.Ext<ET(re), ET(im), ET(d)>
+
+the embedding, `add`, and a hypothesis-free ring statement all check in one file:
+
+    def ET.of(+t: T.Tower) -> ET(t):
+      match t:
+        case T.Base{v}: EBase{v}
+        case T.Ext{re, im, d}: EExt{ET.of(re), ET.of(im)}
+
+    law ET.add.comm:
+      for +t: T.Tower
+      for +x: ET(t)
+      for +y: ET(t)
+      {ET.add(t, x, y) == ET.add(t, y, x) : ET(t)}
+
+`def ET.add` recurses on the coordinate towers with no radicand parameter at all. The
+file reports `241 TODOs` = the 240 of `src/tower.bend` plus the one unfilled law, so
+every definition typechecks and the statement is legal -- the first place in bend where a
+ring law at a *variable* tower level needs no agreement hypothesis, which is exactly what
+round twenty-five's carrying design could not do (`add.comm` is false there, P5).
+
+**Key them by the radicand and the embedding fails, precisely as before.** The variant
+with `EExt{u: D, w: D}` -- both coordinates in the ring at the radicand's level, which is
+what arithmetic needs -- fails at the embedding:
+
+    Error:
+    - expected : ET2(d)
+    - observed : ET2(re)
+    Location: ET2.of
+
+**And the first variant cannot multiply.** `mul` on it dies on the cross-coordinate term,
+not on the radicand at all:
+
+    Error:
+    - expected : probe.tower.e1.ET(re)
+    - observed : probe.tower.e1.ET(im)
+    Context:
+    - u1 : probe.tower.e1.ET(re)
+    - w1 : probe.tower.e1.ET(im)
+
+`w1 * w2` is at index `ET(im)` while its target is `ET(re)`. Typed arithmetic needs both
+coordinates keyed by the *same* type -- the coefficient ring -- and that is exactly the
+indexing that makes the embedding unprovable.
+
+**Why the dilemma is structural.** In a tower `Ext{re, im, d}` the three fields are three
+separate towers at the same level, with no shared index and no way to state that they are
+at the same level: `Tower.depth` is a function, not a type index, and bend has no
+equality on types to transport along. So the checker can never see `ET(re) = ET(d)`, and
+the typed route must give up either the embedding or the arithmetic. Route A's untyped
+tower is what makes the arithmetic work -- everything is one type -- and that is why
+typing it buys no safety here. The level and radicand discipline has to be carried by
+*proofs* (Step 1's `Tower.wf` evidence, which is already an indexed type over dependent
+tower indices: `Tower.Wf.Ext<-re, -im, -d>`), not by types.
+
+The constructive finding worth keeping: the `ET` family, indexed by the whole triple, is
+a sound base for the parts of the ring that never touch the radicand -- `add`, `neg`, and
+their laws are stateable at a variable level with no hypothesis, and the statement above
+is the first one measured in bend. `mul` is the operation that needs the radicand to
+cross between levels, and that is the operation the typed route cannot have.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a
