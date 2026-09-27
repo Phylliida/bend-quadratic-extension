@@ -259,11 +259,15 @@ def Tower.clean(t: Tower) -> Data:
 # add preserves the level, and that is what lets the clean law build the level
 # relations for its own result: the three fields of an Ext result get their
 # relations from the depth of the coordinates that produced them.
+# Depth needs no cleanliness. The marker arms of this law's fill used to take
+# their Empty witness from clean hypotheses; spelling all sixteen arms out instead
+# makes twelve of them definitional ({0n == 0n}) and leaves four that read the
+# equal-depth hypothesis. That matters for mul: its depth proof calls this law on
+# products of coordinates, whose cleanliness would otherwise require a whole
+# separate safety law for mul.
 law Tower.add.depth:
   for +x: Tower
   for +y: Tower
-  for hx: Tower.clean(x)
-  for hy: Tower.clean(y)
   for h: {Tower.depth(x) == Tower.depth(y) : Nat}
   {Tower.depth(Tower.add(x, y)) == Tower.depth(x) : Nat}
 

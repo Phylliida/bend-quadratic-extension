@@ -1312,6 +1312,35 @@ need in the operand's evidence rather than in a hypothesis, which was the whole 
 change: `mul.depth`'s recursive call gets `{depth(rx) == 1n + depth(rad(rx))}`, i.e. at an Ext
 `hxr.hrd` composed with the shape, without any law having to carry it.
 
+
+### `add.depth` loses its cleanliness hypotheses, and the chain shortens (round forty)
+
+`Tower.add.depth` now reads
+
+    law Tower.add.depth:
+      for +x: Tower
+      for +y: Tower
+      for h: {Tower.depth(x) == Tower.depth(y) : Nat}
+      {Tower.depth(Tower.add(x, y)) == Tower.depth(x) : Nat}
+
+with no `clean` hypotheses. Its previous fill took the marker arms' `Empty` witness from `hx`
+and `hy`; spelling all sixteen shape arms out instead makes twelve of them definitional
+(`{0n == 0n}`) and leaves four -- `(Ext, Base)`, `(Ext, Bad)`, `(Ext, Fuel)` and the `(Ext, Ext)`
+induction -- that read the equal-depth hypothesis, which is exactly what those arms need.
+
+**Why it matters.** `mul.depth`'s proof calls this law on *products of coordinates*,
+`Tower.add(mul(g, rx, ry), mul(g, mul(g, ix, iy), dx))`. With the cleanliness hypotheses in place
+that call would have required clean evidence for both products, i.e. a whole separate safety law
+for `mul` before any depth law could be written. Without them the chain is back to two laws:
+`Tower.mul.depth`, then `Tower.mul.fuel.ext`.
+
+The one caller affected was `add.clean`'s own fill, whose two `add.depth` calls had been passing
+`hxr, hyr` and `hxi, hyi`; those arguments are gone.
+
+**Gates.** All six proof files `All terms check.`; counts nat 129, int 32, qext 34, rat 229, qrat
+265, tower 244; `probe.bend`, `probe.payoff.bend`, `probe.tower.depth.bend` check; `scratch.bend`
+prints its inversion triple.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

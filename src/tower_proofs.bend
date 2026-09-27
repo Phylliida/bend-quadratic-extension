@@ -81,31 +81,49 @@ def T.Tower.one.ext(re, im, d):
 # computing it, because add(d, Bad{}, y) does not reduce when y is still a
 # variable.
 
-def T.Tower.add.depth(x, y, hx, hy, h):
+def T.Tower.add.depth(x, y, h):
   match x y:
     case T.Base{a} T.Base{b}:
       {==}
     case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
-      T.CleanExt{+hxr, +hxi, +hxd, +hxri, +hxrd} = hx
-      T.CleanExt{+hyr, +hyi, +hyd, +hyri, +hyrd} = hy
       Equal.cong(Nat, Nat, u => Nat.add(1n, u),
         T.Tower.depth(T.Tower.add(rx, ry)), T.Tower.depth(rx),
-        T.Tower.add.depth(rx, ry, hxr, hyr,
+        T.Tower.add.depth(rx, ry,
           N.succ_inj(T.Tower.depth(rx), T.Tower.depth(ry), h)))
-    case T.Base{a} T.Ext{ry, iy, dy}:
-      {==}
     case T.Ext{rx, ix, dx} T.Base{b}:
       Empty.absurd({0n == Nat.add(1n, T.Tower.depth(rx)) : Nat},
         N.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
           Nat.add(1n, T.Tower.depth(rx)), 0n, h)))
-    case T.Bad{} _:
-      Empty.absurd({T.Tower.depth(T.Tower.add(T.Bad{}, y)) == 0n : Nat}, hx)
-    case T.Fuel{} _:
-      Empty.absurd({T.Tower.depth(T.Tower.add(T.Fuel{}, y)) == 0n : Nat}, hx)
-    case _ T.Bad{}:
-      Empty.absurd({T.Tower.depth(T.Tower.add(x, T.Bad{})) == T.Tower.depth(x) : Nat}, hy)
-    case _ T.Fuel{}:
-      Empty.absurd({T.Tower.depth(T.Tower.add(x, T.Fuel{})) == T.Tower.depth(x) : Nat}, hy)
+    case T.Ext{rx, ix, dx} T.Bad{}:
+      Empty.absurd({0n == Nat.add(1n, T.Tower.depth(rx)) : Nat},
+        N.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
+          Nat.add(1n, T.Tower.depth(rx)), 0n, h)))
+    case T.Ext{rx, ix, dx} T.Fuel{}:
+      Empty.absurd({0n == Nat.add(1n, T.Tower.depth(rx)) : Nat},
+        N.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
+          Nat.add(1n, T.Tower.depth(rx)), 0n, h)))
+    case T.Base{a} T.Ext{ry, iy, dy}:
+      {==}
+    case T.Base{a} T.Bad{}:
+      {==}
+    case T.Base{a} T.Fuel{}:
+      {==}
+    case T.Bad{} T.Base{b}:
+      {==}
+    case T.Bad{} T.Ext{ry, iy, dy}:
+      {==}
+    case T.Bad{} T.Bad{}:
+      {==}
+    case T.Bad{} T.Fuel{}:
+      {==}
+    case T.Fuel{} T.Base{b}:
+      {==}
+    case T.Fuel{} T.Ext{ry, iy, dy}:
+      {==}
+    case T.Fuel{} T.Bad{}:
+      {==}
+    case T.Fuel{} T.Fuel{}:
+      {==}
 
 def T.Tower.add.clean(x, y, hx, hy, h):
   match x y:
@@ -121,8 +139,8 @@ def T.Tower.add.clean(x, y, hx, hy, h):
                 er, hyri))
       +cr = T.Tower.add.clean(rx, ry, hxr, hyr, er)
       +ci = T.Tower.add.clean(ix, iy, hxi, hyi, ei)
-      +dr = T.Tower.add.depth(rx, ry, hxr, hyr, er)
-      +di = T.Tower.add.depth(ix, iy, hxi, hyi, ei)
+      +dr = T.Tower.add.depth(rx, ry, er)
+      +di = T.Tower.add.depth(ix, iy, ei)
       T.CleanExt{cr, ci, hxd,
         Equal.trans(Nat,
           T.Tower.depth(T.Tower.add(rx, ry)), T.Tower.depth(ix),
