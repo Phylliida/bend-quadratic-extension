@@ -5664,3 +5664,39 @@ their fills construct their result's `hrd` from the operand's. That means `add`'
 well-formed only when the caller passed the level's own radicand -- which is the discipline -- and
 it is the side-condition threading Step 1 flagged as the risk of the wf design. It is also the
 last piece `mul.depth` and `mul.fuel.ext` need.
+
+## Round thirty-eight -- The evidence change is cheap, and the radicand parameter is unnecessary
+
+**Blast radius, measured rather than estimated.** Adding `hrd` to `Tower.Clean.Ext` and
+re-checking:
+
+- `src/tower.bend`: 244 TODOs, unchanged. The type change is legal by itself, because the law
+  statements name `Tower.clean(...)` and not its fields.
+- `src/tower_proofs.bend`: one error, mechanical --
+
+    - message : a tower.CleanExt pattern with 5 fields
+    Location: TowerCleanRad
+    98>|       T.CleanExt{+cr, +ci, +cd, +hri} = h
+
+The change was then reverted, so the branch stays green while the design is settled.
+
+**The parameter is the problem.** A constructed result cannot supply `hrd` only because its
+radicand may be the *caller's* `d` instead of the operand's own `dx`, and nothing relates those
+two -- nor can anything, since a caller may pass any tower. But the radicand a multiplication
+needs is a property of the operand: `Ext{re, im, d}` already stores it. Dropping the parameter
+removes the disagreement instead of assuming it away:
+
+    def Tower.add(x: Tower, y: Tower) -> Tower
+      # Ext/Ext arm: Ext{Tower.add(rx, ry), Tower.add(ix, iy), dx}
+    def Tower.mul(+f: Nat, x: Tower, y: Tower) -> Tower
+      # Ext/Ext arm reads dx for the sqrt(d)*sqrt(d) = d term, and recurses on operands
+
+Every radicand then comes from an operand's own third field, so each level's radicand is
+intrinsic and no caller-side discipline hypothesis is needed -- there is nothing left for a
+caller to get wrong about `d` because there is no `d`. `Tower.rad` becomes unused, its callers
+having become destructuring. The safety laws keep their shape, with `hd` replaced by the result's
+`cd`, taken straight from the operand's evidence.
+
+The cost is the same shape as the previous restatement: four `add` laws, the `mul` laws, the
+fills, and the depth gate's calls. That is the difference between "`add`'s result is well-formed
+only when the caller passed the right radicand" and "`add`'s result is well-formed".

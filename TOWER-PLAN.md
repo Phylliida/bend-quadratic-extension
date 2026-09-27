@@ -1240,6 +1240,42 @@ precisely the discipline. This is the "too weak and Step 2 carries side conditio
 risk TOWER-PLAN flagged in Step 1, arriving on schedule. It is also the last piece `mul.depth`
 and `mul.fuel.ext` need.
 
+
+### The evidence change is cheap, and it makes the radicand parameter unnecessary (round thirty-eight)
+
+**Blast radius, measured.** Adding `hrd: {Tower.depth(re) == Tower.depth(d) : Nat}` to
+`Tower.Clean.Ext` and re-checking: `src/tower.bend` still reports 244 TODOs, i.e. the type change
+is legal on its own because the law *statements* name `Tower.clean(...)` rather than its fields.
+`src/tower_proofs.bend` reports exactly one thing, and it is mechanical:
+
+    Error:
+    - message : a tower.CleanExt pattern with 5 fields
+    Location: TowerCleanRad
+    98>|       T.CleanExt{+cr, +ci, +cd, +hri} = h
+
+The change was reverted so the branch stays green, but the cost is now known: one field, the
+pattern and constructor arities in the fills, and then the substantive part -- producing the new
+field's value for constructed results.
+
+**And that substantive part is why the radicand should stop being a parameter.** The only reason a
+constructed result cannot supply `hrd` is that its radicand may be the *caller's* `d` rather than
+the operand's own `dx`; nothing relates those two, and nothing can, since a caller can pass any
+tower. But the radicand a multiplication needs is a property of the *operand*, not of the call:
+`Ext{re, im, d}` already stores it. So drop the parameter:
+
+    def Tower.add(x: Tower, y: Tower) -> Tower          # Ext/Ext arm: Ext{add(rx, ry), add(ix, iy), dx}
+    def Tower.mul(+f: Nat, x: Tower, y: Tower) -> Tower # Ext/Ext arm reads dx for the sqrt(d)*sqrt(d) = d term
+
+Then every radicand in the development comes from an operand's own third field, each level's
+radicand is intrinsic, and the caller-side discipline hypothesis disappears entirely -- there is
+no longer anything a caller can get wrong about `d`, because there is no `d`. `Tower.rad` becomes
+unused: the arms destructure instead. The safety laws keep their shape, with the `hd` hypothesis
+replaced by the result's own `cd` field, which comes straight out of the operand's evidence.
+
+The measured cost is the same shape as the last restatement: the four `add` laws, the `mul` laws,
+the fills, and the depth gate's calls. What it buys is the difference between "`add`'s result is
+well-formed only if the caller passed the right radicand" and "`add`'s result is well-formed".
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a
