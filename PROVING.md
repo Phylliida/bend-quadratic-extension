@@ -5305,10 +5305,12 @@ diagnosis instead of being flattened into `Bad`.
 
 **What the file's output says.** With the change applied the probe checks: its only output
 is a TODO count, no error at all, so every definition, both helper proofs and all eleven
-copied law statements stay legal. The count is 111 under this import set (`nat`,
-`nat_proofs`, `rat`); `src/tower.bend` alone reports 240, and a control probe importing the
-same modules without any laws of its own reports the difference, so the number tracks
-unfilled laws in the import graph rather than anything the change did. What this does not
+copied law statements stay legal. The count is 111 with this import set, and it is exactly explained: nat contributes
+129 laws and nat_proofs fills every one of them, so a control probe importing nat,
+nat_proofs and rat with no laws of its own reports 100 -- rat's 229 minus nat's 129 --
+and the probe's eleven copied laws bring it to 111. src/tower.bend alone reports
+240 = rat's 229 plus its own eleven. So the number tracks unfilled laws in the import
+graph and nothing about the change. What this does not
 measure: the fills live in `src/tower_proofs.bend` and were not copied into the probe, so
 the laws' *truth* under the change is untested -- only their statements' legality and the
 operations' typechecking.
