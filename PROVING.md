@@ -4627,8 +4627,9 @@ not exercised. Both probe files are deleted; the recipes are in the plan.
 
 TOWER-PLAN's Step 1 is in: `src/tower.bend` and `src/tower_proofs.bend`, with the new gate
 green. Transitive counts: **tower.bend 233** = rat.bend's 229 plus its own four; all six
-`*_proofs.bend` gates check (0.35-3.72 s), and so do `probe.bend` (1.96 s),
-`probe.payoff.bend` (4.39 s) and `scratch.bend`'s triple. The tower gate itself is 1.68 s.
+`*_proofs.bend` gates check (0.34-3.35 s in one run against upstream), and so do
+`probe.bend` (1.95 s), `probe.payoff.bend` (4.32 s) and `scratch.bend`'s triple. The tower
+gate itself is 1.60 s.
 
 **What landed.** The element type is the tower: `Base{value}` a rational,
 `Ext{re, im, d}` = re + im*sqrt(d) with all three parts at the level below, so an

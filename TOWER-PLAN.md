@@ -44,8 +44,9 @@ Measured on `main` at round twenty-one (Step 0.2 committed as `3ec7043`, Step 1 
 transitive over imports: **nat 129, int 32, qext 34, rat 229, qrat 265, tower 233** laws
 -- the last being rat.bend's 229 plus the tower's own four. All six `src/*_proofs.bend`
 check, as do `probe.bend` and `probe.payoff.bend`; `scratch.bend` prints its triple. The
-tower gate runs in 1.68 s, against 0.35–3.72 s for the five library gates. Both probes and
-`probe.payoff.bend` (4.39 s) were re-measured here.
+tower gate runs in 1.60 s, against 0.34–3.35 s for the five library gates. Both probes and
+`probe.payoff.bend` (4.32 s) were re-measured here, against upstream rather than the parked
+branch.
 
 What that buys, at depth 1:
 
