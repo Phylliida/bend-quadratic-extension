@@ -4993,3 +4993,36 @@ ways out, both unmeasured: an upstream bend feature (type or function parameters
 working embedding -- which for a *base* radicand is trivial (`Base{v} -> EBase{v}`) and
 fails only when the radicand is itself a tower, i.e. exactly the nested-radicand case a
 deep chain produces.
+
+### Addendum -- the safety claim itself, with a control
+
+The mismatch test in P1 could not run inside the polymorphic def, so it was redone at
+concrete indices, where no type parameter is needed. A dependent index is legal
+(`type EC.Ext<-K: Data, -dr: K>`) and the rejection is exactly the one wanted:
+
+    def EC.op(x: EC.Ext<EC.Base<0n>, ECBase{0n}>,
+              y: EC.Ext<EC.Base<0n>, ECBase{0n}>)
+       -> EC.Ext<EC.Base<0n>, ECBase{0n}>:
+      x
+
+    def EC.op.bad(x: EC.Ext<EC.Base<0n>, ECBase{0n}>,
+                  y: EC.Ext<EC.Base<0n>, ECBase{1n}>)
+       -> EC.Ext<EC.Base<0n>, ECBase{0n}>:
+      EC.op(x, y)
+
+    Error:
+    - expected : EC.Ext<EC.Base<0n>, ECBase{0n}>
+    - observed : EC.Ext<EC.Base<0n>, ECBase{1n}>
+    Context:
+    - x : EC.Ext<EC.Base<0n>, ECBase{0n}>
+    - y : EC.Ext<EC.Base<0n>, ECBase{1n}>
+    Location: EC.op.bad
+
+Control: the same file with agreeing radicands prints `All terms check.`, so the
+rejection is the radicand index and nothing else.
+
+This is a real safety property -- two elements claiming different radicands are
+untypeable -- but it is available only per concrete ring, because a def generic in the
+coefficient type is impossible (P3/P4). A tower of unbounded depth therefore cannot be
+covered this way, which is the point in favour of the level family and the carrying
+design despite their unprovable-not-untypeable mismatch cost.

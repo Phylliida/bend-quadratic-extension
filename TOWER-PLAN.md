@@ -649,6 +649,24 @@ embedding fails only in the Ext case, and for a *base* radicand it is trivially
 available (`Base{v} -> EBase{v}`), which is why a nested-radicand chain is the case that
 needs it.
 
+
+**And the safety claim holds, at concrete indices (measured).** A dependent index is
+legal -- `type EC.Ext<-K: Data, -dr: K>` -- and two elements claiming different radicands
+of the same coefficient ring cannot be passed to one operation:
+
+    def EC.op(x: EC.Ext<EC.Base<0n>, ECBase{0n}>, y: EC.Ext<EC.Base<0n>, ECBase{0n}>)
+
+    Error:
+    - expected : EC.Ext<EC.Base<0n>, ECBase{0n}>
+    - observed : EC.Ext<EC.Base<0n>, ECBase{1n}>
+
+with the control (agreeing radicands) printing `All terms check.` So radicand-as-index
+does deliver untypeability. The catch is that it cannot be stated for all levels: a def
+generic in the coefficient type is impossible (P3/P4 above), which means the design
+covers one concrete ring at a time and cannot cover a tower of unbounded depth. That is
+why the carrying design stands, and the residual hole is the price of covering the tower
+at all.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a
