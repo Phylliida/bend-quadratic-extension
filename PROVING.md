@@ -5328,3 +5328,79 @@ operations' typechecking.
 The full theorem is four cases of that shape and carries an equal-depth hypothesis, which is
 what makes the mixed cases absurd. It certifies "same-level inputs never see the marker";
 the discipline of passing same-level operands stays a caller obligation.
+
+## Round thirty-two -- The safety theorems land: clean in, clean out
+
+Two laws now prove that the markers of round thirty-one are unreachable for correct
+callers, and both are filled.
+
+**The predicate.** `Tower.clean(t) -> Data` returns `Tower.Clean` at a Base,
+`Tower.Clean.Ext<re, im, d>` at an Ext, and `Empty` at a marker:
+
+    type Tower.Clean.Ext<-re: Tower, -im: Tower, -d: Tower> is Data:
+      CleanExt{cre: Tower.clean(re), cim: Tower.clean(im), cd: Tower.clean(d),
+               hri: {Tower.depth(re) == Tower.depth(im) : Nat}}
+
+    def Tower.clean(t: Tower) -> Data:
+      match t:
+        case Base{v}:   Tower.Clean
+        case Ext{re, im, d}: Tower.Clean.Ext<re, im, d>
+        case Bad{}:     Empty
+        case Fuel{}:    Empty
+
+Since the Ext case demands evidence for its parts recursively, evidence for a computed tower
+is a proof that no marker appears anywhere inside it.
+
+**The laws**, both under clean hypotheses for `d`, `x`, `y` and `h: {depth(x) == depth(y)}`:
+
+    law Tower.add.depth: {Tower.depth(Tower.add(d, x, y)) == Tower.depth(x) : Nat}
+    law Tower.add.clean: Tower.clean(Tower.add(d, x, y))
+
+**Five things the fills forced.**
+
+1. The predicate had to carry `hri`. The first version had no level relation at all and was
+   unprovable: `depth` reads only the re slot, so an Ext/Ext call's im coordinates have no
+   depth relation to induct with. This is round twenty-nine's conclusion -- the level
+   discipline lives in the evidence -- made concrete.
+2. A field relating the coordinates to the radicand is deliberately absent. Nothing relates
+   an operand's own radicand to the caller's `d`, and `add` never recurses into `d`, so it
+   is neither derivable nor needed.
+3. `succ_add_ne`'s instantiated parameter type does not match the natural spelling up to the
+   checker's comparison -- observed `{0n == 1n+depth(rx)}`, expected
+   `{0n == 1n+Nat.add(depth(rx), 0n)}` -- so the mixed-shape arms use round twenty-nine's
+   route: `Nat.cmp` for discrimination plus `eq_ne_gt` and `gt_ne_eq`.
+4. The mixed arm's goal type is `{0n == 1n+depth(rx)}`, not reversed: the result there is
+   `Bad`, whose depth is `0n`.
+5. Linearity: `hd` is used five times in the clean fill's Ext/Ext branch, so it is marked
+   `+hd` on the law's `for` list. A fill inherits those marks positionally, which is why the
+   fix belongs in the law rather than in the fill's parameter list.
+
+**Each fill is eight arms.** Four shape arms: Base/Base definitional; Ext/Ext the induction,
+the re relation recovered by `succ_inj` from the outer hypothesis and the im relation
+assembled from the evidence's `hri` fields, with the result's own `hri` built as a two-step
+`Equal.trans`; the two mixed arms absurdity from the equal-depth hypothesis. Four marker
+arms hand the marker's own evidence to `Empty.absurd` and name their goal type, because
+`add(d, Bad{}, y)` does not reduce when `y` is a variable.
+
+**The fuel obligation: statement checked, fill deferred.** With strictly more fuel than the
+operands' depth,
+
+    for hf: {Nat.cmp(Tower.depth(x), f) == LT{} : Cmp}
+    Tower.clean(Tower.mul(f, d, x, y))
+
+reports 243 TODOs = tower's 242 plus one, so the statement is legal. It was checked in a
+throwaway file rather than landed, since an unfilled law leaves the proofs gate red. Its fill
+is a nat-inequality induction -- the recursive calls need `depth(rx) < g` from
+`1+depth(rx) < 1+g`, which is what the library's `cmp_lt_succ_r` family is for. `neg` and
+`one` were left alone under the goal's "if cheap": `neg`'s Ext case needs
+`{depth(neg(rx)) == depth(neg(ix))}`, i.e. a depth law for `neg` first.
+
+**Gates.** All six proof files print `All terms check.`; counts nat 129, int 32, qext 34, rat
+229, qrat 265, tower 242; `probe.bend` and `probe.payoff.bend` check, `scratch.bend` prints
+its inversion triple.
+
+**Scope of the guarantee.** A caller supplying clean operands at equal depth cannot receive a
+marker at any depth, so no silent zero enters from a level mismatch or an exhausted fuel. The
+hypotheses are obligations bend cannot express as types, so this is a guarantee about correct
+callers: pass operands of unequal depth and the result is `Bad`, which the consumer is forced
+to handle rather than mistake for a number.

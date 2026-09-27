@@ -190,6 +190,81 @@ def Tower.wf.lift(+t: Tower, d: Tower, +h: Tower.wf(t), hd: Tower.wf(d)) ->
   Tower.wf(Tower.lift(t, d)):
   WfExt{h, Tower.wf.zero(t, h), hd}
 
+# The marker-free predicate
+# ========================
+#
+# wf is structural: it asks that the parts are well formed, and the markers count
+# as well formed. What the safety theorems need is stronger -- that a tower
+# contains no marker anywhere -- and that is what clean is. Its evidence is Empty
+# at a marker, so Tower.clean(t) is uninhabited exactly when t fails somewhere
+# inside; a law that returns Tower.clean(add(d, x, y)) is therefore a proof that
+# the computation produced no failure at all, not merely that it did not fail at
+# the top.
+
+type Tower.Clean is Data:
+  CleanOk{}
+
+# The Ext evidence carries marker-free evidence for each part plus one level
+# relation. depth reads only the re slot, so without hri an induction has nothing
+# to say about the im coordinates -- measured, not guessed: the first attempt at
+# the safety law was unprovable for exactly that reason. hri says the two
+# coordinates sit at one level.
+#
+# A relation between the coordinates and the radicand d belongs here too on
+# paper, and it is deliberately absent: nothing in a tower relates an operand's
+# own radicand to the caller's d, and add never recurses into d, so such a field
+# is neither derivable nor needed. Tying d to the operands' level is the caller's
+# obligation, which is the conclusion round twenty-nine reached about the level
+# discipline generally.
+type Tower.Clean.Ext<-re: Tower, -im: Tower, -d: Tower> is Data:
+  CleanExt{cre: Tower.clean(re), cim: Tower.clean(im), cd: Tower.clean(d),
+           hri: {Tower.depth(re) == Tower.depth(im) : Nat}}
+
+def Tower.clean(t: Tower) -> Data:
+  match t:
+    case Base{v}:
+      Tower.Clean
+    case Ext{re, im, d}:
+      Tower.Clean.Ext<re, im, d>
+    case Bad{}:
+      Empty
+    case Fuel{}:
+      Empty
+
+# Safety: a clean call is a clean result
+# ======================================
+#
+# Bad exists because two operands at different levels have no common ring, and
+# Fuel because mul can be handed too little of it. This law is what makes those
+# markers unreachable for a correct caller: given clean operands at equal depth
+# the sum is clean, meaning no marker anywhere inside it, not merely absent from
+# the top. The equal-depth hypothesis is what rules out the mixed-shape arms, and
+# it is the caller's obligation -- bend cannot express "x is at d's level" as a
+# type, which is why the hypothesis is a proposition rather than a signature.
+
+# add preserves the level, and that is what lets the clean law build the level
+# relations for its own result: the three fields of an Ext result get their
+# relations from the depth of the coordinates that produced them.
+law Tower.add.depth:
+  for +d: Tower
+  for +x: Tower
+  for +y: Tower
+  for hd: Tower.clean(d)
+  for hx: Tower.clean(x)
+  for hy: Tower.clean(y)
+  for h: {Tower.depth(x) == Tower.depth(y) : Nat}
+  {Tower.depth(Tower.add(d, x, y)) == Tower.depth(x) : Nat}
+
+law Tower.add.clean:
+  for +d: Tower
+  for +x: Tower
+  for +y: Tower
+  for +hd: Tower.clean(d)
+  for hx: Tower.clean(x)
+  for hy: Tower.clean(y)
+  for h: {Tower.depth(x) == Tower.depth(y) : Nat}
+  Tower.clean(Tower.add(d, x, y))
+
 # zero at the bottom level is a zero
 law Tower.zero.base:
   for v: R.Rat
