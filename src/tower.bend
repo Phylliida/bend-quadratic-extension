@@ -44,6 +44,74 @@ def Tower.zero(t: Tower) -> Tower:
 def Tower.lift(+t: Tower, d: Tower) -> Tower:
   Ext{t, Tower.zero(t), d}
 
+# One level's arithmetic, generically
+# ===================================
+#
+# The radicand is an operation *parameter*, not something read out of the
+# operands. That is the depth-1 house style (`QExt.mul(+d, x, y)`) lifted one
+# level, and it is what makes the ring laws statable: `add(d, x, y)` and
+# `add(d, y, x)` mention one radicand, so no law needs a shape-agreement
+# hypothesis. The discipline is that callers pass the level's own radicand.
+#
+# Two operands at *different* levels are not a value of the theory -- there is no
+# ring holding both -- so the mismatched arms return the level's zero. No law
+# reaches them; they exist only because the functions are total.
+#
+# mul reduces with sqrt(d) * sqrt(d) = d: the im*im term is multiplied by d, an
+# element of the level below, exactly as the depth-1 QExt.mul does.
+
+def Tower.add(+d: Tower, x: Tower, y: Tower) -> Tower:
+  match x y:
+    case Base{a} Base{b}:
+      Base{R.Rat.add(a, b)}
+    case Base{a} Ext{ry, iy, dy}:
+      Tower.zero(d)
+    case Ext{rx, ix, dx} Base{b}:
+      Tower.zero(d)
+    case Ext{rx, ix, dx} Ext{ry, iy, dy}:
+      Ext{Tower.add(d, rx, ry), Tower.add(d, ix, iy), d}
+
+def Tower.neg(x: Tower) -> Tower:
+  match x:
+    case Base{a}:
+      Base{R.Rat.neg(a)}
+    case Ext{rx, ix, dx}:
+      Ext{Tower.neg(rx), Tower.neg(ix), dx}
+
+# mul is fuel-driven, and it has to be. bend checks that a self-call decreases --
+# "arguments are read left to right: each passed unchanged until one shrinks" --
+# and the sqrt(d)*sqrt(d) = d term needs im*im multiplied by d, which nests one
+# self-call inside another's argument. Neither a let-bound intermediate nor the
+# operand order fixes that (both measured: rejected); descending on a Nat fuel
+# does, which is the same shape base's own Nat.gcd takes. Callers pass a fuel of
+# at least the operands' depth; a law proving that enough fuel never runs out is
+# Step 2's business, not the definition's.
+
+def Tower.mul(+f: Nat, +d: Tower, x: Tower, y: Tower) -> Tower:
+  match f:
+    case 0n:
+      Tower.zero(d)
+    case 1n+g:
+      match x y:
+        case Base{a} Base{b}:
+          Base{R.Rat.mul(a, b)}
+        case Base{a} Ext{ry, iy, dy}:
+          Tower.zero(d)
+        case Ext{rx, ix, dx} Base{b}:
+          Tower.zero(d)
+        case Ext{+rx, +ix, +dx} Ext{+ry, +iy, +dy}:
+          Ext{Tower.add(d, Tower.mul(g, d, rx, ry),
+                        Tower.mul(g, d, Tower.mul(g, d, ix, iy), d)),
+              Tower.add(d, Tower.mul(g, d, rx, iy), Tower.mul(g, d, ix, ry)),
+              d}
+
+def Tower.one(t: Tower) -> Tower:
+  match t:
+    case Base{v}:
+      Base{R.Rat.one()}
+    case Ext{re, im, d}:
+      Ext{Tower.one(re), Tower.zero(im), d}
+
 # the type of well-formedness evidence at one tower, with the evidence for the
 # parts as its fields, so a law can take `for h: Tower.wf(t)` as a hypothesis
 type Tower.Ok is Data:
@@ -104,3 +172,65 @@ law Tower.lift.zero:
 
 # Laws and defs share one namespace, so the shape well-formedness takes at a lift
 # is stated by Tower.wf.lift's return type above rather than by a law naming it.
+
+# The level operations at spelled forms. Each of these is the definition's own
+# unfolding, stated so that later laws -- and callers -- can rewrite with it
+# without re-deriving it; the ring laws that follow in Step 2 work by induction on
+# top of exactly these.
+
+law Tower.add.base:
+  for +d: Tower
+  for a: R.Rat
+  for b: R.Rat
+  {Tower.add(d, Base{a}, Base{b}) == Base{R.Rat.add(a, b)} : Tower}
+
+law Tower.add.ext:
+  for +d: Tower
+  for rx: Tower
+  for ix: Tower
+  for dx: Tower
+  for ry: Tower
+  for iy: Tower
+  for dy: Tower
+  {Tower.add(d, Ext{rx, ix, dx}, Ext{ry, iy, dy})
+   == Ext{Tower.add(d, rx, ry), Tower.add(d, ix, iy), d} : Tower}
+
+law Tower.neg.ext:
+  for rx: Tower
+  for ix: Tower
+  for dx: Tower
+  {Tower.neg(Ext{rx, ix, dx}) == Ext{Tower.neg(rx), Tower.neg(ix), dx} : Tower}
+
+law Tower.mul.base:
+  for +g: Nat
+  for +d: Tower
+  for a: R.Rat
+  for b: R.Rat
+  {Tower.mul(1n+g, d, Base{a}, Base{b}) == Base{R.Rat.mul(a, b)} : Tower}
+
+# the sqrt(d) * sqrt(d) = d reduction, as the unfolding the plan asks for. Spelled
+# at a successor fuel, since the definition matches on the fuel.
+law Tower.mul.ext:
+  for +g: Nat
+  for +d: Tower
+  for rx: Tower
+  for ix: Tower
+  for dx: Tower
+  for ry: Tower
+  for iy: Tower
+  for dy: Tower
+  {Tower.mul(1n+g, d, Ext{rx, ix, dx}, Ext{ry, iy, dy})
+   == Ext{Tower.add(d, Tower.mul(g, d, rx, ry),
+                    Tower.mul(g, d, Tower.mul(g, d, ix, iy), d)),
+          Tower.add(d, Tower.mul(g, d, rx, iy), Tower.mul(g, d, ix, ry)),
+          d} : Tower}
+
+law Tower.one.base:
+  for v: R.Rat
+  {Tower.one(Base{v}) == Base{R.Rat.one()} : Tower}
+
+law Tower.one.ext:
+  for re: Tower
+  for im: Tower
+  for d: Tower
+  {Tower.one(Ext{re, im, d}) == Ext{Tower.one(re), Tower.zero(im), d} : Tower}

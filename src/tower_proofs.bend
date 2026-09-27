@@ -31,3 +31,30 @@ def T.Tower.depth.lift(t, d):
 
 def T.Tower.lift.zero(t, d):
   {==}
+
+# Step 2: the level operations at spelled forms. Every one of these is its
+# definition's own unfolding, so each fill is the same triviality -- what they buy
+# is that later laws and callers can rewrite with them rather than re-deriving the
+# shape, and that the shapes themselves are pinned down by a checked statement.
+
+def T.Tower.add.base(d, a, b):
+  {==}
+
+def T.Tower.add.ext(d, rx, ix, dx, ry, iy, dy):
+  {==}
+
+def T.Tower.neg.ext(rx, ix, dx):
+  {==}
+
+def T.Tower.mul.base(g, d, a, b):
+  {==}
+
+# the sqrt(d) * sqrt(d) = d reduction, at a successor fuel
+def T.Tower.mul.ext(g, d, rx, ix, dx, ry, iy, dy):
+  {==}
+
+def T.Tower.one.base(v):
+  {==}
+
+def T.Tower.one.ext(re, im, d):
+  {==}

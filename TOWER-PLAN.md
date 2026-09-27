@@ -41,8 +41,8 @@ per-step exactness certificates. Not a normal form that can be hashed or simplif
 ## 2. Where this lane stands
 
 Measured on `main` at round twenty-one (Step 0.2 committed as `3ec7043`, Step 1 landed),
-transitive over imports: **nat 129, int 32, qext 34, rat 229, qrat 265, tower 233** laws
--- the last being rat.bend's 229 plus the tower's own four. All six `src/*_proofs.bend`
+transitive over imports: **nat 129, int 32, qext 34, rat 229, qrat 265, tower 240** laws
+-- the last being rat.bend's 229 plus the tower's own eleven. All six `src/*_proofs.bend`
 check, as do `probe.bend` and `probe.payoff.bend`; `scratch.bend` prints its triple. The
 tower gate runs in 1.60 s, against 0.34–3.35 s for the five library gates. Both probes and
 `probe.payoff.bend` (4.32 s) were re-measured here, against upstream rather than the parked
@@ -380,6 +380,46 @@ an unfolding.
 level's hypotheses, and the bend checker's strict comparison (round fifteen) means
 those hypotheses must be stated in the caller's spelling. Expect this to be tedious
 rather than hard, and expect it to be where the one-second rule gets tested.
+
+**Partially landed, round twenty-two.** The operations and their spellings are in:
+`Tower.add(+d, x, y)`, `Tower.neg(x)`, `Tower.mul(+f, +d, x, y)`, `Tower.one(t)`, with
+seven laws at spelled constructor forms -- `add.base`, `add.ext`, `neg.ext`, `mul.base`,
+`mul.ext` (the `sqrt(d) * sqrt(d) = d` unfolding the done-when asks for), `one.base`,
+`one.ext` -- all filled definitionally, and the tower gate green at 240 = rat.bend's 229
+plus its own eleven. The five ring laws (`add_comm`, `add_assoc`, `mul_comm`,
+`mul_assoc`, `mul_distrib`) are *not* proved yet: they are inductions over the tower and
+they are the rest of this step, along with the route B probe and the fuel-sufficiency
+law.
+
+The radicand is an operation *parameter*, as planned, and that is what keeps the laws
+free of shape-agreement hypotheses: `add(d, x, y)` and `add(d, y, x)` mention one
+radicand. Operands at different levels are not a value of the theory, so the mismatched
+arms return the level's zero and no law reaches them.
+
+**`mul` has to be fuel-driven, and that is a checker constraint, not a style choice.**
+bend checks that every self-call decreases -- *"arguments are read left to right: each
+passed unchanged until one shrinks"* -- and the `sqrt(d)*sqrt(d) = d` term needs the
+im*im product multiplied by `d`, which nests one self-call inside another's argument.
+Measured: two operands shrinking together is *fine* (`add` passes with
+`add(d, rx, ry)`), a let-bound intermediate does not help (still rejected), and
+descending on a `Nat` fuel does -- which is the same shape `base.bend`'s own `Nat.gcd`
+takes, so there is precedent. Callers pass a fuel of at least the operands' depth; a law
+that enough fuel never runs out is part of the rest of this step. Every `mul` law is
+therefore spelled at a successor fuel, `Tower.mul(1n+g, d, ...)`.
+
+**Three exactness facts the spellings cost**, all load-bearing for the ring laws:
+
+- **Pattern binders are linear.** A constructor field used more than once in a body
+  needs `+` in the pattern, exactly as a parameter does (`case Ext{+rx, +ix, +dx}:`),
+  or the checker reports *"expected : iy"* -- which reads like a missing variable and is
+  not.
+- **A law's statement may only name its `for` parameters.** Pattern binders inside a
+  statement are not implicitly quantified: `Ext{rx, ix, dx}` with no `for dx` reports
+  *"expected : a defined name / observed : dx"*, so every tower value mentioned in a
+  statement is declared.
+- **A fill's parameter list mirrors its law's `for` list exactly, in order.** The
+  checker prints what it expected (`@iy -> @dy -> ...`), which is the fastest way to get
+  the order right.
 
 ### Step 3 — the unit test
 

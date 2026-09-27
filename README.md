@@ -127,8 +127,13 @@ law of its sibling via `def <alias>.<name>(...)`:
   value -- `Base{value}` a rational, `Ext{re, im, d}` = re + im*sqrt(d) with all three
   parts at the level below), `Tower.depth`, `Tower.zero`, `Tower.lift` (one
   constructor, so lifting is constant-time rather than merely linear), the `Tower.wf`
-  evidence family with its two transport defs, and four laws: `zero.base`,
-  `depth.zero`, `depth.lift`, `lift.zero`.
+  evidence family with its two transport defs, and Step 2's level arithmetic:
+  `Tower.add(+d, x, y)`, `Tower.neg(x)`, `Tower.mul(+f, +d, x, y)` and
+  `Tower.one(t)`, with the radicand as an operation parameter (the depth-1
+  `QExt.mul(+d, x, y)` style, lifted one level) and `mul` descending on a `Nat`
+  fuel. Eleven laws: `zero.base`, `depth.zero`, `depth.lift`, `lift.zero`,
+  `add.base`, `add.ext`, `neg.ext`, `mul.base`, `mul.ext` (the
+  `sqrt(d) * sqrt(d) = d` unfolding), `one.base`, `one.ext`.
 - `src/tower_proofs.bend` — fills all four tower.bend laws: `depth.zero` is a
   structural induction in the fill (the match refines the law at the branch and the
   Ext branch calls the fill itself on the tail), the other three are definitional.
@@ -170,7 +175,7 @@ transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
 QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 265 = 129 Nat +
 32 Int + 68 Rat + 36 QExt (it imports rat.bend itself, so its count is
 rat.bend's plus its own thirty-six laws), and tower.bend 233 = rat.bend's 229 plus
-its own four.
+its own eleven.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
