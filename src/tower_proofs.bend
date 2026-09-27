@@ -25,6 +25,10 @@ def T.Tower.depth.zero(t):
           T.Tower.depth.zero(re))
         : {Nat.add(1n, _) == Nat.add(1n, T.Tower.depth(re)) : Nat}
       {==}
+    case T.Bad{}:
+      {==}
+    case T.Fuel{}:
+      {==}
 
 def T.Tower.depth.lift(t, d):
   {==}

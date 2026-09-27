@@ -26,6 +26,16 @@ import ./rat.bend as R
 type Tower is Data:
   Base{value: R.Rat}
   Ext{re: Tower, im: Tower, d: Tower}
+  # The two failure markers. Bad is a call whose operands sit at different
+  # levels -- there is no ring holding both, so no ring element describes the
+  # result. Fuel is a call whose fuel ran out before the structure did. Neither
+  # is a ring element: both propagate through the operations unchanged, depth
+  # gives them 0n because they have no level, and wf accepts them structurally.
+  # Making them constructors rather than a plausible zero is the point: reading
+  # a coordinate out of a tower requires matching on it, so every consumer has
+  # to say what it does with a failure instead of silently receiving a number.
+  Bad{}
+  Fuel{}
 
 def Tower.depth(t: Tower) -> Nat:
   match t:
@@ -33,6 +43,10 @@ def Tower.depth(t: Tower) -> Nat:
       0n
     case Ext{re, im, d}:
       1n+Tower.depth(re)
+    case Bad{}:
+      0n
+    case Fuel{}:
+      0n
 
 def Tower.zero(t: Tower) -> Tower:
   match t:
@@ -40,6 +54,10 @@ def Tower.zero(t: Tower) -> Tower:
       Base{R.Rat.zero()}
     case Ext{re, im, d}:
       Ext{Tower.zero(re), Tower.zero(im), d}
+    case Bad{}:
+      Bad{}
+    case Fuel{}:
+      Fuel{}
 
 def Tower.lift(+t: Tower, d: Tower) -> Tower:
   Ext{t, Tower.zero(t), d}
@@ -54,8 +72,10 @@ def Tower.lift(+t: Tower, d: Tower) -> Tower:
 # hypothesis. The discipline is that callers pass the level's own radicand.
 #
 # Two operands at *different* levels are not a value of the theory -- there is no
-# ring holding both -- so the mismatched arms return the level's zero. No law
-# reaches them; they exist only because the functions are total.
+# ring holding both -- and a call that mixes them returns Bad, not a plausible
+# zero. The marker arms are last, after the matching ones, so they cannot
+# swallow a legitimate call; a marker operand propagates its own marker. No law
+# reaches any of them.
 #
 # mul reduces with sqrt(d) * sqrt(d) = d: the im*im term is multiplied by d, an
 # element of the level below, exactly as the depth-1 QExt.mul does.
@@ -64,12 +84,14 @@ def Tower.add(+d: Tower, x: Tower, y: Tower) -> Tower:
   match x y:
     case Base{a} Base{b}:
       Base{R.Rat.add(a, b)}
-    case Base{a} Ext{ry, iy, dy}:
-      Tower.zero(d)
-    case Ext{rx, ix, dx} Base{b}:
-      Tower.zero(d)
     case Ext{rx, ix, dx} Ext{ry, iy, dy}:
       Ext{Tower.add(d, rx, ry), Tower.add(d, ix, iy), d}
+    case Fuel{} _:
+      Fuel{}
+    case _ Fuel{}:
+      Fuel{}
+    case _ _:
+      Bad{}
 
 def Tower.neg(x: Tower) -> Tower:
   match x:
@@ -77,6 +99,10 @@ def Tower.neg(x: Tower) -> Tower:
       Base{R.Rat.neg(a)}
     case Ext{rx, ix, dx}:
       Ext{Tower.neg(rx), Tower.neg(ix), dx}
+    case Bad{}:
+      Bad{}
+    case Fuel{}:
+      Fuel{}
 
 # mul is fuel-driven, and it has to be. bend checks that a self-call decreases --
 # "arguments are read left to right: each passed unchanged until one shrinks" --
@@ -85,25 +111,29 @@ def Tower.neg(x: Tower) -> Tower:
 # operand order fixes that (both measured: rejected); descending on a Nat fuel
 # does, which is the same shape base's own Nat.gcd takes. Callers pass a fuel of
 # at least the operands' depth; a law proving that enough fuel never runs out is
-# Step 2's business, not the definition's.
+# Step 2's business, not the definition's. Running out returns Fuel, a separate
+# diagnosis from Bad: it says the caller's fuel was too small, not that the
+# operands disagreed about their level.
 
 def Tower.mul(+f: Nat, +d: Tower, x: Tower, y: Tower) -> Tower:
   match f:
     case 0n:
-      Tower.zero(d)
+      Fuel{}
     case 1n+g:
       match x y:
         case Base{a} Base{b}:
           Base{R.Rat.mul(a, b)}
-        case Base{a} Ext{ry, iy, dy}:
-          Tower.zero(d)
-        case Ext{rx, ix, dx} Base{b}:
-          Tower.zero(d)
         case Ext{+rx, +ix, +dx} Ext{+ry, +iy, +dy}:
           Ext{Tower.add(d, Tower.mul(g, d, rx, ry),
                         Tower.mul(g, d, Tower.mul(g, d, ix, iy), d)),
               Tower.add(d, Tower.mul(g, d, rx, iy), Tower.mul(g, d, ix, ry)),
               d}
+        case Fuel{} _:
+          Fuel{}
+        case _ Fuel{}:
+          Fuel{}
+        case _ _:
+          Bad{}
 
 def Tower.one(t: Tower) -> Tower:
   match t:
@@ -111,6 +141,10 @@ def Tower.one(t: Tower) -> Tower:
       Base{R.Rat.one()}
     case Ext{re, im, d}:
       Ext{Tower.one(re), Tower.zero(im), d}
+    case Bad{}:
+      Bad{}
+    case Fuel{}:
+      Fuel{}
 
 # the type of well-formedness evidence at one tower, with the evidence for the
 # parts as its fields, so a law can take `for h: Tower.wf(t)` as a hypothesis
@@ -126,6 +160,10 @@ def Tower.wf(t: Tower) -> Data:
       Tower.Ok
     case Ext{re, im, d}:
       Tower.Wf.Ext<re, im, d>
+    case Bad{}:
+      Tower.Ok
+    case Fuel{}:
+      Tower.Ok
 
 # Well-formedness evidence is an *indexed* type, so it does not survive a
 # rewrite as an equation: Tower.wf(Tower.zero(t)) and Tower.wf(t) have different
@@ -141,6 +179,10 @@ def Tower.wf.zero(t: Tower, h: Tower.wf(t)) -> Tower.wf(Tower.zero(t)):
     case Ext{re, im, d}:
       WfExt{+wfre, +wfim, +wfd} = h
       WfExt{Tower.wf.zero(re, wfre), Tower.wf.zero(im, wfim), wfd}
+    case Bad{}:
+      TowerOk{}
+    case Fuel{}:
+      TowerOk{}
 
 # at a lift, the evidence for the level-k element is the re slot, the zero
 # transport fills the im slot, and the radicand arrives from the caller
