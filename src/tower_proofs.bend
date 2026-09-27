@@ -45,10 +45,10 @@ def T.Tower.lift.zero(t, d):
 # is that later laws and callers can rewrite with them rather than re-deriving the
 # shape, and that the shapes themselves are pinned down by a checked statement.
 
-def T.Tower.add.base(d, a, b):
+def T.Tower.add.base(a, b, d):
   {==}
 
-def T.Tower.add.ext(d, rx, ix, dx, ry, iy, dy):
+def T.Tower.add.ext(rx, ix, dx, ry, iy, dy, d):
   {==}
 
 def T.Tower.neg.ext(rx, ix, dx):
@@ -81,7 +81,28 @@ def T.Tower.one.ext(re, im, d):
 # computing it, because add(d, Bad{}, y) does not reduce when y is still a
 # variable.
 
-def T.Tower.add.depth(d, x, y, hd, hx, hy, h):
+# clean evidence transports across rad
+# ===================================
+#
+# The radicand of a level is a part of the operand -- the third field of an Ext,
+# the operand itself at a Base -- so the operand's evidence already contains the
+# radicand's. This is why the safety fills need no extra hypothesis for the
+# sub-level radicand the recursion now passes: they derive its evidence from the
+# operand's own. Same shape as Tower.wf.zero: evidence, not equations, transport.
+
+def TowerCleanRad(t: T.Tower, h: T.Tower.clean(t)) -> T.Tower.clean(T.Tower.rad(t)):
+  match t:
+    case T.Base{v}:
+      h
+    case T.Ext{re, im, d}:
+      T.CleanExt{+cr, +ci, +cd, +hri} = h
+      cd
+    case T.Bad{}:
+      h
+    case T.Fuel{}:
+      h
+
+def T.Tower.add.depth(x, y, d, hx, hy, hd, h):
   match x y:
     case T.Base{a} T.Base{b}:
       {==}
@@ -89,8 +110,8 @@ def T.Tower.add.depth(d, x, y, hd, hx, hy, h):
       T.CleanExt{+hxr, +hxi, +hxd, +hxri} = hx
       T.CleanExt{+hyr, +hyi, +hyd, +hyri} = hy
       Equal.cong(Nat, Nat, u => Nat.add(1n, u),
-        T.Tower.depth(T.Tower.add(d, rx, ry)), T.Tower.depth(rx),
-        T.Tower.add.depth(d, rx, ry, hd, hxr, hyr,
+        T.Tower.depth(T.Tower.add(rx, ry, T.Tower.rad(rx))), T.Tower.depth(rx),
+        T.Tower.add.depth(rx, ry, T.Tower.rad(rx), hxr, hyr, TowerCleanRad(rx, hxr),
           N.succ_inj(T.Tower.depth(rx), T.Tower.depth(ry), h)))
     case T.Base{a} T.Ext{ry, iy, dy}:
       {==}
@@ -99,15 +120,15 @@ def T.Tower.add.depth(d, x, y, hd, hx, hy, h):
         N.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
           Nat.add(1n, T.Tower.depth(rx)), 0n, h)))
     case T.Bad{} _:
-      Empty.absurd({T.Tower.depth(T.Tower.add(d, T.Bad{}, y)) == 0n : Nat}, hx)
+      Empty.absurd({T.Tower.depth(T.Tower.add(T.Bad{}, y, d)) == 0n : Nat}, hx)
     case T.Fuel{} _:
-      Empty.absurd({T.Tower.depth(T.Tower.add(d, T.Fuel{}, y)) == 0n : Nat}, hx)
+      Empty.absurd({T.Tower.depth(T.Tower.add(T.Fuel{}, y, d)) == 0n : Nat}, hx)
     case _ T.Bad{}:
-      Empty.absurd({T.Tower.depth(T.Tower.add(d, x, T.Bad{})) == T.Tower.depth(x) : Nat}, hy)
+      Empty.absurd({T.Tower.depth(T.Tower.add(x, T.Bad{}, d)) == T.Tower.depth(x) : Nat}, hy)
     case _ T.Fuel{}:
-      Empty.absurd({T.Tower.depth(T.Tower.add(d, x, T.Fuel{})) == T.Tower.depth(x) : Nat}, hy)
+      Empty.absurd({T.Tower.depth(T.Tower.add(x, T.Fuel{}, d)) == T.Tower.depth(x) : Nat}, hy)
 
-def T.Tower.add.clean(d, x, y, hd, hx, hy, h):
+def T.Tower.add.clean(x, y, d, hx, hy, hd, h):
   match x y:
     case T.Base{a} T.Base{b}:
       T.CleanOk{}
@@ -119,17 +140,17 @@ def T.Tower.add.clean(d, x, y, hd, hx, hy, h):
               Equal.sym(Nat, T.Tower.depth(rx), T.Tower.depth(ix), hxri),
               Equal.trans(Nat, T.Tower.depth(rx), T.Tower.depth(ry), T.Tower.depth(iy),
                 er, hyri))
-      +cr = T.Tower.add.clean(d, rx, ry, hd, hxr, hyr, er)
-      +ci = T.Tower.add.clean(d, ix, iy, hd, hxi, hyi, ei)
-      +dr = T.Tower.add.depth(d, rx, ry, hd, hxr, hyr, er)
-      +di = T.Tower.add.depth(d, ix, iy, hd, hxi, hyi, ei)
+      +cr = T.Tower.add.clean(rx, ry, T.Tower.rad(rx), hxr, hyr, TowerCleanRad(rx, hxr), er)
+      +ci = T.Tower.add.clean(ix, iy, T.Tower.rad(rx), hxi, hyi, TowerCleanRad(rx, hxr), ei)
+      +dr = T.Tower.add.depth(rx, ry, T.Tower.rad(rx), hxr, hyr, TowerCleanRad(rx, hxr), er)
+      +di = T.Tower.add.depth(ix, iy, T.Tower.rad(rx), hxi, hyi, TowerCleanRad(rx, hxr), ei)
       T.CleanExt{cr, ci, hd,
         Equal.trans(Nat,
-          T.Tower.depth(T.Tower.add(d, rx, ry)), T.Tower.depth(ix),
-          T.Tower.depth(T.Tower.add(d, ix, iy)),
-          Equal.trans(Nat, T.Tower.depth(T.Tower.add(d, rx, ry)),
+          T.Tower.depth(T.Tower.add(rx, ry, T.Tower.rad(rx))), T.Tower.depth(ix),
+          T.Tower.depth(T.Tower.add(ix, iy, T.Tower.rad(rx))),
+          Equal.trans(Nat, T.Tower.depth(T.Tower.add(rx, ry, T.Tower.rad(rx))),
             T.Tower.depth(rx), T.Tower.depth(ix), dr, hxri),
-          Equal.sym(Nat, T.Tower.depth(T.Tower.add(d, ix, iy)), T.Tower.depth(ix), di))}
+          Equal.sym(Nat, T.Tower.depth(T.Tower.add(ix, iy, T.Tower.rad(rx))), T.Tower.depth(ix), di))}
     case T.Base{a} T.Ext{ry, iy, dy}:
       Empty.absurd(Empty,
         N.eq_ne_gt(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
@@ -139,13 +160,13 @@ def T.Tower.add.clean(d, x, y, hd, hx, hy, h):
         N.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
           Nat.add(1n, T.Tower.depth(rx)), 0n, h)))
     case T.Bad{} _:
-      Empty.absurd(T.Tower.clean(T.Tower.add(d, T.Bad{}, y)), hx)
+      Empty.absurd(T.Tower.clean(T.Tower.add(T.Bad{}, y, d)), hx)
     case T.Fuel{} _:
-      Empty.absurd(T.Tower.clean(T.Tower.add(d, T.Fuel{}, y)), hx)
+      Empty.absurd(T.Tower.clean(T.Tower.add(T.Fuel{}, y, d)), hx)
     case _ T.Bad{}:
-      Empty.absurd(T.Tower.clean(T.Tower.add(d, x, T.Bad{})), hy)
+      Empty.absurd(T.Tower.clean(T.Tower.add(x, T.Bad{}, d)), hy)
     case _ T.Fuel{}:
-      Empty.absurd(T.Tower.clean(T.Tower.add(d, x, T.Fuel{})), hy)
+      Empty.absurd(T.Tower.clean(T.Tower.add(x, T.Fuel{}, d)), hy)
 
 def T.Tower.mul.fuel.base(g, d, a, b):
   T.CleanOk{}

@@ -1094,6 +1094,53 @@ evidence for `Tower.rad(rx)`, which is a function of a variable operand and ther
 fill to match on the coordinates' shape as well. `main` is untouched and the law statements
 themselves are unchanged apart from the reordering.
 
+
+### The radicand fix is verified by a checked gate, and one of my claims was wrong (round thirty-five)
+
+**The gate.** `probe.tower.depth.bend` carries the test as two definitional equalities the
+checker decides, so the file itself is the evidence:
+
+    def mul.depth1.ok() -> {ctrl1() == want1() : T.Tower}:  {==}   # sqrt5*sqrt5 = 5
+    def mul.depth2.ok() -> {test2() == want2() : T.Tower}:  {==}   # (sqrt5+sqrt2)^2
+
+Both print `All terms check.` with the threading fix in place.
+
+**A correction.** Round thirty-four reported that after the fix the product was "identical to
+the hand-computed expectation, element for element". That was wrong. The printing showed the
+values agreeing, but the *first coordinate's form* differed: the product's is
+`Ext{Base{7}, Base{0}, Base{5}}` -- 7 as a *level-1* element, which is what the coefficients of
+a level-2 element must be -- while my hand-written expectation used `Base{7}`, a level-0
+tower. Same number, different depth, and the checker's equality is structural, so the gate
+rejected it. The code was right and the expectation was the malformed one: a coefficient has to
+sit at the radicand's level. The gate now writes the level-1 form, and the fact that this is
+exactly the kind of thing a structural gate catches is worth more than the original claim was.
+
+**The fills.** `TowerCleanRad` -- a helper named without a module prefix, the way `NatIsPos`
+in the nat proofs is -- transports clean evidence to a level's radicand: the radicand is a part
+of the operand (its third field at an Ext, the operand itself at a Base), so the operand's
+evidence already contains the radicand's. That is why the safety fills need *no* new hypothesis
+for the sub-level radicand the recursion now passes; they derive its evidence from the operand's
+own, the same way `Tower.wf.zero` transports well-formedness. The remaining fill changes are
+mechanical: `add.base`, `add.ext`, `add.depth`, `add.clean` reorder their parameter lists to the
+new signatures, and the call sites inside them follow.
+
+One naming rule, measured: a helper declared *in* a proofs file must not carry another module's
+prefix. `def T.Tower.clean.rad(...)` in `tower_proofs.bend` resolves as "a def in the module
+aliased `T`" -- i.e. `tower.bend` -- and from a second importing file that is "a defined name"
+that does not exist. Unqualified works, as `NatIsPos` does.
+
+**Gates.** All six proof files print `All terms check.`; counts nat 129, int 32, qext 34, rat
+229, qrat 265, tower 243; `probe.bend` and `probe.payoff.bend` check; `scratch.bend` prints its
+triple; and `probe.tower.depth.bend` is new.
+
+**Still open on the branch.** The fuel obligation's extension statement was checked in round
+thirty-three but never landed, and its fill was blocked by the very hypothesis this round
+removed -- the recursion no longer needs a relation between the coordinates and the caller's
+radicand, because it reads the radicand off the operand. What remains is the fuel-inequality
+induction: from `cmp(1+depth(rx), 1+g) == LT{}` to `cmp(depth(rx), g) == LT{}`, which is what
+the library's `cmp_lt_succ_r` family is for. `add`'s mark `+hd` is now unused in the depth fill
+and harmless.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

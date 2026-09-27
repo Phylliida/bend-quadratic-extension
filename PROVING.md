@@ -5508,3 +5508,66 @@ signatures. The parameter orders are mechanical; `add.clean`'s Ext/Ext arm addit
 clean evidence for `Tower.rad(rx)`, a function of a variable operand, so the fill has to match
 on the coordinates' shape as well. `main` is untouched and the law statements are unchanged
 apart from the reordering.
+
+## Round thirty-five -- The radicand fix is verified by a checked gate, and one claim was wrong
+
+**The gate, and the correction.** Round thirty-four said the fixed product was "identical to the
+hand-computed expectation, element for element". The printing showed the values agreeing, but the
+first coordinate's *form* differed, and I did not look closely enough. The product's is
+
+    Ext{Base{7}, Base{0}, Base{5}}          -- 7 as a level-1 element
+
+while my expectation used `Base{7}`, a level-0 tower. Same number, different depth. The checker's
+equality is structural, so when the test became a gate rather than a printout it rejected my
+expectation:
+
+    Location: mul.depth2.ok
+    expected : Ext{Ext{Base{7},Base{0},Base{5}}, Ext{Base{0},Base{2},Base{5}}, D}
+    observed : Ext{Base{7}, Ext{Base{0},Base{2},Base{5}}, D}
+
+The code was right and the expectation was malformed: a coefficient of a level-2 element sits at
+the radicand's level, so 7 there is the level-1 element `7 + 0*sqrt(5)`. With the expectation
+rewritten in that form both defs check:
+
+    def mul.depth1.ok() -> {ctrl1() == want1() : T.Tower}:  {==}
+    def mul.depth2.ok() -> {test2() == want2() : T.Tower}:  {==}
+    All terms check.
+
+`probe.tower.depth.bend` is now a tracked gate, and it is stronger than the printout was: the
+equalties are decided by the checker, so the file cannot pass on values that only look alike.
+
+**The fills.** Two things made them mechanical.
+
+`TowerCleanRad` transports clean evidence to a level's radicand:
+
+    def TowerCleanRad(t: T.Tower, h: T.Tower.clean(t)) -> T.Tower.clean(T.Tower.rad(t)):
+      match t:
+        case T.Base{v}: h
+        case T.Ext{re, im, d}: T.CleanExt{+cr, +ci, +cd, +hri} = h; cd
+        case T.Bad{}: h
+        case T.Fuel{}: h
+
+The radicand is a *part* of the operand -- its third field at an Ext, the operand itself at a
+Base -- so the operand's evidence already contains the radicand's, and the fills need no new
+hypothesis for the sub-level radicand. Same pattern as `Tower.wf.zero`: evidence transports,
+equations do not.
+
+And a naming rule, measured: a helper declared *in* a proofs file must not carry another
+module's prefix. `def T.Tower.clean.rad(...)` in `tower_proofs.bend` resolves as a def in the
+module aliased `T`, i.e. `tower.bend`, and a second importing file reports `expected : a defined
+name / observed : src/tower.Tower.clean.rad`. Unqualified is the pattern the nat proofs use with
+`NatIsPos`.
+
+The rest is mechanical: `add.base`, `add.ext`, `add.depth`, `add.clean` reorder their parameter
+lists to the new signatures and their inner call sites follow, passing `Tower.rad(rx)` in the
+radicand slot and `TowerCleanRad(rx, hxr)` for its evidence.
+
+**Gates.** All six proof files print `All terms check.`; counts nat 129, int 32, qext 34, rat 229,
+qrat 265, tower 243; `probe.bend` and `probe.payoff.bend` check; `scratch.bend` prints its
+inversion triple; `probe.tower.depth.bend` is new and green.
+
+**Still open.** The fuel obligation's extension statement was checked in round thirty-three but
+never landed, and its fill was blocked by exactly the hypothesis this round removed -- the
+recursion no longer needs a relation between the coordinates and the caller's radicand. What
+remains is the fuel-inequality induction: `cmp(1+depth(rx), 1+g) == LT{}` to
+`cmp(depth(rx), g) == LT{}`, the library's `cmp_lt_succ_r` family. `main` is untouched.
