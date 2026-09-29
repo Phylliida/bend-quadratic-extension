@@ -7254,3 +7254,51 @@ eleven gates green: nat 0.50, int 0.58, rat 2.95, qrat 5.70, qext 0.50,
 tower_proofs 3.42, probe.bend 3.20, probe.payoff 7.01, probe.tower.depth 3.11,
 probe.mul.depth.arm 3.28, scratch 2.63 s, inversion triple unchanged. Next: step 4
 `mul_zero` at `level.refl`, then `mul_one`/`one_mul` on the same carrier.
+
+## Round sixty-nine -- mul_zero: the mirror law, and one measurement about the Rat surface
+
+`Tower.mul_zero` -- `mul(f, u, zero(v)) == zero(u)` from `level(u, v)`, both canon
+witnesses, both pos witnesses and the fuel equation -- is `zero.mul`'s mirror, and like
+it an induction rather than a definitional identity. The two halves need each other one
+level down: mul's second coordinate is `add(mul(g, rx, iy), mul(g, ix, ry))`, which for
+`y = zero(v)` becomes `add(mul(g, ru, zero(rv)), mul(g, iu, zero(rv)))` -- this same law
+at the coordinates -- while the first coordinate's inner product
+`mul(g, mul(g, iu, zero(iv)), du)` is this law at `(iu, iv)` rewritten through
+`zero.mul` at `(iu, du)`. The conclusion is `zero(u)` and not `zero(v)`: the two are
+`zero.level` apart, and `zero(u)` is the spelling whose radicand is mul's own, so no
+radicand transport is needed at all.
+
+The Base leaf is the round's one measurement about the *Rat* surface. `Rat.mul_zero` is
+stated at `Rat{n, 1n+dp}` -- a spelled successor denominator, because the proof needs
+one -- and a variable leaf `a` cannot present that. `Rat.zero_mul` takes a `cmp`
+hypothesis instead, so the leaf is reached through `Rat.mul_comm`, which is arbitrary:
+
+    +pden = pu's field
+    Equal.trans(R.Rat, R.Rat.mul(a, R.Rat.zero()), R.Rat.mul(R.Rat.zero(), a),
+      R.Rat.zero(), R.Rat.mul_comm(a, R.Rat.zero()), R.Rat.zero_mul(a, pden))
+
+So the tower's zero laws do not need the Rat library's spelling discipline to be
+extended; they need the *commutative* door into it, which exists.
+
+The one real proof lesson is about nesting. In a right-nested `Equal.trans` chain the
+third argument is the *final* endpoint at every level, not the level's own middle. I
+wrote the four-leg chain `L1 -> MID1 -> MID1b -> MID1c -> zero(ru)` with `MID1c` as the
+outer and middle `c`, and the checker named the exact slot: `expected : {MID1b == MID1c}
+/ observed : {MID1b == zero(ru)}`. Every `c` in that chain is `zero(ru)`.
+
+The rest of the round was generator slips, all of the same shape and all caught by the
+checker rather than by reading: `X1b` mangled into `X1b`+leftover by a prefix-colliding
+placeholder substitution (`X1` replaced first), two `M1c`/`M1b` placeholders left
+unsubstituted, constructors written `T.Tower.Ext{}` where the module prefix belongs to
+the type's name and not to the constructor (`T.Ext{}`), and the `Bad`/`Fuel` marker arms
+dropped when the arm template was rebuilt -- for which the checker's message is
+`expected : cases for tower.Bad / observed : \{}`. A placeholder-substitution helper
+should assert on *absence of leftovers* per name, which is exactly what the old assert
+(non-empty intersection with a list of names) failed to do.
+
+Counts: `tower.bend` 253, `tower_helpers.bend` 275 (253 plus twenty-two own laws). All
+eleven gates green: nat 0.50, int 0.58, rat 2.99, qrat 5.78, qext 0.47,
+tower_proofs 3.55, probe.bend, probe.payoff, probe.tower.depth, probe.mul.depth.arm and
+scratch all `All terms check.`/the unchanged inversion triple. Remaining in the goal's
+item (3): `mul_one`, `one_mul` (same sibling machinery), then `neg_neg`; the three ring
+laws still wait on round sixty's cross-operand fact.

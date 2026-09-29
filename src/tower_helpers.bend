@@ -398,3 +398,25 @@ law Tower.zero.mul:
   for +h: T.Tower.level(u, v)
   for +hf: {f == Nat.add(1n, T.Tower.depth(u)) : Nat}
   {T.Tower.mul(f, T.Tower.zero(u), v) == T.Tower.zero(u) : T.Tower}
+
+# Zero on the right: mul(f, u, zero(v)) == zero(u). The mirror of zero.mul, and the
+# second law of the zero block that has to be an induction: mul's second coordinate is
+# add(mul(g, rx, iy), mul(g, ix, ry)), which for y = zero(v) becomes
+# add(mul(g, ru, zero(rv)), mul(g, iu, zero(rv))) -- the right-zero law at the
+# coordinates -- while the first coordinate's inner product mul(g, mul(g, iu, zero(iv)),
+# du) is the right-zero law at (iu, iv), rewritten through the LEFT-zero law at (iu, du).
+# The two halves therefore need each other one level down: zero.mul is the half already
+# in hand, and this is the other one. The conclusion is zero(u) rather than zero(v) --
+# the two are the same by zero.level, and zero(u) is the spelling whose radicand is
+# mul's own (the first operand's), so the radicand needs no transport at all.
+law Tower.mul_zero:
+  for +f: Nat
+  for +u: T.Tower
+  for +v: T.Tower
+  for +cu: T.Tower.canon(u)
+  for +cv: T.Tower.canon(v)
+  for pu: T.Tower.pos(u)
+  for pv: T.Tower.pos(v)
+  for +h: T.Tower.level(u, v)
+  for +hf: {f == Nat.add(1n, T.Tower.depth(u)) : Nat}
+  {T.Tower.mul(f, u, T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}

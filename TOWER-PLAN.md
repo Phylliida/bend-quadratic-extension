@@ -2541,3 +2541,17 @@ separate obligations, and the order of an arm's statements is part of the proof.
 
 State: `tower.bend` 253, `tower_helpers.bend` 274, all eleven gates green, `main`
 untouched at `5dd79dc`.
+
+### The zero block's step 5: mul_zero (round sixty-nine)
+
+`Tower.mul_zero` landed -- `mul(f, u, zero(v)) == zero(u)` at `level(u, v)`, with both
+canon witnesses, both pos witnesses and the fuel equation. It is `zero.mul`'s mirror and
+it consumes `zero.mul` exactly once, on the inner product one level down; the two
+recursive instances at `(ru, rv)` and the two cross pairs are its own. Its Base leaf goes
+through `Rat.mul_comm` into `Rat.zero_mul`, because `Rat.mul_zero` is stated at a spelled
+`Rat{n, 1n+dp}` and a variable leaf cannot present a successor denominator. With this the
+zero block's own five steps are done; what remains of the goal's item (3) is
+`mul_one`/`one_mul` and `neg_neg`.
+
+State: `tower.bend` 253, `tower_helpers.bend` 275, all eleven gates green, `main`
+untouched at `5dd79dc`.

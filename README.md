@@ -83,8 +83,8 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 24 / 12, qrat 36 / none, qext 2 / none -- 167 readable
-  laws, 145 helpers, 312 in total (the split itself landed 282; the product's pair
+  13, rat 40 / 28, tower 24 / 13, qrat 36 / none, qext 2 / none -- 167 readable
+  laws, 146 helpers, 313 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
   `mul.fuel.ext` to the helper tier, round forty-eight; the negation pair added
@@ -190,7 +190,7 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   evidence family with its two transport defs, and Step 2's level arithmetic:
   `Tower.add(x, y)`, `Tower.neg(x)`, `Tower.mul(+f, x, y)` and `Tower.one(t)`,
   with the radicand read off the first operand's own third field (intrinsic,
-  round thirty-nine) and `mul` descending on a `Nat` fuel. Twenty-five laws: the
+  round thirty-nine) and `mul` descending on a `Nat` fuel. Twenty-six laws: the
   level arithmetic (`add.depth`, `add.clean`, `mul.depth`, `mul.clean`),
   `zero.base`, `depth.zero`, `depth.lift`, `lift.zero`, `add.base`, `add.ext`,
   `neg.ext`, `sub_eq_add_neg`, `mul.base`, `mul.ext` (the
@@ -272,12 +272,17 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   into a fuel equation. The siblings live in `Canon` and not in `Tower.Clean` because
   `Clean` is *produced* by `add.clean`/`mul.clean`/`mul.safe`, and the radicand field a
   product would have to hand back is the wall round sixty measured. Round
-  sixty-eight added the zero block's step 3, `Tower.zero.mul`
+  sixty-eight added the zero block's step 4, `Tower.zero.mul`
   (`mul(f, zero(u), v) == zero(u)` at `level(u, v)`): five recursive instances, the two
   cross pairs assembled from the aligned ones, and the fuel for the last instance
   derived at the spelled coordinate instead of as `depth(u)` -- reading `u` as a term
   consumes it, and `u` is what `canon(u)`, `pos(u)` and `level(u, v)` are indexed by,
-  so the evidence can only be taken apart before that read.
+  so the evidence can only be taken apart before that read. Round sixty-nine added its
+  mirror, `Tower.mul_zero` (`mul(f, u, zero(v)) == zero(u)`): the right-zero law at the
+  coordinates and the left-zero law on the inner product one level down, so the two
+  halves need each other -- and the Base leaf reaches `Rat.zero_mul` through
+  `Rat.mul_comm`, because `Rat.mul_zero` is stated at a spelled `Rat{n, 1n+dp}` that a
+  variable leaf cannot present.
 - `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law.
   `depth.zero`, `add.depth`, `add.clean`, `mul.safe` and `mul.above` are structural
   inductions in the fill: the match refines the law at each branch, and each arm
