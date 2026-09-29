@@ -1553,16 +1553,101 @@ facts: `add.depth` and `mul.depth` read structure, `add.clean` and `mul.clean` r
 on structure, and no coefficient identity is ever needed. The value laws are the first
 that need one.
 
-**What is not blocked (revised).** `mul.fuel.ext` is unaffected by either face: its
+**What is not blocked (revised).** `mul.fuel.ext` was unaffected by either face -- its
 proof equates two *products* structurally and uses no Rat identity at all (the
 congruences it needs are under `add`/`mul` themselves, and the fuel comparison is
-defined on `Nat`). It is next. The identity and negation block is blocked on the
+defined on `Nat`) -- and it landed in round forty-eight (see the section below). The identity and negation block is blocked on the
 coefficient facts above -- `Tower.sub_eq_add_neg` landed anyway, since it is the
 definition's own unfolding and needs nothing. The remainder of the older sentence
 still holds: those laws are unary statements:
 `neg(neg(x)) = x`, `neg(add(x, y)) = add(neg(x), neg(y))`, `mul(f, x, one(x)) = x` pick the first
 operand's radicand on *both* sides, so their inductions never need a fact about a pair. Those are
 next; the ring laws wait on the fork above.
+
+### The fuel law is one induction away from the pair law (round forty-eight)
+
+`Tower.mul.fuel.ext` is proved, and the shape of the proof is the round-forty-five
+pair law's with three changes. The statement is the one round thirty-six pinned:
+
+    law Tower.mul.fuel.ext:
+      for +f: Nat
+      for +x: T.Tower
+      for +y: T.Tower
+      for hx: T.Tower.clean(x)
+      for hy: T.Tower.clean(y)
+      for h: {T.Tower.depth(x) == T.Tower.depth(y) : Nat}
+      for hf: {Nat.cmp(T.Tower.depth(x), f) == LT{} : Cmp}
+      {T.Tower.mul(f, x, y) == T.Tower.mul(1n+T.Tower.depth(x), x, y) : T.Tower}
+
+**Why the exact-fuel pair cannot carry it.** The Ext/Ext arm's third recursive call
+is `mul(g, mul(g, ix, iy), dx)`, so a recursive *instance* of the fuel law for the
+(rx, ry) and (ix, iy) operands needs those products' clean evidence. `Tower.Safe` is
+indexed at `f == 1n+depth(x)` -- the fuel at which its own call is made -- and this
+call is made at `g`, which the hypothesis only bounds above, so the pair's clean
+field is the wrong statement (round thirty-three measured the failure: at f larger
+than the threshold, `mul`'s result is an `Ext` whose coordinates hold `Fuel{}`, whose
+clean evidence is `Empty`). Transporting clean evidence from one spelling of a value
+to another is not available either: `Equal.cong` composes a *function over values*,
+and what the transport would need is a function over the *type* `clean(.)`, i.e. an
+equality between two `Data` types.
+
+**So the three facts come back from one induction at the weaker hypothesis.**
+`Tower.mul.above` (helper tier) concludes an indexed type with the three fields the
+arms need:
+
+    type Tower.Above<-x: T.Tower, -f: Nat, -y: T.Tower> is Data:
+      AboveExt{cabove: T.Tower.clean(T.Tower.mul(f, x, y)),
+               habove: {T.Tower.depth(T.Tower.mul(f, x, y)) == T.Tower.depth(x) : Nat},
+               habeq:  {T.Tower.mul(f, x, y)
+                        == T.Tower.mul(Nat.add(1n, T.Tower.depth(x)), x, y) : T.Tower}}
+
+with `hf: {Nat.cmp(T.Tower.depth(x), f) == LT{}}` in place of `Safe`'s exact-fuel
+equation, and three projection defs (`above.clean`, `above.depth`, `above.eq`) --
+the same shape as `Safe`/`safe.clean`/`safe.depth`, and for the same reason (a match
+cannot scrutinize a computed value, so the pair is read through a def that takes it
+as a parameter). The exact-fuel pair stays in place: its hypothesis is the one a
+caller of `mul.depth` and `mul.clean` has, and the two inductions are otherwise the
+same fill. `Tower.mul.fuel.ext` is then the third projection, one call.
+
+**What the value field needed: fuel rewriting by congruence.** A recursive instance
+states its threshold product at *its own* first operand's threshold (`1n+depth(rx)`
+for (rx, ry), `1n+depth(ix)` for (ix, iy)), while the goal's right side uses the
+first operand's level throughout. Three congruences move the goal across those
+equalities -- two in `mul`'s fuel slot (`u => mul(u, ix, iy)` and
+`u => mul(u, mul(g, ix, iy), dx)`) and one in the second slot
+(`u => mul(1n+depth(rx), u, dx)`) -- after `above.eq` has already rewritten each
+sub-product to its own threshold. `probe.cong.bend` (untracked) measured both
+mechanisms before the fill was written: a lambda over a `+`-marked parameter
+(`u => T.Tower.mul(u, a, a)` in `Equal.cong`'s function slot) is legal, as is a
+lambda that builds a constructor (`u => T.Ext{u, zero(p), p}`), and both laws checked
+(the probe's file reports only the imported closure's TODOs).
+
+**Three mechanics worth keeping.**
+
+- **`Equal.cong` orientation.** Its hypothesis has to be `{a == b}` for its own
+  `a`, `b`; passing the reversed one fails with `expected :
+  {depth(ix) == depth(mul(g, ix, iy))} / observed : {depth(mul(g, ix, iy)) ==
+  depth(ix)}`. The transport in `hf3` (from `cmp(depth(ix), g) == LT` to
+  `cmp(depth(mul(g, ix, iy)), g) == LT`, needed as the third call's fuel
+  hypothesis) therefore wraps its congruence in `Equal.sym`.
+- **A hypothesis used three times needs a copy.** Bindings are linear: handing `hf`
+  to both the (rx, ry) and (rx, iy) instances *and* using it as the second leg of the
+  `hfi` transport is refused with `expected : hf / observed : hf (consumed more than
+  once)`. `+` is not accepted in a *def*'s parameter list (`expected : ':' / observed
+  : ')'` at the fill's signature), so the copy is made inside the body: `+hf1 = hf`
+  then three uses of `hf1`. Marked *destructuring* fields (`T.CleanExt{+hxr, ...}`)
+  are reusable, which is how `hxr` reaches three recursive calls in both fills.
+- **The parens of a nested `Equal.trans` chain.** Two long `Nat` chains (`es`, `et`)
+  are written once as bindings and handed to both `add.clean` and `add.depth`; the
+  first version inlined them twice and was one close short in each, which the parser
+  reports only at the *next* statement ("expected : a term / observed : '='").
+
+**State.** `tower.bend` 16 readable laws (245 transitive), `tower_helpers.bend` 5
+(250 = 245 + its own five), README totals 159 readable / 129 helpers / 288;
+`tower_proofs.bend` fills in 2.67 s, all ten gates green, `scratch.bend` unchanged.
+Chain (1) of the goal is complete. The ring laws still wait on the level-invariant
+fork (round forty-six) and the identity block on the coefficient decision (round
+forty-seven).
 
 ## 8. Deliberately out of scope for now
 

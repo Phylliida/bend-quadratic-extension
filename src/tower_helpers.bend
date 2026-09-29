@@ -98,3 +98,72 @@ def Tower.safe.depth(+f: Nat, +x: T.Tower, +y: T.Tower,
   match s:
     case SafeExt{cs, hd}:
       hd
+
+# The same facts at any fuel above the threshold, plus the fuel law
+# =================================================================
+#
+# mul.fuel.ext -- a product at a large enough fuel does not depend on how much
+# fuel it was handed -- cannot be proved on its own. Its Ext/Ext arm makes the
+# third recursive call multiply `mul(g, ix, iy)` by dx, and a recursive instance
+# of the fuel law near the leaves needs its operands to be clean; using the
+# exact-fuel pair (Tower.Safe) for that product is not available, because it is
+# stated at f == 1n+depth(x) and this call is made at a fuel that may be larger.
+# Getting from one to the other would mean transporting clean evidence along a
+# *type* equality ({clean(a) == clean(b) : Data}), which is not what Equal.cong
+# gives -- it composes a function over values.
+#
+# So the three facts are proved as one induction at the weaker hypothesis
+# `cmp(depth(x), f) == LT{}`, and each is in hand where the other is wanted:
+#
+#   cabove: the product is clean
+#   habove: the product sits at x's level
+#   habeq:  the product is the threshold product mul(1n+depth(x), x, y)
+#
+# The exact-fuel pair stays as it is: its hypothesis is the one a caller of
+# mul.depth and mul.clean has, and the two files' inductions differ only in the
+# fuel hypothesis they start from.
+
+type Tower.Above<-x: T.Tower, -f: Nat, -y: T.Tower> is Data:
+  AboveExt{cabove: T.Tower.clean(T.Tower.mul(f, x, y)),
+           habove: {T.Tower.depth(T.Tower.mul(f, x, y)) == T.Tower.depth(x) : Nat},
+           habeq: {T.Tower.mul(f, x, y)
+                   == T.Tower.mul(Nat.add(1n, T.Tower.depth(x)), x, y) : T.Tower}}
+
+law Tower.mul.above:
+  for +f: Nat
+  for +x: T.Tower
+  for +y: T.Tower
+  for hx: T.Tower.clean(x)
+  for hy: T.Tower.clean(y)
+  for h: {T.Tower.depth(x) == T.Tower.depth(y) : Nat}
+  for hf: {Nat.cmp(T.Tower.depth(x), f) == LT{} : Cmp}
+  Tower.Above<x, f, y>
+
+def Tower.above.clean(+f: Nat, +x: T.Tower, +y: T.Tower, s: Tower.Above<x, f, y>) ->
+    T.Tower.clean(T.Tower.mul(f, x, y)):
+  match s:
+    case AboveExt{ca, ha, he}:
+      ca
+
+def Tower.above.depth(+f: Nat, +x: T.Tower, +y: T.Tower, s: Tower.Above<x, f, y>) ->
+    {T.Tower.depth(T.Tower.mul(f, x, y)) == T.Tower.depth(x) : Nat}:
+  match s:
+    case AboveExt{ca, ha, he}:
+      ha
+
+def Tower.above.eq(+f: Nat, +x: T.Tower, +y: T.Tower, s: Tower.Above<x, f, y>) ->
+    {T.Tower.mul(f, x, y)
+     == T.Tower.mul(Nat.add(1n, T.Tower.depth(x)), x, y) : T.Tower}:
+  match s:
+    case AboveExt{ca, ha, he}:
+      he
+
+law Tower.mul.fuel.ext:
+  for +f: Nat
+  for +x: T.Tower
+  for +y: T.Tower
+  for hx: T.Tower.clean(x)
+  for hy: T.Tower.clean(y)
+  for h: {T.Tower.depth(x) == T.Tower.depth(y) : Nat}
+  for hf: {Nat.cmp(T.Tower.depth(x), f) == LT{} : Cmp}
+  {T.Tower.mul(f, x, y) == T.Tower.mul(1n+T.Tower.depth(x), x, y) : T.Tower}
