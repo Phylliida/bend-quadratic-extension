@@ -603,6 +603,25 @@ law Tower.add_comm:
   for hs: Tower.same(x, y)
   {Tower.add(x, y) == Tower.add(y, x) : Tower}
 
+# Multiplication commutes at a level-aligned pair, and the statement is where round
+# sixty's wall stops mattering. The fuel is spelled 1n+depth(x) on *both* sides -- the
+# same term, so both reductions bind the same g = 1n+depth(rx) and the recursive
+# instances are already at a fuel the goal spells. What the fill needs beyond them is one
+# add_comm, at the pair of *cross products* (mul(g, rx, iy), mul(g, ix, ry)) -- the two
+# summands of mul's second coordinate, which the swap exchanges. That pair is computed,
+# so no carrier can hold its witness; same.mul builds it from the operands' *inside*
+# pairs instead, and that is why the statement carries canon(x) and canon(y): Canon's lri
+# supplies level(rx, ix) and level(ry, iy), and Tower.same.of.level turns them into
+# witnesses. So the hypothesis set is level(x, y) plus canon -- no fact about a computed
+# value is handed in.
+law Tower.mul_comm:
+  for +x: Tower
+  for +y: Tower
+  for hl: Tower.level(x, y)
+  for cx: Tower.canon(x)
+  for cy: Tower.canon(y)
+  {Tower.mul(1n+Tower.depth(x), x, y) == Tower.mul(1n+Tower.depth(x), y, x) : Tower}
+
 # The associativity of add, and the two carriers its coordinates need. The clean
 # witness supplies the depth equations the induction consumes -- a per-value clean
 # carries level(re, im), so depth(ix) == depth(iy) is in hand from x's and y's own

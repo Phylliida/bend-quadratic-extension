@@ -264,6 +264,20 @@ law Tower.same.of_eq:
   for h: {x == y : T.Tower}
   T.Tower.same(x, y)
 
+# level is stronger than its name suggests: Level.Ext carries exactly the three fields
+# Same.Ext wants, one level down, so a level witness *is* a same witness once the
+# induction has been carried out. That matters because the ring laws consume same --
+# add_comm asks for it -- while what the carriers hand over is level: Canon's lri and lrd
+# are level facts about a value's own coordinates, and level(x, y) alone relates aligned
+# slots only. mul_comm is the first caller: it needs same for the pair of *cross
+# products*, and same.mul builds that from the operands' inside pairs, which are level
+# facts read through here.
+law Tower.same.of.level:
+  for +x: T.Tower
+  for +y: T.Tower
+  for h: T.Tower.level(x, y)
+  T.Tower.same(x, y)
+
 law Tower.level.refl:
   for +x: T.Tower
   T.Tower.level(x, x)

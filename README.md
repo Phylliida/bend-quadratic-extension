@@ -83,8 +83,8 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 27 / 23, qrat 36 / none, qext 2 / none -- 170 readable
-  laws, 147 helpers, 317 in total (the split itself landed 282; the product's pair
+  13, rat 40 / 28, tower 28 / 24, qrat 36 / none, qext 2 / none -- 171 readable
+  laws, 148 helpers, 319 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
   `mul.fuel.ext` to the helper tier, round forty-eight; the negation pair added
@@ -93,7 +93,8 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   sixty-five added its mirror
   `Tower.zero_add`; round seventy added `Tower.one.level` to the helper tier and
   `Tower.mul_one`/`Tower.one_mul` to the readable tier; round seventy-one added `Tower.neg_neg`
-  to the readable tier and the canon leaf's third field, `cneg`). The per-library numbers are the
+  to the readable tier and the canon leaf's third field, `cneg`; round seventy-two added
+  `Tower.mul_comm` to the readable tier and `Tower.same.of.level` to the helper one). The per-library numbers are the
   own law counts of that library's tier files (`grep -c '^law '`), which is why they sum
   to the totals.
 
@@ -195,7 +196,7 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   evidence family with its two transport defs, and Step 2's level arithmetic:
   `Tower.add(x, y)`, `Tower.neg(x)`, `Tower.mul(+f, x, y)` and `Tower.one(t)`,
   with the radicand read off the first operand's own third field (intrinsic,
-  round thirty-nine) and `mul` descending on a `Nat` fuel. Twenty-nine laws: the
+  round thirty-nine) and `mul` descending on a `Nat` fuel. Thirty laws: the
   level arithmetic (`add.depth`, `add.clean`, `mul.depth`, `mul.clean`),
   `zero.base`, `depth.zero`, `depth.lift`, `lift.zero`, `add.base`, `add.ext`,
   `neg.ext`, `sub_eq_add_neg`, `mul.base`, `mul.ext` (the
@@ -307,6 +308,23 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   canon witness, and its Ext arm is two recursive calls and two congruences. A `probe.cneg.bend`
   measurement (untracked) builds the extended witness at closed leaves -- all three fields
   `{==}` -- and hands it to the law at a leaf and at depth 2.
+  Round seventy-two landed the first of the three ring laws, `Tower.mul_comm`, and the
+  bridge it needed, `Tower.same.of.level`. Level is stronger than its name suggests:
+  `Level.Ext` carries exactly the three fields `Same.Ext` wants one level down, so a level
+  witness *is* a same witness, by an identity induction. `mul_comm` needs one because its
+  second coordinate compares `add(rx*iy, ix*ry)` with `add(ry*ix, iy*rx)` -- the same two
+  summands in the other order -- so the closing step is one `add_comm` at the pair of
+  *cross products*; that pair is computed, so no carrier can hold its witness, and
+  `same.mul` builds it from the operands' inside pairs, which are the `lri` level facts the
+  canon witnesses hand over. The first coordinate needs no witness at all, just two
+  congruences in `add`'s two slots. Four recursive instances; and because the law spells
+  one fuel on both sides, the two `ix`-first instances have their products moved across
+  `level.depth` by congruence in `mul`'s fuel slot -- no `succ_inj` anywhere. What matters
+  is what the law does *not* ask for: a same witness of the products, never a level fact
+  about them, so round sixty's wall -- the radicand field a *product* would have to hand
+  back -- is not in its way. That wall is about level evidence for computed values;
+  `mul_comm` takes its evidence from the operands instead. `mul_assoc` and `mul_distrib`
+  mix coordinates through a product, so they still look like route (a).
 - `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law.
   `depth.zero`, `add.depth`, `add.clean`, `mul.safe` and `mul.above` are structural
   inductions in the fill: the match refines the law at each branch, and each arm
@@ -367,9 +385,9 @@ computes instead of that line. The count is
 transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
 QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 265 = 129 Nat +
 32 Int + 68 Rat + 36 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own thirty-six laws), tower.bend 256 = rat.bend's 229 plus
-its own twenty-seven, and tower_helpers.bend 279 = tower.bend's 256 plus its own
-twenty-three.
+rat.bend's plus its own thirty-six laws), tower.bend 257 = rat.bend's 229 plus
+its own twenty-eight, and tower_helpers.bend 281 = tower.bend's 257 plus its own
+twenty-four.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.

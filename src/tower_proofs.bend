@@ -953,6 +953,49 @@ def TH.Tower.same.of_eq(x, y, h):
       %h : T.Tower.same(T.Fuel{}, _)
       T.SameBase{}
 
+# same.of.level: the identity on the witnesses. Nothing is transported -- the level
+# witness at a pair of Ext values *is* a pair of level witnesses one level down, which is
+# exactly what Same.Ext asks for, so the induction rebuilds the constructor with the
+# recursive instances and keeps the radicand equation as it is. Level is Empty wherever
+# the shapes disagree, so those arms are absurdity, exactly as in same.sym.
+def TH.Tower.same.of.level(x, y, h):
+  match x y:
+    case T.Base{a} T.Base{b}:
+      T.SameBase{}
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+      match h:
+        case T.LevelExt{+lre, +lim, +ld}:
+          T.SameExt{TH.Tower.same.of.level(rx, ry, lre),
+            TH.Tower.same.of.level(ix, iy, lim), ld}
+    case T.Bad{} T.Bad{}:
+      T.SameBase{}
+    case T.Fuel{} T.Fuel{}:
+      T.SameBase{}
+    case T.Base{a} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.same(x, y), h)
+    case T.Base{a} T.Bad{}:
+      Empty.absurd(T.Tower.same(x, y), h)
+    case T.Base{a} T.Fuel{}:
+      Empty.absurd(T.Tower.same(x, y), h)
+    case T.Ext{rx, ix, dx} T.Base{b}:
+      Empty.absurd(T.Tower.same(x, y), h)
+    case T.Ext{rx, ix, dx} T.Bad{}:
+      Empty.absurd(T.Tower.same(x, y), h)
+    case T.Ext{rx, ix, dx} T.Fuel{}:
+      Empty.absurd(T.Tower.same(x, y), h)
+    case T.Bad{} T.Base{b}:
+      Empty.absurd(T.Tower.same(x, y), h)
+    case T.Bad{} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.same(x, y), h)
+    case T.Bad{} T.Fuel{}:
+      Empty.absurd(T.Tower.same(x, y), h)
+    case T.Fuel{} T.Base{b}:
+      Empty.absurd(T.Tower.same(x, y), h)
+    case T.Fuel{} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.same(x, y), h)
+    case T.Fuel{} T.Bad{}:
+      Empty.absurd(T.Tower.same(x, y), h)
+
 # same.mul: the fuel case split sits in front of the shape induction. At 0n both sides
 # are Fuel{} whatever the operands are, so the witness is trivial.
 #
@@ -2814,3 +2857,171 @@ def T.Tower.neg_neg(x, cx):
       {==}
     case T.Fuel{}:
       {==}
+
+# mul_comm: four recursive instances, two congruences for the real coordinate, and one
+# add_comm for the imaginary one -- the crossing step, which is where the products'
+# witness is spent.
+#
+# The imaginary coordinate compares add(rx*iy, ix*ry) with add(ry*ix, iy*rx): the same
+# two summands in the other order, so add_comm closes it, and its hypothesis is
+# same(mul(F, rx, iy), mul(F, ix, ry)) -- a witness for a *computed* pair. same.mul
+# supplies it at the same fuel from the two inside pairs, which Canon's lri carries as
+# level facts and same.of.level turns into witnesses. Nothing about the products is
+# assumed by the caller.
+#
+# Fuel: the statement spells 1n+depth(x) on both sides, so both reductions bind the same
+# g = 1n+depth(rx) and the (rx,ry) and (rx,iy) instances are already at the goal's fuel.
+# The (ix,iy) and (ix,ry) instances state their result at 1n+depth(ix), so each of their
+# products is moved across the depth equation Canon's lri gives -- congruence in mul's
+# fuel slot.
+def T.Tower.mul_comm(x, y, hl, cx, cy):
+  match x y:
+    case T.Base{a} T.Base{b}:
+      Equal.cong(R.Rat, T.Tower, u => T.Base{u}, R.Rat.mul(a, b), R.Rat.mul(b, a),
+        R.Rat.mul_comm(a, b))
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+      T.LevelExt{+lre, +lim, +ld} = hl
+      T.CanonExt{+cre, +cim, +cd, +lri, +lrd} = cx
+      T.CanonExt{+crey, +cimy, +cdy, +lriy, +lrdy} = cy
+      # the two cross level facts the recursive instances need
+      +lxy = TH.Tower.level.trans(rx, ry, iy, lre, lriy)
+      +lyx = TH.Tower.level.trans(ix, rx, ry, TH.Tower.level.sym(rx, ix, lri), lre)
+      # the instances whose first operand is x's own first coordinate: their threshold
+      # is the goal's fuel already
+      +er = T.Tower.mul_comm(rx, ry, lre, cre, crey)
+      +eri = T.Tower.mul_comm(rx, iy, lxy, cre, cimy)
+      # depth(rx) = depth(ix) through Canon's lri, and the fuel equation that follows
+      +hfx = Equal.cong(Nat, Nat, u => Nat.add(1n, u), T.Tower.depth(rx),
+               T.Tower.depth(ix), TH.Tower.level.depth(rx, ix, lri))
+      +hfix = Equal.sym(Nat, Nat.add(1n, T.Tower.depth(rx)), Nat.add(1n, T.Tower.depth(ix)), hfx)
+      # the (ix,iy) instance, moved to the goal's fuel in both products
+      +eii = T.Tower.mul_comm(ix, iy, lim, cim, cimy)
+      +biL = Equal.cong(Nat, T.Tower, u => T.Tower.mul(u, ix, iy), Nat.add(1n, T.Tower.depth(ix)), Nat.add(1n, T.Tower.depth(rx)), hfix)
+      +biR = Equal.cong(Nat, T.Tower, u => T.Tower.mul(u, iy, ix), Nat.add(1n, T.Tower.depth(ix)), Nat.add(1n, T.Tower.depth(rx)), hfix)
+      +eiiF = Equal.trans(T.Tower, T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, iy),
+                T.Tower.mul(Nat.add(1n, T.Tower.depth(ix)), ix, iy), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix),
+                Equal.sym(T.Tower, T.Tower.mul(Nat.add(1n, T.Tower.depth(ix)), ix, iy), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, iy), biL),
+                Equal.trans(T.Tower, T.Tower.mul(Nat.add(1n, T.Tower.depth(ix)), ix, iy), T.Tower.mul(Nat.add(1n, T.Tower.depth(ix)), iy, ix),
+                  T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), eii, biR))
+      # the (ix,ry) instance, likewise
+      +eir = T.Tower.mul_comm(ix, ry, lyx, cim, crey)
+      +brL = Equal.cong(Nat, T.Tower, u => T.Tower.mul(u, ix, ry), Nat.add(1n, T.Tower.depth(ix)), Nat.add(1n, T.Tower.depth(rx)), hfix)
+      +brR = Equal.cong(Nat, T.Tower, u => T.Tower.mul(u, ry, ix), Nat.add(1n, T.Tower.depth(ix)), Nat.add(1n, T.Tower.depth(rx)), hfix)
+      +eirF = Equal.trans(T.Tower, T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, ry),
+                T.Tower.mul(Nat.add(1n, T.Tower.depth(ix)), ix, ry), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, ix),
+                Equal.sym(T.Tower, T.Tower.mul(Nat.add(1n, T.Tower.depth(ix)), ix, ry), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, ry), brL),
+                Equal.trans(T.Tower, T.Tower.mul(Nat.add(1n, T.Tower.depth(ix)), ix, ry), T.Tower.mul(Nat.add(1n, T.Tower.depth(ix)), ry, ix),
+                  T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, ix), eir, brR))
+      # the real coordinate: the two products in order, then the radicand-slot product
+      # (whose inner factor commutes by the (ix,iy) instance) across dx = dy
+      +c1 = Equal.cong(T.Tower, T.Tower, u => T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), u, dx),
+              T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, iy), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), eiiF)
+      +c2 = Equal.cong(T.Tower, T.Tower,
+              u => T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), u), dx, dy, ld)
+      +eA2 = Equal.trans(T.Tower, T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, iy), dx),
+                T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), dx),
+                T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), dy), c1, c2)
+      +eA1 = Equal.cong(T.Tower, T.Tower,
+              u => T.Tower.add(u, T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, iy), dx)),
+              T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, ry), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, rx), er)
+      +eA3 = Equal.cong(T.Tower, T.Tower,
+              u => T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, rx), u),
+              T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, iy), dx),
+              T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), dy), eA2)
+      +eAre = Equal.trans(T.Tower,
+                T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, ry),
+                  T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, iy), dx)),
+                T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, rx),
+                  T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, iy), dx)),
+                T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, rx),
+                  T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), dy)), eA1, eA3)
+      # the imaginary coordinate: the products' witness built from the inside pairs,
+      # then add_comm, then the two mirrors
+      +hpq = TH.Tower.same.mul(Nat.add(1n, T.Tower.depth(rx)), rx, ix, iy, ry,
+               TH.Tower.same.of.level(rx, ix, lri),
+               TH.Tower.same.of.level(iy, ry, TH.Tower.level.sym(ry, iy, lriy)))
+      +him1 = T.Tower.add_comm(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, iy), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, ry), hpq)
+      +him2 = Equal.cong(T.Tower, T.Tower,
+                u => T.Tower.add(u, T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, iy)),
+                T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, ry), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, ix), eirF)
+      +him3 = Equal.cong(T.Tower, T.Tower,
+                u => T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, ix), u),
+                T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, iy), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, rx), eri)
+      +eBim = Equal.trans(T.Tower,
+                T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, iy), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, ry)),
+                T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, ry), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, iy)),
+                T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, ix), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, rx)),
+                him1,
+                Equal.trans(T.Tower,
+                  T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, ry), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, iy)),
+                  T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, ix), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, iy)),
+                  T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, ix), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, rx)),
+                  him2, him3))
+      # assemble: real coordinate, then imaginary, then the radicand
+      +eL = Equal.cong(T.Tower, T.Tower,
+              u => T.Ext{u, T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, iy),
+                     T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, ry)), dx},
+              T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, ry),
+                T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, iy), dx)),
+              T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, rx),
+                T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), dy)), eAre)
+      +eM = Equal.cong(T.Tower, T.Tower,
+              u => T.Ext{T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, rx),
+                     T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), dy)), u, dx},
+              T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, iy), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, ry)),
+              T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, ix), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, rx)), eBim)
+      +eN = Equal.cong(T.Tower, T.Tower,
+              u => T.Ext{T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, rx),
+                     T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), dy)),
+                     T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, ix), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, rx)), u},
+              dx, dy, ld)
+      Equal.trans(T.Tower,
+        T.Ext{T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, ry),
+               T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, iy), dx)),
+              T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, iy), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, ry)), dx},
+        T.Ext{T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, rx),
+               T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), dy)),
+              T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, iy), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, ry)), dx},
+        T.Ext{T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, rx),
+               T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), dy)),
+              T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, ix), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, rx)), dy},
+        eL,
+        Equal.trans(T.Tower,
+          T.Ext{T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, rx),
+                 T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), dy)),
+                T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), rx, iy), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ix, ry)), dx},
+          T.Ext{T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, rx),
+                 T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), dy)),
+                T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, ix), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, rx)), dx},
+          T.Ext{T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, rx),
+                 T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, ix), dy)),
+                T.Tower.add(T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), ry, ix), T.Tower.mul(Nat.add(1n, T.Tower.depth(rx)), iy, rx)), dy},
+          eM, eN))
+    case T.Bad{} T.Bad{}:
+      {==}
+    case T.Fuel{} T.Fuel{}:
+      {==}
+    case T.Base{a} T.Ext{ry, iy, dy}:
+      Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
+    case T.Base{a} T.Bad{}:
+      Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
+    case T.Base{a} T.Fuel{}:
+      Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
+    case T.Ext{rx, ix, dx} T.Base{b}:
+      Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
+    case T.Ext{rx, ix, dx} T.Bad{}:
+      Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
+    case T.Ext{rx, ix, dx} T.Fuel{}:
+      Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
+    case T.Bad{} T.Base{b}:
+      Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
+    case T.Bad{} T.Ext{ry, iy, dy}:
+      Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
+    case T.Bad{} T.Fuel{}:
+      Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
+    case T.Fuel{} T.Base{b}:
+      Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
+    case T.Fuel{} T.Ext{ry, iy, dy}:
+      Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
+    case T.Fuel{} T.Bad{}:
+      Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)

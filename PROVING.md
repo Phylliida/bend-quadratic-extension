@@ -7402,3 +7402,71 @@ Counts after the landing: `tower.bend` 256 (rat.bend's 229 plus its own twenty-s
 `tower_helpers.bend` 279; eleven gates green (`tower_proofs.bend` 3.66 s, `probe.payoff.bend`
 7.14 s -- the two consumer probes are the standing over-one-second backlog). Item (3) of the
 goal is closed; item (2) still waits on round sixty's cross-operand fact.
+
+## Round seventy-two -- mul_comm: the crossing coordinate, and where its witness comes from
+
+The first of the three ring laws is in, and the round's first result is that it did not need the
+route the plan had been holding open since round sixty.
+
+**The law.** `Tower.mul_comm` (readable tier, `src/tower.bend`, next to `add_comm`):
+
+    for +x; for +y; for hl: Tower.level(x, y); for cx: Tower.canon(x); for cy: Tower.canon(y)
+    {Tower.mul(1n+Tower.depth(x), x, y) == Tower.mul(1n+Tower.depth(x), y, x) : Tower}
+
+with the bridge it needs, `Tower.same.of.level` (helper tier), and two new fills in
+`src/tower_proofs.bend`. Base/Base is one `cong` around `Rat.mul_comm`, the two marker arms are
+`{==}`, the twelve mixed arms are `Empty.absurd(goal, hl)`, and the Ext/Ext arm is the round.
+
+**The measurement that set the shape.** Two untracked probes from the reconnaissance decided it
+before any source was touched. `probe.mulcomm.im.bend` measured that the imaginary coordinate's
+crossing -- `add(mul(g,rx,iy), mul(g,ix,ry))` against `add(mul(g,ry,ix), mul(g,iy,rx))`, the same
+two summands in the other order -- closes on a single `add_comm` once the products' `same` witness
+and the two recursive-instance equations are handed in; it also re-taught, the hard way, that
+calling a filled law needs `tower_proofs.bend` imported (the complaint is `expected : a filled
+definition`, not "unknown name"). `probe.mulcomm.im2.bend` measured the second half: that witness
+is *producible*. A temporary `same.of.level` rule (identity induction, `LevelExt`'s three fields
+straight into `SameExt`, which works because `ld` and `sd` are the same `{dx == dy}` equation) plus
+`same.mul` at the two *inside* pairs gives exactly `same(mul(F,rx,iy), mul(F,ix,ry))`, and the
+crossing then closes. So no carrier has to hold anything about a computed product; the level facts
+come from the operands.
+
+**The fill.** Four recursive instances: `(rx,ry)` at `lre`, `(rx,iy)` at `trans(lre, lriy)`,
+`(ix,iy)` at `lim`, and `(ix,ry)` at `trans(sym(lri), lre)` -- the two cross pairs assembled from
+the aligned ones, as the `level.sym`/`level.trans` doc comments had predicted. The real coordinate
+is two congruences: the inner factor of the radicand-slot product across `eiiF`, then the radicand
+itself across `ld`. The imaginary coordinate is `add_comm(p, q, hpq)` with
+`hpq = same.mul(F, rx, ix, iy, ry, same.of.level(rx,ix,lri), same.of.level(iy,ry,sym(lriy)))`,
+then two congruences for the mirrors. The three pieces are assembled with two `cong`s in the
+imaginary slot and the radicand slot, so the equation's middle endpoints are the full `Ext`
+triples.
+
+**Fuel.** The statement spells `1n+depth(x)` on *both* sides, deliberately: both reductions then
+bind the same `g = 1n+depth(rx)`, so the `(rx,ry)` and `(rx,iy)` instances are already at the goal's
+fuel, and only the two `ix`-first instances need a move -- each of their products transported by
+congruence in `mul`'s fuel slot along `hfix`, which `level.depth(rx, ix, lri)` gives (one `cong`
+under `u => Nat.add(1n, u)`, then `sym`). No `succ_inj`, no `Tower.Above`, and no `Nat` case split
+anywhere; the earlier expectation that each sub-instance would need its fuel stripped by hand was
+wrong precisely because the law spells the fuel instead of taking it as a parameter.
+
+**The finding.** Round sixty's wall is about *level* evidence for a computed value: the radicand
+field a product would have to hand back. `mul_comm` never asks for that. It asks for the products'
+*same* witness -- the weaker question -- and that one has a producer, `same.mul`, fed by the
+operands' own inside pairs. So the ring laws are not all behind route (a): route (a) is about
+`mul_assoc` and `mul_distrib`, which mix coordinates through a product and want the alignment of
+what comes out. Recorded in TOWER-PLAN.md.
+
+**Two mistakes worth keeping.** (1) Fill order inside a file: `T.Tower.mul_comm` was first written
+beside `add_comm`'s fill at line ~710, where `level.trans`, `level.depth`, `same.mul` and
+`same.of.level` are still *unfilled* -- an unfilled law is a dead claim, and the checker says so.
+The fill now sits at the end of the file. (2) `Equal.sym`'s first argument is the type of its two
+endpoints, not the type of the congruence -- writing `Equal.sym(Nat, mul(...), mul(...), biL)` for
+tower-valued products reads as `expected : Nat / observed : tower.Tower`. Also: the first leg's
+frame must keep the *left* spelling of the untouched summand (`eA1` had been written with the
+right one), which is the leg-order hazard that has bitten before.
+
+**Counts and gates.** `tower.bend` 257 (up one: `mul_comm`), `tower_helpers.bend` 281 (up two:
+`same.of.level` plus the transitive growth); tiers now 171 readable / 148 helpers / 319 total.
+Eleven gates green -- nat_proofs, int_proofs, rat_proofs, qrat_proofs, qext_proofs,
+tower_proofs 3.54 s, probe.bend, probe.payoff.bend, probe.tower.depth.bend,
+probe.mul.depth.arm.bend, and scratch.bend with its usual `Rat.inv` triple. Items (1) and (3) of
+the goal are closed; item (2) has `mul_assoc` and `mul_distrib` left.

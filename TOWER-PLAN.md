@@ -2604,11 +2604,21 @@ then `lre` -- and the sub-products run at `g` with `f = 1n+g` and `depth(x) = 1n
 fuel each instance needs is a `succ_inj` away, `level.depth` doing the depth half. That would put
 `mul_comm`'s statement at `level(x, y)` plus `canon(x)`/`canon(y)` -- a caller who knows its
 operands' levels and has canonical data, which is the same price the identity block already
-charges. This is reasoning from the definitions, not a measurement: the fill is the measurement,
-and it is the next unit. `mul_assoc` and `mul_distrib` mix coordinates through a *product*, so they
-still look like route (a).
+charges. **Measured, round seventy-two: `mul_comm` landed without any of that.** The reasoning above was
+right about the shape and wrong about the price. The law is stated at `level(x, y)` plus the two
+canon witnesses, and the fill needs no `succ_inj`: spelling `1n+depth(x)` on *both* sides makes the
+reduction bind the same `g` twice, so the `(rx,ry)` and `(rx,iy)` instances are already at the goal's
+fuel, and only the two `ix`-first instances need a fuel move -- congruence in `mul`'s fuel slot by
+`level.depth`. The imaginary coordinate closes on one `add_comm` whose hypothesis is the products'
+same witness, built by `same.mul` from the inside pairs (`lri` of both canon witnesses, read through
+the new bridge law `Tower.same.of.level` -- a level witness *is* a same witness, by an identity
+induction); the real coordinate is two congruences and `ld`. Four recursive instances in all.
 
-Item (3) is closed. The three ring laws of item (2) -- `mul_comm`, `mul_assoc`, `mul_distrib` --
-still wait on round sixty's cross-operand fact (route (a): thread it through
-`add.clean`/`mul.clean`/`mul.safe` and extend `Tower.Safe`), which is the only objective work
-left.
+The finding worth keeping: the products' *same* witness is buildable, while a *level* fact about
+them is the wall. Round sixty's obstruction is specifically about level evidence for computed
+values -- `same` is the weaker question and it has a producer.
+
+Item (3) is closed. Of item (2)'s three ring laws, `mul_comm` is now done; `mul_assoc` and
+`mul_distrib` mix coordinates through a *product*, so they still look like route (a): thread the
+cross-operand fact through `add.clean`/`mul.clean`/`mul.safe` and extend `Tower.Safe`. That is the
+only objective work left.
