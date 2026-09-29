@@ -1716,3 +1716,91 @@ def T.Tower.add_assoc(x, y, z, hx, hy, hz, px, py, pz, hxy, hyz):
       {==}
     case T.Fuel{} T.Fuel{} T.Fuel{}:
       {==}
+
+def T.Tower.add_neg(x, hx, px):
+  match x:
+    case T.Base{a}:
+      T.PosBase{+pa} = px
+      Equal.cong(R.Rat, T.Tower, u => T.Base{u},
+        R.Rat.add(a, R.Rat.neg(a)), R.Rat.zero(), R.Rat.add_neg(a, pa))
+    case T.Ext{rx, ix, dx}:
+      T.CleanExt{+hxr, +hxi, +hxd, +hxri, +hxrd} = hx
+      T.PosExt{+pre, +pim, +prad} = px
+      +c1 = Equal.cong(T.Tower, T.Tower,
+              u => T.Ext{u, T.Tower.add(ix, T.Tower.neg(ix)), dx},
+              T.Tower.add(rx, T.Tower.neg(rx)), T.Tower.zero(rx),
+              T.Tower.add_neg(rx, hxr, pre))
+      +c2 = Equal.cong(T.Tower, T.Tower,
+              u => T.Ext{T.Tower.zero(rx), u, dx},
+              T.Tower.add(ix, T.Tower.neg(ix)), T.Tower.zero(ix),
+              T.Tower.add_neg(ix, hxi, pim))
+      Equal.trans(T.Tower,
+        T.Ext{T.Tower.add(rx, T.Tower.neg(rx)), T.Tower.add(ix, T.Tower.neg(ix)), dx},
+        T.Ext{T.Tower.zero(rx), T.Tower.add(ix, T.Tower.neg(ix)), dx},
+        T.Ext{T.Tower.zero(rx), T.Tower.zero(ix), dx}, c1, c2)
+    case T.Bad{}:
+      {==}
+    case T.Fuel{}:
+      {==}
+
+def T.Tower.neg_add(x, y, hx, hy, px, py, h):
+  match x y:
+    case T.Base{a} T.Base{b}:
+      T.PosBase{+pa} = px
+      T.PosBase{+pb} = py
+      Equal.cong(R.Rat, T.Tower, u => T.Base{u},
+        R.Rat.neg(R.Rat.add(a, b)), R.Rat.add(R.Rat.neg(a), R.Rat.neg(b)),
+        RH.Rat.neg_add.arb(a, b, pa, pb))
+    case T.Base{a} T.Ext{ry, iy, dy}:
+      {==}
+    case T.Base{a} T.Bad{}:
+      {==}
+    case T.Base{a} T.Fuel{}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Base{b}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+      T.CleanExt{+hxr, +hxi, +hxd, +hxri, +hxrd} = hx
+      T.CleanExt{+hyr, +hyi, +hyd, +hyri, +hyrd} = hy
+      T.PosExt{+prer, +pimr, +pradr} = px
+      T.PosExt{+prey, +pimy, +prady} = py
+      +er = N.succ_inj(T.Tower.depth(rx), T.Tower.depth(ry), h)
+      +ei = Equal.trans(Nat, T.Tower.depth(ix), T.Tower.depth(rx), T.Tower.depth(iy),
+              Equal.sym(Nat, T.Tower.depth(rx), T.Tower.depth(ix), hxri),
+              Equal.trans(Nat, T.Tower.depth(rx), T.Tower.depth(ry), T.Tower.depth(iy),
+                er, hyri))
+      +c1 = Equal.cong(T.Tower, T.Tower,
+              u => T.Ext{u, T.Tower.neg(T.Tower.add(ix, iy)), dx},
+              T.Tower.neg(T.Tower.add(rx, ry)),
+              T.Tower.add(T.Tower.neg(rx), T.Tower.neg(ry)),
+              T.Tower.neg_add(rx, ry, hxr, hyr, prer, prey, er))
+      +c2 = Equal.cong(T.Tower, T.Tower,
+              u => T.Ext{T.Tower.add(T.Tower.neg(rx), T.Tower.neg(ry)), u, dx},
+              T.Tower.neg(T.Tower.add(ix, iy)),
+              T.Tower.add(T.Tower.neg(ix), T.Tower.neg(iy)),
+              T.Tower.neg_add(ix, iy, hxi, hyi, pimr, pimy, ei))
+      Equal.trans(T.Tower,
+        T.Ext{T.Tower.neg(T.Tower.add(rx, ry)), T.Tower.neg(T.Tower.add(ix, iy)), dx},
+        T.Ext{T.Tower.add(T.Tower.neg(rx), T.Tower.neg(ry)), T.Tower.neg(T.Tower.add(ix, iy)), dx},
+        T.Ext{T.Tower.add(T.Tower.neg(rx), T.Tower.neg(ry)), T.Tower.add(T.Tower.neg(ix), T.Tower.neg(iy)), dx},
+        c1, c2)
+    case T.Ext{rx, ix, dx} T.Bad{}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Fuel{}:
+      {==}
+    case T.Bad{} T.Base{b}:
+      {==}
+    case T.Bad{} T.Ext{ry, iy, dy}:
+      {==}
+    case T.Bad{} T.Bad{}:
+      {==}
+    case T.Bad{} T.Fuel{}:
+      {==}
+    case T.Fuel{} T.Base{b}:
+      {==}
+    case T.Fuel{} T.Ext{ry, iy, dy}:
+      {==}
+    case T.Fuel{} T.Bad{}:
+      {==}
+    case T.Fuel{} T.Fuel{}:
+      {==}

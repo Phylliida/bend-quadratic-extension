@@ -2187,6 +2187,39 @@ helpers / 301 total. All eleven gates green; `tower_proofs.bend` 3.21 s, still t
 slowest fill. Open: whether clean + pos + level fold into one family for the laws'
 sake (six hypotheses is a lot to spell) -- unchanged from round fifty-seven.
 
+### add_neg and neg_add: the negation block is coordinatewise, so the pos carrier is the whole price (round sixty-two)
+
+`Tower.add_neg` (`add(x, neg(x)) == zero(x)`, hypotheses `clean(x)` and `pos(x)`) and
+`Tower.neg_add` (the distribution `neg(add(x, y)) == add(neg(x), neg(y))`, hypotheses
+`clean` and `pos` on both operands plus the operand-level depth equation) are stated
+in `tower.bend` and filled in `tower_proofs.bend`. Sixteen shape arms each, one real
+arm each, the rest definitional.
+
+Neither needs a level witness, and the reason is structural: `neg` and `zero` both
+keep the third field untouched, and `add` keeps its *first* operand's, so on both
+sides of each equation the radicand is the same term. The level carrier enters only
+where a law rearranges operands (`add_comm`) or mixes coordinates (`mul_*`).
+
+The leaf arithmetic is the entire substance: `add_neg`'s Base arm is
+`Rat.add_neg(a, pa)` -- the readable law, whose only hypothesis is the leaf's
+denominator positivity, exactly the shape `Tower.Pos.Base` stores -- and
+`neg_add`'s Base/Base arm is `RH.Rat.neg_add.arb(a, b, pa, pb)`. No canonicality, no
+spelling hypotheses: the pos carrier is the whole price.
+
+**Measured twice now: a per-coordinate recursion needs the *internal* depth
+equation, not the operand-level one.** The Ext/Ext arm of `neg_add` first passed the
+operand-level `er` (`depth(rx) == depth(ry)`, after `succ_inj`) to the
+imaginary-coordinate recursion and was refused verbatim:
+`expected : {Tower.depth(ix) == Tower.depth(iy)} / observed : {Tower.depth(rx) ==
+Tower.depth(ry)}`. The fix is the same three-link chain `add_assoc` uses:
+`depth(ix) = depth(rx)` (x's own `hri`), `= depth(ry)` (`er`), `= depth(iy)` (y's
+`hri`). The operand-level equation is only the first link; the clean carrier's
+per-value field supplies the other two.
+
+Counts: tower.bend 249 = rat.bend's 229 plus its own twenty, tower_helpers.bend 265 =
+249 plus its own sixteen; README 163 readable / 140 helpers / 303 total. All eleven
+gates green; `tower_proofs.bend` 2.77 s.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

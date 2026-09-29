@@ -6851,3 +6851,47 @@ Counts: tower.bend 247, tower_helpers.bend 263, README 161 readable / 140 helper
 scratch 2.58 s with the inversion triple unchanged. `tower_proofs.bend` is 0.3 s
 slower than before the fill; still over the one-second rule, backlogged with the
 fast-path item.
+
+## Round sixty-two
+
+The negation block opens with its two coordinatewise laws -- `Tower.add_neg`
+(`add(x, neg(x)) == Tower.zero(x)`; hypotheses `clean(x)`, `pos(x)`) and
+`Tower.neg_add` (the distribution `neg(add(x, y)) == add(neg(x), neg(y))`;
+hypotheses `clean`/`pos` on both operands plus the operand-level depth equation).
+Both stated in `tower.bend`, filled in `tower_proofs.bend`, sixteen shape arms each
+with one real arm; the rest are `{==}`.
+
+Neither needs a level witness, and the reason is structural rather than lucky: `neg`
+is coordinatewise and leaves the third field alone, `zero` keeps the radicand, and
+`add` keeps its first operand's -- so both sides of both equations carry the same
+radicand term. Level facts enter exactly where a law rearranges operands
+(`add_comm`) or mixes coordinates (the `mul_*` family). Together with `add_assoc`
+(round sixty-one, also level-free) that is three of the five ring laws needing only
+the clean and pos carriers.
+
+The substance is the leaf arithmetic: `add_neg`'s Base arm is `R.Rat.add_neg(a, pa)`
+-- the readable Rat law, whose only hypothesis is the leaf's denominator positivity,
+which is literally what `Tower.Pos.Base` stores -- and `neg_add`'s Base/Base arm is
+`RH.Rat.neg_add.arb(a, b, pa, pb)`.
+
+**One error, and it is the same lesson as round sixty-one, learned the hard way.**
+`neg_add`'s Ext/Ext arm first handed `er` (`depth(rx) == depth(ry)`, from the
+operand-level `h` by `succ_inj`) to *both* coordinate recursions. The second was
+refused:
+
+    - expected : {tower.Tower.depth(ix) == tower.Tower.depth(iy) : Nat}
+    - observed : {tower.Tower.depth(rx) == tower.Tower.depth(ry) : Nat}
+    Location: tower.Tower.neg_add
+
+A per-coordinate recursion needs that coordinate's own depth equation; the
+operand-level one is only the first link of the chain. Fixed by deriving
+`ei = depth(ix) = depth(rx) = depth(ry) = depth(iy)` from x's `hri`, `er` and y's
+`hri` -- the identical three-link chain `add_assoc` needed for its imaginary arm.
+Now measured twice: the clean carrier's per-value `hri` is what makes these internal
+equations reachable, and every Ext/Ext law whose induction touches the imaginary
+coordinate pays this chain once.
+
+Counts: tower.bend 249, tower_helpers.bend 265, README 163 readable / 140 helpers /
+303 total. All eleven gates green -- nat 0.43, int 0.37, rat 3.70, qrat 5.21, qext
+0.50, tower 2.77, probe 2.72, payoff 6.83, tower.depth 2.91, mul.depth.arm 2.85,
+scratch 2.41 s, inversion triple unchanged.

@@ -561,3 +561,30 @@ law Tower.add_assoc:
   for hxy: {Tower.depth(x) == Tower.depth(y) : Nat}
   for hyz: {Tower.depth(y) == Tower.depth(z) : Nat}
   {Tower.add(Tower.add(x, y), z) == Tower.add(x, Tower.add(y, z)) : Tower}
+
+# x + (-x) = 0. Negation is coordinatewise and leaves the radicand alone, and
+# Tower.zero keeps the radicand too, so the two sides agree structurally: the
+# leaf is Rat.add_neg, which asks only for the leaf's denominator positivity --
+# the same shape the pos carrier stores. clean is carried because the recursion
+# hands each coordinate's own witness down.
+
+law Tower.add_neg:
+  for +x: Tower
+  for hx: Tower.clean(x)
+  for px: Tower.pos(x)
+  {Tower.add(x, Tower.neg(x)) == Tower.zero(x) : Tower}
+
+# -(x + y) = (-x) + (-y). The distribution law, named as Rat.neg_add is (Rat's
+# flipped inverse is Rat.add_neg above). One level of recursion per coordinate,
+# and the operand-level equation is what lets the recursion run: it is passed on
+# as the coordinates' own equation after succ_inj.
+
+law Tower.neg_add:
+  for +x: Tower
+  for +y: Tower
+  for hx: Tower.clean(x)
+  for hy: Tower.clean(y)
+  for px: Tower.pos(x)
+  for py: Tower.pos(y)
+  for h: {Tower.depth(x) == Tower.depth(y) : Nat}
+  {Tower.neg(Tower.add(x, y)) == Tower.add(Tower.neg(x), Tower.neg(y)) : Tower}
