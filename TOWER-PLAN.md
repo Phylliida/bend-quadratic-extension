@@ -1939,7 +1939,7 @@ hypothesis is the contradiction -- `level(y, z)` with y and z of different shape
 `Empty` -- except the diagonal arm (trivial witness) and Ext/Ext/Ext, which destructures
 both hypotheses and rebuilds from two recursive calls plus
 `Equal.trans(T.Tower, dx, dy, dz, ld, md)`. A disagreeing (x, y) pair already reduces
-`level(x, z)` to `Empty` whatever z is, which is why z is scrutinished only in the
+`level(x, z)` to `Empty` whatever z is, which is why z is scrutinised only in the
 agreeing arms and the table is 28 arms rather than 64.
 
 ## 8. Deliberately out of scope for now
