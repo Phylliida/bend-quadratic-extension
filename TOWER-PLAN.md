@@ -1776,6 +1776,42 @@ their inputs', so a small family of `den.pos`-style laws (the shape `Rat.neg.den
 already has) is what turns a tower built from `lift`-ed rationals into a value
 whose positivity is provable at every level.
 
+### Witness closure, and why the family had to agree on markers (round fifty-one)
+
+`Tower.same.sym` and `Tower.same.add` are in the helper tier and proved. They are
+the first preservation laws, and they are what the ring laws actually consume: a
+statement like `add(add(x, y), z) == add(x, add(y, z))` recurses on the pair
+`(add(rx, ry), rx)`, which is a pair of *derived* values -- not the pair the law was
+handed -- so an induction over the operands cannot reach it without a law saying that
+the witness survives the operations.
+
+Proving `same.add` required a change to the family itself. Its induction runs over
+four shapes at once, and the arms where an operand is `Bad` or `Fuel` cannot be
+avoided: `add` is total there and returns a marker. Before this round the family was
+`Empty` at any marker pair, so those arms would have had no witness to return and the
+law would have been unprovable rather than merely awkward. `Tower.same` now has
+`Bad`/`Bad` and `Fuel`/`Fuel` arms taking the trivial witness, which also makes the
+notion the natural one: the witness says *the two values have the same shape and
+their radicands are one term*, and two markers of the same kind trivially do.
+
+This invalidated `add_comm`'s fill, which had been written against the older family:
+its two marker-first wildcard arms left the family stuck (a variable operand does not
+reduce), so the fill now spells out sixteen arms -- four with witnesses, twelve
+carrying `Empty` and going absurd. That is the cost of the extension, paid once per
+law that matches on both operands.
+
+Two mechanics worth keeping. A computed family's trivial witness is spelled as its
+*constructor* (`SameBase{}`) when the goal type is the narrow type, not as the type
+name (`Tower.Same.Base`), which the checker types as the parent `Data`; the family
+def itself, whose return type *is* `Data`, uses the type name. And an inner match must
+not rebind the outer arm's names: the self-call's shrinking argument was shadowed by
+the inner `Ext` pattern, and the checker reported it as a termination failure
+(`a decreasing self-call`) rather than as a scoping problem.
+
+Still to come on this route: `same.mul`, the same closure law with the fuel's
+`0n`/`1n+g` split in front of it, and then `mul_comm`, whose third recursive call
+needs the witness for a pair of products.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

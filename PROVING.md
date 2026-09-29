@@ -6376,3 +6376,48 @@ forty-seven is decided the same way: positivity joins the same witness rather th
 becoming a second hypothesis or forcing canonical coordinates with bridges, which
 needs a small `den.pos`-style propagation family on the Rat side first, so that
 positivity is *obtainable* rather than assumed.
+
+## Round fifty-one -- Witness closure, and the family agrees on markers
+
+`Tower.same.sym` and `Tower.same.add` are proved (helper tier, fills in
+`tower_proofs.bend`), and the family changed shape to make the second one provable.
+
+The reason closure is needed at all: `add_assoc`'s Ext/Ext/Ext arm recurses on the
+pair `(add(rx, ry), rx)` -- derived on the left -- and `mul_comm`'s Ext/Ext arm needs
+the swapped third call's arguments paired with the originals. Neither pair is one the
+law was handed, so the witness has to survive the operations, which is exactly what
+these two laws say. `same.sym` is needed because the ring laws' inductions reach pairs
+the hypothesis is stated the other way round for.
+
+`same.add`'s fill is a shape induction over two pairs at once: sixteen outer arms,
+sixteen inner ones, the twelve outer arms where `x` and `y` disagree carrying `Empty`
+in `hx`, and inside the four agreeing outer arms the inner disagreeing ones doing the
+same with `hu`. One arm has work in it -- Ext/Ext/Ext/Ext, whose two coordinates are
+recursive instances at the sub-witnesses and whose radicand field is the outer
+hypothesis's -- and every other agreeing arm lands on a marker on both sides: `add` of
+a `Bad` or a `Fuel` is a marker, and the shapes decide it identically on the left and
+on the right, so the witness there is the trivial one.
+
+That last sentence is the design change. The family was `Empty` at every marker pair,
+which made the marker arms of an induction unprovable rather than merely inconvenient;
+`Tower.same` now has `Bad`/`Bad` and `Fuel`/`Fuel` arms taking the trivial witness.
+The operations are total even where they cannot do their job, so a closure law over
+all shapes has to account for those arms -- and with the arms added, the witness reads
+as the natural relation: same shape, radicands one term. The change invalidated
+`add_comm`'s fill, which had matched a wildcard in the second position; a variable
+operand leaves a computed family stuck, so that fill now spells out sixteen arms
+(four with witnesses, twelve absurd). All eleven gates are green, `tower.bend` is 246
+TODOs and `tower_helpers.bend` 253 (tower.bend's 246 plus its own seven); tiers are
+160 readable / 131 helpers / 291 total; `tower_proofs.bend` checks in 2.68 s.
+
+Two fill mechanics measured here. A computed family's trivial witness is written as
+its *constructor* (`T.SameBase{}`) when the goal type is the narrow type -- the type
+name `Tower.Same.Base` is typed as the parent `Data` and is rejected with
+`expected : tower.Tower.Same.Base / observed : Data` -- while the family def itself,
+returning `Data`, uses the type name. And an inner match must not rebind the outer
+arm's names: with the inner `Ext` pattern reusing `rx`, the self-call's shrinking
+argument was shadowed and the checker reported a *termination* failure
+(`a decreasing self-call (arguments are read left to right...)`), not a scoping one.
+
+Next: `same.mul` (the same closure law with the fuel's `0n`/`1n+g` split in front of
+the shape induction), then `mul_comm`.

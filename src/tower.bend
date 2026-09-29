@@ -287,12 +287,24 @@ type Tower.Same.Ext<-rx: Tower, -ix: Tower, -dx: Tower,
 # whose shapes disagree spells both of them out and reports Empty. Those arms
 # close at the call site with Empty.absurd, the idiom the fills already use for
 # the Bad and Fuel arms.
+#
+# A marker agrees with itself, which is why the two marker pairs take the trivial
+# witness too. That is not an aesthetic choice: the operations are *total* even
+# where they cannot do their job -- add of two Ext values whose levels disagree is
+# Bad, mul below its fuel is Fuel -- so a closure law like "same(x, y) and
+# same(u, v) gives same(add(x, u), add(y, v))" has to say something about the
+# pairs where one side is a marker. Without these two arms the family is Empty
+# there, and composition is unprovable at exactly the arms its induction needs.
 def Tower.same(x: Tower, y: Tower) -> Data:
   match x y:
     case Base{a} Base{b}:
       Tower.Same.Base
     case Ext{rx, ix, dx} Ext{ry, iy, dy}:
       Tower.Same.Ext<rx, ix, dx, ry, iy, dy>
+    case Bad{} Bad{}:
+      Tower.Same.Base
+    case Fuel{} Fuel{}:
+      Tower.Same.Base
     case _ _:
       Empty
 

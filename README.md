@@ -83,8 +83,8 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 17 / 5, qrat 36 / none, qext 2 / none -- 160 readable
-  laws, 129 helpers, 289 in total (the split itself landed 282; the product's pair
+  13, rat 40 / 28, tower 17 / 7, qrat 36 / none, qext 2 / none -- 160 readable
+  laws, 131 helpers, 291 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
   `mul.fuel.ext` to the helper tier, round forty-eight).
@@ -198,7 +198,10 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   that the two radicands are one term. Two depth-1 operands whose radicands are 2
   and 3 commute only in their coordinates -- the third field is the first
   operand's either way -- which is why the law needs the witness at all
-  (rounds forty-six and fifty).
+  (rounds forty-six and fifty). The family agrees on markers as well as on values
+  (a `Bad` or `Fuel` operand pairs with itself), which is what makes composition
+  provable: the operations are total even where they cannot do their job, so a
+  closure law has to say something about those arms.
 - `src/tower_helpers.bend` — the helper laws split out of tower.bend (round
   forty-three): `mul.fuel.zero` and `mul.fuel.base`, the termination-fuel
   obligation, which says nothing about tower values; and `mul.safe` (round
@@ -211,7 +214,13 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   `cmp(depth(x), f) == LT` (the exact-fuel pair cannot serve it -- clean evidence
   cannot be transported to a larger fuel's spelling), with the indexed type
   `Tower.Above` and the projections `above.clean`, `above.depth`, `above.eq`; and
-  `Tower.mul.fuel.ext`, which is one call to `above.eq`.
+  `Tower.mul.fuel.ext`, which is one call to `above.eq`. Round fifty-one added the
+  witness's closure laws, which is what the ring laws' inductions actually need:
+  `same.sym` (the witness is symmetric -- `mul_comm`'s third recursive call pairs
+  `ix` with `iy` while its hypothesis pairs `iy` with `ix`) and `same.add` (same
+  shapes in and sums out). `same.add` is also what forced the family to agree on
+  markers: its induction over four shapes cannot avoid the arms where an operand is
+  `Bad` or `Fuel`, and the family was `Empty` there.
 - `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law.
   `depth.zero`, `add.depth`, `add.clean`, `mul.safe` and `mul.above` are structural
   inductions in the fill: the match refines the law at each branch, and each arm
@@ -261,7 +270,7 @@ transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
 QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 265 = 129 Nat +
 32 Int + 68 Rat + 36 QExt (it imports rat.bend itself, so its count is
 rat.bend's plus its own thirty-six laws), tower.bend 246 = rat.bend's 229 plus
-its own seventeen, and tower_helpers.bend 250 = tower.bend's 245 plus its own five.
+its own seventeen, and tower_helpers.bend 253 = tower.bend's 246 plus its own seven.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.

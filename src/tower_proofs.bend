@@ -645,10 +645,10 @@ def TH.Tower.mul.fuel.ext(f, x, y, hx, hy, h, hf):
 # add_comm: the first law that needs the level witness, and one of the two that
 # need nothing of the coefficients -- Rat.add_comm is unconditional. The Ext arm
 # destructures the witness with a single case, because Tower.same reduces to
-# Tower.Same.Ext there; the disagreeing arms carry Empty and go absurd. The
-# three congruences walk the coordinates and then the radicand, and the nested
-# Equal.trans carries the four endpoints (trans takes exactly two legs, so the
-# outer call's third term is the final endpoint, not the inner chain's middle).
+# Tower.Same.Ext there; the disagreeing arms carry Empty and go absurd, and the
+# two marker arms are `{==}` -- add of a marker is that marker whichever side it
+# is on. Four witness arms and twelve Empty arms, because the family was extended
+# to agree on markers (round fifty-one) and a wildcard would leave it stuck.
 def T.Tower.add_comm(x, y, hs):
   match x y:
     case T.Base{a} T.Base{b}:
@@ -677,19 +677,258 @@ def T.Tower.add_comm(x, y, hs):
               T.Ext{T.Tower.add(ry, rx), T.Tower.add(iy, ix), dx},
               T.Ext{T.Tower.add(ry, rx), T.Tower.add(iy, ix), dy},
               eB, eC))
+    case T.Bad{} T.Bad{}:
+      {==}
+    case T.Fuel{} T.Fuel{}:
+      {==}
     case T.Base{a} T.Ext{ry, iy, dy}:
-      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
-    case T.Ext{rx, ix, dx} T.Base{b}:
       Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
     case T.Base{a} T.Bad{}:
       Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
     case T.Base{a} T.Fuel{}:
       Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+    case T.Ext{rx, ix, dx} T.Base{b}:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
     case T.Ext{rx, ix, dx} T.Bad{}:
       Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
     case T.Ext{rx, ix, dx} T.Fuel{}:
       Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
-    case T.Bad{} _:
+    case T.Bad{} T.Base{b}:
       Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
-    case T.Fuel{} _:
+    case T.Bad{} T.Ext{ry, iy, dy}:
       Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+    case T.Bad{} T.Fuel{}:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+    case T.Fuel{} T.Base{b}:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+    case T.Fuel{} T.Ext{ry, iy, dy}:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+    case T.Fuel{} T.Bad{}:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+
+# same.sym is a shape induction with the witness swapped: the Ext arm rebuilds
+# Same.Ext from the two recursive instances and the symmetric radicand equation,
+# and the twelve disagreeing arms carry Empty in the hypothesis and go absurd.
+def TH.Tower.same.sym(x, y, hs):
+  match x y:
+    case T.Base{a} T.Base{b}:
+      T.SameBase{}
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+      match hs:
+        case T.SameExt{+sre, +sim, +sd}:
+          T.SameExt{TH.Tower.same.sym(rx, ry, sre), TH.Tower.same.sym(ix, iy, sim),
+            Equal.sym(T.Tower, dx, dy, sd)}
+    case T.Bad{} T.Bad{}:
+      T.SameBase{}
+    case T.Fuel{} T.Fuel{}:
+      T.SameBase{}
+    case T.Base{a} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.same(y, x), hs)
+    case T.Base{a} T.Bad{}:
+      Empty.absurd(T.Tower.same(y, x), hs)
+    case T.Base{a} T.Fuel{}:
+      Empty.absurd(T.Tower.same(y, x), hs)
+    case T.Ext{rx, ix, dx} T.Base{b}:
+      Empty.absurd(T.Tower.same(y, x), hs)
+    case T.Ext{rx, ix, dx} T.Bad{}:
+      Empty.absurd(T.Tower.same(y, x), hs)
+    case T.Ext{rx, ix, dx} T.Fuel{}:
+      Empty.absurd(T.Tower.same(y, x), hs)
+    case T.Bad{} T.Base{b}:
+      Empty.absurd(T.Tower.same(y, x), hs)
+    case T.Bad{} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.same(y, x), hs)
+    case T.Bad{} T.Fuel{}:
+      Empty.absurd(T.Tower.same(y, x), hs)
+    case T.Fuel{} T.Base{b}:
+      Empty.absurd(T.Tower.same(y, x), hs)
+    case T.Fuel{} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.same(y, x), hs)
+    case T.Fuel{} T.Bad{}:
+      Empty.absurd(T.Tower.same(y, x), hs)
+
+# same.add is the same shape induction carried out over two pairs at once (256
+# combinations collapse to sixteen arms, and the two hypotheses rule out the ones
+# where a pair disagrees). The one arm with work in it is Ext/Ext/Ext/Ext: the two
+# coordinates are recursive instances at the sub-witnesses and the radicand field
+# is the outer hypothesis's. Every other agreeing arm lands on a marker on both
+# sides -- add of a Bad or a Fuel is that marker, and the shapes decide it
+# identically on the left and on the right -- so the witness there is the trivial
+# one, which is what the marker arms of Tower.same exist for.
+# same.add is a shape induction over two pairs at once. Two hundred and fifty-six
+# combinations collapse to sixteen outer arms and sixteen inner ones; the twelve
+# outer arms where x and y disagree carry Empty in hx and go absurd, and inside the
+# four agreeing outer arms the inner disagreeing ones do the same with hu. The one
+# arm with work in it is Ext/Ext/Ext/Ext: the two coordinates are recursive
+# instances at the sub-witnesses and the radicand field is the outer hypothesis's.
+# Every other agreeing arm lands on a marker on both sides -- add of a Bad or a Fuel
+# is a marker, and the shapes decide it identically on the left and on the right --
+# so the witness there is the trivial one, which is what the marker arms of
+# Tower.same exist for. The recursive call's first argument is the outer Ext
+# pattern's field, and the inner match's binders are named apart from it so that the
+# shrinking argument is the one the checker sees.
+def TH.Tower.same.add(x, y, u, v, hx, hu):
+  match x y:
+    case T.Base{a} T.Base{b}:
+      match u v:
+        case T.Base{c} T.Base{d}:
+          T.SameBase{}
+        case T.Ext{ur, ui, du} T.Ext{vr, vi, dv}:
+          T.SameBase{}
+        case T.Bad{} T.Bad{}:
+          T.SameBase{}
+        case T.Fuel{} T.Fuel{}:
+          T.SameBase{}
+        case T.Base{c} T.Ext{vr, vi, dv}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Base{c} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Base{c} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Ext{ur, ui, du} T.Base{d}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Ext{ur, ui, du} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Ext{ur, ui, du} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Bad{} T.Base{d}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Bad{} T.Ext{vr, vi, dv}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Bad{} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Fuel{} T.Base{d}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Fuel{} T.Ext{vr, vi, dv}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Fuel{} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+      match u v:
+        case T.Base{c} T.Base{d}:
+          T.SameBase{}
+        case T.Ext{ur, ui, du} T.Ext{vr, vi, dv}:
+          match hx hu:
+            case T.SameExt{+sre, +sim, +sd} T.SameExt{+ure, +uim, +ud}:
+              T.SameExt{TH.Tower.same.add(rx, ry, ur, vr, sre, ure),
+                TH.Tower.same.add(ix, iy, ui, vi, sim, uim), sd}
+        case T.Bad{} T.Bad{}:
+          T.SameBase{}
+        case T.Fuel{} T.Fuel{}:
+          T.SameBase{}
+        case T.Base{c} T.Ext{vr, vi, dv}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Base{c} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Base{c} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Ext{ur, ui, du} T.Base{d}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Ext{ur, ui, du} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Ext{ur, ui, du} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Bad{} T.Base{d}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Bad{} T.Ext{vr, vi, dv}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Bad{} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Fuel{} T.Base{d}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Fuel{} T.Ext{vr, vi, dv}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Fuel{} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+    case T.Bad{} T.Bad{}:
+      match u v:
+        case T.Base{c} T.Base{d}:
+          T.SameBase{}
+        case T.Ext{ur, ui, du} T.Ext{vr, vi, dv}:
+          T.SameBase{}
+        case T.Bad{} T.Bad{}:
+          T.SameBase{}
+        case T.Fuel{} T.Fuel{}:
+          T.SameBase{}
+        case T.Base{c} T.Ext{vr, vi, dv}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Base{c} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Base{c} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Ext{ur, ui, du} T.Base{d}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Ext{ur, ui, du} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Ext{ur, ui, du} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Bad{} T.Base{d}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Bad{} T.Ext{vr, vi, dv}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Bad{} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Fuel{} T.Base{d}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Fuel{} T.Ext{vr, vi, dv}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Fuel{} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+    case T.Fuel{} T.Fuel{}:
+      match u v:
+        case T.Base{c} T.Base{d}:
+          T.SameBase{}
+        case T.Ext{ur, ui, du} T.Ext{vr, vi, dv}:
+          T.SameBase{}
+        case T.Bad{} T.Bad{}:
+          T.SameBase{}
+        case T.Fuel{} T.Fuel{}:
+          T.SameBase{}
+        case T.Base{c} T.Ext{vr, vi, dv}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Base{c} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Base{c} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Ext{ur, ui, du} T.Base{d}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Ext{ur, ui, du} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Ext{ur, ui, du} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Bad{} T.Base{d}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Bad{} T.Ext{vr, vi, dv}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Bad{} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Fuel{} T.Base{d}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Fuel{} T.Ext{vr, vi, dv}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+        case T.Fuel{} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hu)
+    case T.Base{a} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
+    case T.Base{a} T.Bad{}:
+      Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
+    case T.Base{a} T.Fuel{}:
+      Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
+    case T.Ext{rx, ix, dx} T.Base{b}:
+      Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
+    case T.Ext{rx, ix, dx} T.Bad{}:
+      Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
+    case T.Ext{rx, ix, dx} T.Fuel{}:
+      Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
+    case T.Bad{} T.Base{b}:
+      Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
+    case T.Bad{} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
+    case T.Bad{} T.Fuel{}:
+      Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
+    case T.Fuel{} T.Base{b}:
+      Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
+    case T.Fuel{} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
+    case T.Fuel{} T.Bad{}:
+      Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)

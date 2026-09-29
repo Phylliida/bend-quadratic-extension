@@ -167,3 +167,32 @@ law Tower.mul.fuel.ext:
   for h: {T.Tower.depth(x) == T.Tower.depth(y) : Nat}
   for hf: {Nat.cmp(T.Tower.depth(x), f) == LT{} : Cmp}
   {T.Tower.mul(f, x, y) == T.Tower.mul(1n+T.Tower.depth(x), x, y) : T.Tower}
+
+# The witness is symmetric. Needed because the ring laws' inductions reach pairs
+# the hypothesis is stated the other way round for -- mul_comm's third recursive
+# call pairs ix with iy while the hypothesis pairs iy with ix.
+law Tower.same.sym:
+  for +x: T.Tower
+  for +y: T.Tower
+  for hs: T.Tower.same(x, y)
+  T.Tower.same(y, x)
+
+# ... and closed under add. This is the level discipline's first preservation law,
+# and the reason the family had to be extended to agree on markers: the arms where
+# one operand is Bad or Fuel are exactly the arms an induction over four shapes
+# cannot avoid, and before round fifty-one the family was Empty there, so the law
+# would have been unprovable rather than merely awkward.
+#
+# It reads as: if x and y have the same shape and so do u and v, then the sums do.
+# At the leaves there is nothing to check -- the Rat laws are unconditional, and
+# Base/Base lands on Base/Base -- and at an Ext pair the three fields are the two
+# recursive instances plus the radicand equation the outer hypotheses already
+# carry.
+law Tower.same.add:
+  for +x: T.Tower
+  for +y: T.Tower
+  for +u: T.Tower
+  for +v: T.Tower
+  for hx: T.Tower.same(x, y)
+  for hu: T.Tower.same(u, v)
+  T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v))
