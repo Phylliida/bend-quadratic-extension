@@ -83,14 +83,18 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 24 / 13, qrat 36 / none, qext 2 / none -- 167 readable
-  laws, 146 helpers, 313 in total (the split itself landed 282; the product's pair
+  13, rat 40 / 28, tower 26 / 23, qrat 36 / none, qext 2 / none -- 169 readable
+  laws, 147 helpers, 316 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
   `mul.fuel.ext` to the helper tier, round forty-eight; the negation pair added
   `mul_neg`/`neg_mul` and `neg_pair`, round sixty-three; round sixty-four added
   `Tower.add_zero` and with it the second carrier type, `Tower.Canon`; round
-  sixty-five added its mirror `Tower.zero_add`).
+  sixty-five added its mirror
+  `Tower.zero_add`; round seventy added `Tower.one.level` to the helper tier and
+  `Tower.mul_one`/`Tower.one_mul` to the readable tier). The per-library numbers are the
+  own law counts of that library's tier files (`grep -c '^law '`), which is why they sum
+  to the totals.
 
 - `src/int.bend` — `Int` type, the ops (`Int.zero`, `Int.one`, `Int.add`,
   `Int.neg`, `Int.sub`, `Int.mul`), `Int.canon` (the canonical
@@ -190,7 +194,7 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   evidence family with its two transport defs, and Step 2's level arithmetic:
   `Tower.add(x, y)`, `Tower.neg(x)`, `Tower.mul(+f, x, y)` and `Tower.one(t)`,
   with the radicand read off the first operand's own third field (intrinsic,
-  round thirty-nine) and `mul` descending on a `Nat` fuel. Twenty-six laws: the
+  round thirty-nine) and `mul` descending on a `Nat` fuel. Twenty-eight laws: the
   level arithmetic (`add.depth`, `add.clean`, `mul.depth`, `mul.clean`),
   `zero.base`, `depth.zero`, `depth.lift`, `lift.zero`, `add.base`, `add.ext`,
   `neg.ext`, `sub_eq_add_neg`, `mul.base`, `mul.ext` (the
@@ -282,7 +286,18 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   coordinates and the left-zero law on the inner product one level down, so the two
   halves need each other -- and the Base leaf reaches `Rat.zero_mul` through
   `Rat.mul_comm`, because `Rat.mul_zero` is stated at a spelled `Rat{n, 1n+dp}` that a
-  variable leaf cannot present.
+  variable leaf cannot present. Round seventy opened the identity block with the
+  spelling-mover its cross instances need, `Tower.one.level` (`one(u) = one(v)` at
+  `level(u, v)`, helper tier), and the block's first two readable laws: `Tower.mul_one`
+  and `Tower.one_mul`, `mul(f, u, one(u)) == u` and `mul(f, one(u), u) == u`. Both are
+  self-stated, so neither carries a level hypothesis -- every level fact their fills use
+  is a sibling fact out of the canon witness, `lri` and `lrd` -- and neither needs
+  `clean`. Each Ext arm consumes the zero block twice (the self pair through `mul_zero`
+  at `level.refl`, the inner product through `zero.mul`), moves one coordinate across the
+  operand boundary with `one.level` and `zero.level`, and closes its coordinates on
+  `add_zero`/`zero_add`; between them the two laws consume all four identity leaves. Their
+  Base leaves are `Rat.mul_one`/`Rat.one_mul` at the canonical spelling, which is exactly
+  the `fx` equation `Tower.Canon` hands over.
 - `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law.
   `depth.zero`, `add.depth`, `add.clean`, `mul.safe` and `mul.above` are structural
   inductions in the fill: the match refines the law at each branch, and each arm

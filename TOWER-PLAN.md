@@ -2553,5 +2553,28 @@ through `Rat.mul_comm` into `Rat.zero_mul`, because `Rat.mul_zero` is stated at 
 zero block's own five steps are done; what remains of the goal's item (3) is
 `mul_one`/`one_mul` and `neg_neg`.
 
-State: `tower.bend` 253, `tower_helpers.bend` 275, all eleven gates green, `main`
+State: `tower.bend` 255, `tower_helpers.bend` 278, all eleven gates green, `main`
 untouched at `5dd79dc`.
+
+### The identity block's first two laws (round seventy)
+
+`Tower.mul_one` and `Tower.one_mul` landed, with `Tower.one.level` under them. All three are
+self-stated -- `mul(f, u, one(u)) == u` and `mul(f, one(u), u) == u` -- so no level
+hypothesis appears: the only level facts the fills need are `lri`/`lrd` out of the canon
+witness (re-to-im and re-to-d inside one value), which is why the extended `Canon` from
+round sixty-seven pays for this block as well. `one.level` exists for the cross instances:
+`mul`'s Ext/Ext arm pairs a coordinate of one operand against a coordinate of the other, and
+the spelling has to move across that boundary before either instance is the self-stated law.
+
+The division of labour between the two: `mul_one`'s second coordinate closes on `zero_add`
+and `one_mul`'s on `add_zero`, so the pair consumes all four identity leaves. In the Ext arms
+the zero block is used four times each -- `mul_zero` at `level.refl` for the self pair,
+`zero.mul` on the inner product, `zero.level` to move a zero across the operand boundary.
+
+A naming rule worth keeping in reach: a fill's def name follows the module that stated the
+law, and a law call's module prefix does not fall through to the importing module --
+`TH.Tower.add_zero` for a law stated in `tower.bend` is read as
+`tower_helpers.Tower.add_zero` and reported verbatim.
+
+Item (3) of the goal now has one law left, `neg_neg`; the three ring laws of item (2) still
+wait on round sixty's cross-operand fact.

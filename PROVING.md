@@ -7302,3 +7302,66 @@ tower_proofs 3.55, probe.bend, probe.payoff, probe.tower.depth, probe.mul.depth.
 scratch all `All terms check.`/the unchanged inversion triple. Remaining in the goal's
 item (3): `mul_one`, `one_mul` (same sibling machinery), then `neg_neg`; the three ring
 laws still wait on round sixty's cross-operand fact.
+
+## Round seventy -- the identity block: one.level, mul_one, one_mul
+
+Three laws, all green on the first run after two naming corrections, and both corrections
+are one rule seen from two sides: **a fill's def name and its call spellings follow the
+module that stated the law, and that module is the tier the law lives in, not the tier the
+fill lives in.**
+
+`Tower.mul_one` and `Tower.one_mul` are stated in `tower.bend` (readable tier), so their
+fills are `def T.Tower.mul_one` / `def T.Tower.one_mul`, not `TH.` -- written `TH.` the
+checker answers `expected : '->' (a def with no return type fills a law; no law named
+TH.Tower.mul_one is in scope)`. Their recursive self-calls then take the same prefix as the
+fill's own module (`T.Tower.mul_one(g, ru, cre, pre, hfg2)`), the way `T.Tower.add_assoc`'s
+fill already did. The other side of the rule: the fills also call `Tower.add_zero` and
+`Tower.zero_add`, readable-tier laws too, so those calls must be `T.Tower.add_zero` /
+`T.Tower.zero_add`; written `TH.` they are read as `tower_helpers.Tower.add_zero`, and the
+checker reports the qualified name it resolved (`expected : a defined name / observed :
+tower_helpers.Tower.add_zero`), which is the diagnostic to recognize: a law call's module
+prefix is not a namespace that falls through to the importing module.
+
+`Tower.one.level` is helper tier (`def TH.Tower.one.level`), so its fill is `TH.` and its
+callers use `TH.` -- which makes the asymmetry concrete: inside one fill, `T.Tower.mul_one`
+for a readable leaf and `TH.Tower.zero.mul` for a helper one.
+
+The recipe, for the Ext/Ext arm of both laws (`u = Ext{ru, iu, du}`, `one(u) =
+Ext{one(ru), zero(iu), du}`):
+
+- fuel: `+hfg = N.succ_inj(g, Nat.add(1n, T.Tower.depth(ru)), hf)` at the spelled
+  coordinate, then `+hfi` by conging `TH.Tower.level.depth(ru, iu, lri)` under
+  `w => Nat.add(1n, w)`; marked copies `hfg2`/`hfi2`, because each is consumed by two or
+  three recursive calls;
+- the cross pair inside the value, `+hlidu = level.trans(iu, ru, du, level.sym(ru, iu,
+  lri), lrd)` -- two legs, since `lri` gives re-to-im and `lrd` re-to-d;
+- one coordinate at a time, each a `trans` ending at that coordinate's target. `mul_one`'s
+  first coordinate: `mul_one` at the sub-value, then the inner product
+  `mul(g, mul(g, iu, zero(iu)), du)` collapses by a congruence into `mul(g, zero(iu), du)`
+  (`mul_zero` at `level.refl(iu)`), then `zero.mul` at `(iu, du)`, then `zero.level` to
+  `zero(ru)`, then `add_zero(ru, cre)`;
+- `mul_one`'s second coordinate is the one that needs `one.level`: from
+  `add(mul(g, ru, zero(iu)), mul(g, iu, one(ru)))`, `mul_zero` on the first term, `one(ru)`
+  moved to `one(iu)` under `w => T.Tower.mul(g, w, iu)`, the self-instance `mul_one` at
+  `(iu, iu)`, then `zero.level` and `zero_add`;
+- assembly: two congruences under `w => T.Ext{w, c2, du}` and `w => T.Ext{ru, w, du}`,
+  meeting the goal's `Ext{ru, iu, du}`.
+
+`Tower.one_mul` is the same fill with the operand roles swapped, and the swap is where the
+two laws differ in an interesting way: its second coordinate closes on `add_zero` where
+`mul_one`'s closes on `zero_add`, so between them the two laws consume all four identity
+leaves rather than each consuming its own pair.
+
+Base leaves: `Tower.Canon`'s two fields, used the way `Tower.add_zero`'s fill uses them --
+two `%` rewrites (`a` to `Rat{Rat.numof(a), Rat.denof(a)}`, each fed `Equal.sym(ce)`,
+because `%` replaces an equation's right endpoint), then the Rat law at the spelled pair
+with `fx := Equal.trans(R.Rat, mk(numof a, denof a), a, Rat{numof a, denof a}, cfx, ce)`.
+The two leaves differ only in which Rat law, and in which slot of `Rat.mul` the rewritten
+occurrence sits.
+
+Counts: `tower.bend` 255 (was 253), `tower_helpers.bend` 278 (was 275). All eleven gates
+green: nat 0.35, int 0.55, rat 2.93, qrat 5.59, qext 0.51, tower_proofs 3.26, probe.bend
+2.79, probe.payoff 6.36, probe.tower.depth 2.71, probe.mul.depth.arm 2.92, scratch 2.85 s
+(the inversion triple unchanged). README counts corrected while patching them: the tier line
+now carries the measured own-law counts (169 readable, 147 helpers, 316 in total); the
+previous `146 helpers` was one short of the sum of the per-library helper counts.
