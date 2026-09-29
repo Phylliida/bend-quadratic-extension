@@ -6690,3 +6690,46 @@ probe.bend 3.25s, probe.payoff 6.97s, probe.tower.depth 2.79s, probe.mul.depth.a
 scratch 2.40s with the inversion triple unchanged. Next: `pos.mul`, `pos.neg` (their Rat
 propagation laws already exist), then the level fields and the ring laws whose bundle is
 `clean` + `pos` + `level`.
+
+## Round fifty-eight
+
+The carrier's second and third closures. Helper tier: `law Tower.pos.neg` (four arms;
+`R.Rat.neg.den.pos` at the leaf, two recursive instances in the Ext case, the radicand
+witness passed through untouched) and `law Tower.pos.mul` (thirteen arms; fuel split,
+`R.Rat.mul.den.pos` at the leaf, four recursive instances and two `Tower.pos.add` calls
+in the Ext/Ext case). Both check first run once the shape table is right.
+
+`Pos.Ext` gained a third field on the way:
+
+    type Tower.Pos.Ext<-re: Tower, -im: Tower, -d: Tower> is Data:
+      PosExt{pre: Tower.pos(re), pim: Tower.pos(im), prad: Tower.pos(d)}
+
+`mul`'s result is `Ext{..., dx}` -- a product's radicand belongs to its first operand --
+so `pos.mul` needs `pos(dx)`, which only `x`'s witness can supply. Blast radius was two
+construction sites (`pos.add`'s Ext/Ext arm now destructures and rebuilds three fields,
+`pos.neg` likewise); both were new this round.
+
+The measurement of the round: a wildcard scrutinee is a stuck goal. The Fuel arm was
+first written as the definition writes it --
+
+    case T.Fuel{} _:
+      T.PosOk{}
+
+-- and the checker answered
+
+    expected : tower.Tower.pos(tower.Tower.mul(1n+g, tower.Fuel{}, y))
+    observed : tower.Tower.Pos.Marker
+    Context: - g : Nat / - y : tower.Tower / - hx : tower.Tower.Pos.Marker
+
+with the application *unreduced*. The reducer cannot reject the definition's earlier
+arms (`Base{a} Base{b}`, then `Ext{...} Ext{...}`) when the second scrutinee's shape is
+unknown, so `Tower.mul(1n+g, Fuel{}, y)` never unfolds and no witness can match. Spelling
+all four Fuel arms -- thirteen arms in total, every marker mix on both sides -- checks.
+Same lesson as round fifty's sixteen spelled arms, now with the transcript.
+
+Counts: `src/tower.bend` 246 TODOs (unchanged; all of this round is types and helper
+laws), `src/tower_helpers.bend` 261 = 246 + its own fifteen. Gates green: nat 0.48s, int
+0.53s, rat 2.79s, qrat 5.22s, qext 0.37s, tower_proofs 3.05s, probe.bend 2.72s,
+probe.payoff 6.81s, probe.tower.depth 2.21s, probe.mul.depth.arm 2.81s, scratch 2.81s
+with the inversion triple unchanged. Next: `CleanExt`'s level fields and their propagation
+under add and mul, then the ring laws with the bundle `clean` + `pos` + `level`.

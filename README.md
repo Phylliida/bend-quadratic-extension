@@ -84,7 +84,7 @@ The files:
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   13, rat 40 / 28, tower 17 / 7, qrat 36 / none, qext 2 / none -- 160 readable
-  laws, 137 helpers, 297 in total (the split itself landed 282; the product's pair
+  laws, 139 helpers, 299 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
   `mul.fuel.ext` to the helper tier, round forty-eight).
@@ -283,7 +283,7 @@ transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
 QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 265 = 129 Nat +
 32 Int + 68 Rat + 36 QExt (it imports rat.bend itself, so its count is
 rat.bend's plus its own thirty-six laws), tower.bend 246 = rat.bend's 229 plus
-its own seventeen, and tower_helpers.bend 259 = tower.bend's 246 plus its own thirteen.
+its own seventeen, and tower_helpers.bend 261 = tower.bend's 246 plus its own fifteen.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.

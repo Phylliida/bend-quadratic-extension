@@ -1289,10 +1289,11 @@ def TH.Tower.pos.add(x, y, hx, hy):
     case T.Ext{rx, ix, dx} T.Base{b}:
       T.PosOk{}
     case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
-      T.PosExt{+pre, +pim} = hx
-      T.PosExt{+pre2, +pim2} = hy
+      T.PosExt{+pre, +pim, +prad} = hx
+      T.PosExt{+pre2, +pim2, +prad2} = hy
       T.PosExt{TH.Tower.pos.add(rx, ry, pre, pre2),
-                TH.Tower.pos.add(ix, iy, pim, pim2)}
+                TH.Tower.pos.add(ix, iy, pim, pim2),
+                prad}
     case T.Ext{rx, ix, dx} T.Bad{}:
       T.PosOk{}
     case T.Ext{rx, ix, dx} T.Fuel{}:
@@ -1313,3 +1314,69 @@ def TH.Tower.pos.add(x, y, hx, hy):
       T.PosOk{}
     case T.Fuel{} T.Fuel{}:
       T.PosOk{}
+
+def TH.Tower.pos.neg(x, hx):
+  match x:
+    case T.Base{a}:
+      T.PosBase{+pa} = hx
+      T.PosBase{R.Rat.neg.den.pos(a, pa)}
+    case T.Ext{rx, ix, dx}:
+      T.PosExt{+pre, +pim, +prad} = hx
+      T.PosExt{TH.Tower.pos.neg(rx, pre), TH.Tower.pos.neg(ix, pim), prad}
+    case T.Bad{}:
+      T.PosOk{}
+    case T.Fuel{}:
+      T.PosOk{}
+
+def TH.Tower.pos.mul(f, x, y, hx, hy):
+  match f:
+    case 0n:
+      T.PosOk{}
+    case 1n+g:
+      match x y:
+        case T.Base{a} T.Base{b}:
+          T.PosBase{+pa} = hx
+          T.PosBase{+pb} = hy
+          T.PosBase{R.Rat.mul.den.pos(a, b, pa, pb)}
+        case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+          T.PosExt{+pre, +pim, +prad} = hx
+          T.PosExt{+pry, +piy, +pryd} = hy
+          +hP = TH.Tower.pos.mul(g, ix, iy, pim, piy)
+          +hrr = TH.Tower.pos.mul(g, rx, ry, pre, pry)
+          +hri = TH.Tower.pos.mul(g, rx, iy, pre, piy)
+          +hir = TH.Tower.pos.mul(g, ix, ry, pim, pry)
+          +hPd = TH.Tower.pos.mul(g, T.Tower.mul(g, ix, iy), dx, hP, prad)
+          T.PosExt{
+            TH.Tower.pos.add(T.Tower.mul(g, rx, ry),
+                             T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx), hrr, hPd),
+            TH.Tower.pos.add(T.Tower.mul(g, rx, iy), T.Tower.mul(g, ix, ry), hri, hir),
+            prad}
+        case T.Base{a} T.Ext{ry, iy, dy}:
+          T.PosOk{}
+        case T.Ext{rx, ix, dx} T.Base{b}:
+          T.PosOk{}
+        case T.Fuel{} T.Base{b}:
+          T.PosOk{}
+        case T.Fuel{} T.Ext{ry, iy, dy}:
+          T.PosOk{}
+        case T.Fuel{} T.Bad{}:
+          T.PosOk{}
+        case T.Fuel{} T.Fuel{}:
+          T.PosOk{}
+        case T.Base{a} T.Fuel{}:
+          T.PosOk{}
+        case T.Ext{rx, ix, dx} T.Fuel{}:
+          T.PosOk{}
+        case T.Bad{} T.Base{b}:
+          T.PosOk{}
+        case T.Bad{} T.Ext{ry, iy, dy}:
+          T.PosOk{}
+        case T.Bad{} T.Bad{}:
+          T.PosOk{}
+        case T.Bad{} T.Fuel{}:
+          T.PosOk{}
+        case T.Ext{rx, ix, dx} T.Bad{}:
+          T.PosOk{}
+        case T.Base{a} T.Bad{}:
+          T.PosOk{}
+

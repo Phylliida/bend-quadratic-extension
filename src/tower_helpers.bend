@@ -258,3 +258,26 @@ law Tower.pos.add:
   for hx: T.Tower.pos(x)
   for hy: T.Tower.pos(y)
   T.Tower.pos(T.Tower.add(x, y))
+
+# Closure under neg: neg is coordinatewise, so the leaf case is R.Rat.neg.den.pos and
+# the Ext case is the two recursive instances with the radicand witness untouched
+# (neg leaves d alone).
+law Tower.pos.neg:
+  for +x: T.Tower
+  for hx: T.Tower.pos(x)
+  T.Tower.pos(T.Tower.neg(x))
+
+# Closure under mul -- the reason Pos.Ext carries a radicand field at all: mul's result
+# is Ext{..., dx}, so the product's radicand belongs to the *first* operand and its
+# positivity comes from x. Four recursive instances feed two pos.add calls (the re
+# coordinate is a sum of a product and a product-with-the-radicand, the im coordinate a
+# sum of two products), and the third mul call takes a *computed* product in its first
+# argument -- legal because the fuel is a parameter and shrinks first, the same move
+# Tower.mul.safe makes.
+law Tower.pos.mul:
+  for +f: Nat
+  for +x: T.Tower
+  for +y: T.Tower
+  for hx: T.Tower.pos(x)
+  for hy: T.Tower.pos(y)
+  T.Tower.pos(T.Tower.mul(f, x, y))

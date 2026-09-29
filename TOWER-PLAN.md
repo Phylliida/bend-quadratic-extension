@@ -2022,13 +2022,43 @@ Two spellings measured, both cheap to get wrong:
   observed : tower.Rat`), because the readable tier's own names are not in the module's
   scope the way `Tower` is.
 
-What remains of the carrier: closure under `mul` and `neg` (both propagation laws exist
-on the Rat side -- `Rat.mul.den.pos`, `Rat.neg.den.pos`), the two level fields in
+What remained of the carrier: closure under `mul` and `neg`, the two level fields in
 `CleanExt` (round fifty-four) and their propagation (`Tower.level.add`/`level.mul`), and
 then the ring laws and the identity block, each stated with the bundle `clean(x)`,
 `pos(x)`, `level(x, y)`. Open question for the next round: whether those three
 hypotheses should fold into one family for the laws' sake (the user's minimal-law-surface
 criterion) or stay three named facts.
+
+### Closure under neg and mul: the radicand field, and a wildcard that blocks reduction (round fifty-eight)
+
+`Tower.pos.neg` and `Tower.pos.mul` land in the helper tier with four and thirteen arms.
+`neg` is coordinatewise, so its leaf case is `R.Rat.neg.den.pos` and its radicand witness
+is passed straight through. `mul` is the law that forced `Pos.Ext` to carry a third
+field: `mul`'s result is `Ext{..., dx}`, so a product's radicand belongs to its *first*
+operand and its positivity has to come from `x`.
+
+    type Tower.Pos.Ext<-re: Tower, -im: Tower, -d: Tower> is Data:
+      PosExt{pre: Tower.pos(re), pim: Tower.pos(im), prad: Tower.pos(d)}
+
+`pos.mul` splits on the fuel (`0n` gives `Fuel{}`, hence `PosOk{}`), its leaf case is
+`R.Rat.mul.den.pos`, and its Ext/Ext arm is four recursive instances feeding two
+`Tower.pos.add` calls -- the re coordinate is a sum of a product and a product carrying
+the radicand, the im coordinate a sum of two products. The third `mul` call takes a
+*computed* product in its first argument, which is legal for the reason `Tower.mul.safe`
+is: the fuel is a parameter, it shrinks first, and every later argument is then free.
+
+One measurement is worth keeping, because it is the shape of a whole class of failures.
+The marker arms were first written the way the definition writes them:
+
+    case T.Fuel{} _:
+      T.PosOk{}
+
+and the checker refused with the goal *unreduced*: `expected : Tower.pos(Tower.mul(1n+g,
+Tower.Fuel{}, y)) / observed : Tower.Pos.Marker`, context `y : tower.Tower`. A wildcard
+scrutinee leaves the reducer unable to reject the definition's earlier arms, so the
+application never unfolds and no witness can be right. Spelling all four Fuel arms (and
+with them every marker mix, thirteen arms in all) checks first run. Wildcards in a
+*fill's* match are not shorthand: they are a stuck goal.
 
 ## 8. Deliberately out of scope for now
 

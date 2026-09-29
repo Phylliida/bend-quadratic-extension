@@ -520,15 +520,15 @@ type Tower.Pos.Marker is Data:
 type Tower.Pos.Base<-a: R.Rat> is Data:
   PosBase{pden: {Nat.cmp(0n, R.Rat.denof(a)) == LT{} : Cmp}}
 
-type Tower.Pos.Ext<-re: Tower, -im: Tower> is Data:
-  PosExt{pre: Tower.pos(re), pim: Tower.pos(im)}
+type Tower.Pos.Ext<-re: Tower, -im: Tower, -d: Tower> is Data:
+  PosExt{pre: Tower.pos(re), pim: Tower.pos(im), prad: Tower.pos(d)}
 
 def Tower.pos(t: Tower) -> Data:
   match t:
     case Base{a}:
       Tower.Pos.Base<a>
     case Ext{re, im, d}:
-      Tower.Pos.Ext<re, im>
+      Tower.Pos.Ext<re, im, d>
     case Bad{}:
       Tower.Pos.Marker
     case Fuel{}:
