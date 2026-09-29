@@ -2115,3 +2115,41 @@ def T.Tower.add_zero(x, cx):
       {==}
     case T.Fuel{}:
       {==}
+
+# zero_add: the same canonical shape as add_zero, with zero(x) in the first slot.
+# Both occurrences of a are rewritten for the same two reasons -- the Rat law is
+# stated at the spelled value, and Rat.add cannot unfold while an operand is a
+# variable.
+def T.Tower.zero_add(x, cx):
+  match x:
+    case T.Base{a}:
+      match cx:
+        case T.CanonBase{+ce, +cfx}:
+          %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.add(R.Rat.zero(), _)} == T.Base{a} : T.Tower}
+          %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.add(R.Rat.zero(), R.Rat{R.Rat.numof(a), R.Rat.denof(a)})} == T.Base{_} : T.Tower}
+          Equal.cong(R.Rat, T.Tower, u => T.Base{u},
+            R.Rat.add(R.Rat.zero(), R.Rat{R.Rat.numof(a), R.Rat.denof(a)}),
+            R.Rat{R.Rat.numof(a), R.Rat.denof(a)},
+            R.Rat.zero_add(R.Rat.numof(a), R.Rat.denof(a),
+              Equal.trans(R.Rat, R.Rat.mk(R.Rat.numof(a), R.Rat.denof(a)), a,
+                R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, cfx, ce)))
+    case T.Ext{rx, ix, dx}:
+      match cx:
+        case T.CanonExt{+cre, +cim, +cd}:
+          +e1 = T.Tower.zero_add(rx, cre)
+          +e2 = T.Tower.zero_add(ix, cim)
+          +c1 = Equal.cong(T.Tower, T.Tower,
+                  u => T.Ext{u, T.Tower.add(T.Tower.zero(ix), ix), dx},
+                  T.Tower.add(T.Tower.zero(rx), rx), rx, e1)
+          +c2 = Equal.cong(T.Tower, T.Tower,
+                  u => T.Ext{rx, u, dx},
+                  T.Tower.add(T.Tower.zero(ix), ix), ix, e2)
+          Equal.trans(T.Tower,
+            T.Ext{T.Tower.add(T.Tower.zero(rx), rx),
+                  T.Tower.add(T.Tower.zero(ix), ix), dx},
+            T.Ext{rx, T.Tower.add(T.Tower.zero(ix), ix), dx},
+            T.Ext{rx, ix, dx}, c1, c2)
+    case T.Bad{}:
+      {==}
+    case T.Fuel{}:
+      {==}

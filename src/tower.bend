@@ -678,3 +678,17 @@ law Tower.add_zero:
   for +x: Tower
   for cx: Tower.canon(x)
   {Tower.add(x, Tower.zero(x)) == x : Tower}
+
+# zero_add: 0 + x = x, the mirror of add_zero and the same carrier.
+#
+# Base is Rat.zero_add at the leaf. The rewriting the fill does is not only about
+# the Rat law's spelling: Rat.add destructures *both* operands, so at a variable a
+# the goal's Rat.add(_, a) is stuck and only unfolds once every operand is spelled.
+# That is why each fill here rewrites every occurrence of the value -- both sides in
+# add_zero, and both inside and outside the Rat.add in zero_add. The Ext arm is two
+# recursive calls with dx in the third slot on both sides (add keeps its first
+# operand's radicand, and zero(x) carries dx too), and the markers are definitional.
+law Tower.zero_add:
+  for +x: Tower
+  for cx: Tower.canon(x)
+  {Tower.add(Tower.zero(x), x) == x : Tower}
