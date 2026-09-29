@@ -1804,3 +1804,276 @@ def T.Tower.neg_add(x, y, hx, hy, px, py, h):
       {==}
     case T.Fuel{} T.Fuel{}:
       {==}
+
+# ---------------------------------------------------------------------------
+# Tower.neg_pair (round sixty-three): mul_neg and neg_mul are one induction
+# ---------------------------------------------------------------------------
+# One coordinate of the pair law, four times over: rewrite each summand to its
+# negated form, then distribute -- which is Tower.neg_add read backwards. A proof
+# helper, not a law: it adds nothing to the law surface.
+def Tower.neg_coord(+t1: T.Tower, +u1: T.Tower, +t2: T.Tower, +u2: T.Tower,
+    e1: {t1 == T.Tower.neg(u1) : T.Tower},
+    e2: {t2 == T.Tower.neg(u2) : T.Tower},
+    c1: T.Tower.clean(u1), c2: T.Tower.clean(u2),
+    p1: T.Tower.pos(u1), p2: T.Tower.pos(u2),
+    hd: {T.Tower.depth(u1) == T.Tower.depth(u2) : Nat}) ->
+    {T.Tower.add(t1, t2) == T.Tower.neg(T.Tower.add(u1, u2)) : T.Tower}:
+  Equal.trans(T.Tower,
+    T.Tower.add(t1, t2),
+    T.Tower.add(T.Tower.neg(u1), t2),
+    T.Tower.neg(T.Tower.add(u1, u2)),
+    Equal.cong(T.Tower, T.Tower, u => T.Tower.add(u, t2), t1, T.Tower.neg(u1), e1),
+    Equal.trans(T.Tower,
+      T.Tower.add(T.Tower.neg(u1), t2),
+      T.Tower.add(T.Tower.neg(u1), T.Tower.neg(u2)),
+      T.Tower.neg(T.Tower.add(u1, u2)),
+      Equal.cong(T.Tower, T.Tower, u => T.Tower.add(T.Tower.neg(u1), u), t2,
+        T.Tower.neg(u2), e2),
+      Equal.sym(T.Tower, T.Tower.neg(T.Tower.add(u1, u2)),
+        T.Tower.add(T.Tower.neg(u1), T.Tower.neg(u2)),
+        T.Tower.neg_add(u1, u2, c1, c2, p1, p2, hd))))
+
+# The pair induction. Fuel first, then shapes; only Base/Base and Ext/Ext are
+# inhabited, every other arm contradicting either hf (fuel 0n), one operand's
+# cleanliness evidence (a marker is Empty) or the depth equation (a Base and an
+# Ext cannot sit at one level). The prelude of the Ext/Ext arm is mul.safe's: the
+# same five sub-products, each with its own cleanliness, level and sufficiency
+# equation. What is new is what the five pairs buy -- each returns both halves of
+# this law at its coordinates, and each half's radicand coordinate then uses the
+# *other* half at the pair (mul(g, ix, iy), dx), which is why the pair is stated
+# at all: mul(f, x, neg y)'s radicand coordinate is
+# mul(g, mul(g, ix, neg iy), dx), one congruence away from
+# mul(g, neg(mul(g, ix, iy)), dx) and hence from neg(mul(g, mul(g, ix, iy), dx))
+# only through neg_mul at that pair.
+def TH.Tower.neg_pair(f, x, y, hx, hy, px, py, h, hf):
+  match f:
+    case 0n:
+      Empty.absurd(TH.Tower.NegPair<f, x, y>,
+        NH.eq_ne_gt(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n), 0n,
+          Nat.add(1n, T.Tower.depth(x)), hf)))
+    case 1n+g:
+      match x y:
+        case T.Base{a} T.Base{b}:
+          T.PosBase{+pa} = px
+          T.PosBase{+pb} = py
+          TH.NegBoth{
+            Equal.cong(R.Rat, T.Tower, u => T.Base{u},
+              R.Rat.mul(a, R.Rat.neg(b)), R.Rat.neg(R.Rat.mul(a, b)),
+              R.Rat.mul_neg(a, b, pa, pb)),
+            Equal.cong(R.Rat, T.Tower, u => T.Base{u},
+              R.Rat.mul(R.Rat.neg(a), b), R.Rat.neg(R.Rat.mul(a, b)),
+              R.Rat.neg_mul(a, b, pa, pb))}
+        case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+          T.CleanExt{+hxr, +hxi, +hxd, +hxri, +hxrd} = hx
+          T.CleanExt{+hyr, +hyi, +hyd, +hyri, +hyrd} = hy
+          T.PosExt{+prer, +pimr, +pradr} = px
+          T.PosExt{+prey, +pimy, +prady} = py
+          +er = N.succ_inj(T.Tower.depth(rx), T.Tower.depth(ry), h)
+          +ei = Equal.trans(Nat, T.Tower.depth(ix), T.Tower.depth(rx), T.Tower.depth(iy),
+                  Equal.sym(Nat, T.Tower.depth(rx), T.Tower.depth(ix), hxri),
+                  Equal.trans(Nat, T.Tower.depth(rx), T.Tower.depth(ry), T.Tower.depth(iy),
+                    er, hyri))
+          +ef = Equal.trans(Nat, Nat.add(1n, g), f,
+                  Nat.add(1n, Nat.add(1n, T.Tower.depth(rx))), {==},
+                  Equal.trans(Nat, f, Nat.add(1n, T.Tower.depth(x)),
+                    Nat.add(1n, Nat.add(1n, T.Tower.depth(rx))), hf, {==}))
+          +hf1 = N.succ_inj(g, Nat.add(1n, T.Tower.depth(rx)), ef)
+          +hf2 = Equal.trans(Nat, g, Nat.add(1n, T.Tower.depth(rx)),
+                  Nat.add(1n, T.Tower.depth(ix)), hf1,
+                  Equal.cong(Nat, Nat, u => Nat.add(1n, u),
+                    T.Tower.depth(rx), T.Tower.depth(ix), hxri))
+          # the five recursive pairs, with the cleanliness, level and pos facts
+          # the coordinate proofs need
+          +p1 = TH.Tower.neg_pair(g, rx, ry, hxr, hyr, prer, prey, er, hf1)
+          +cs1 = TH.Tower.safe.clean(g, rx, ry,
+                  TH.Tower.mul.safe(g, rx, ry, hxr, hyr, er, hf1))
+          +hd1 = TH.Tower.safe.depth(g, rx, ry,
+                  TH.Tower.mul.safe(g, rx, ry, hxr, hyr, er, hf1))
+          +cp1 = TH.Tower.pos.mul(g, rx, ry, prer, prey)
+          +p2i = TH.Tower.neg_pair(g, ix, iy, hxi, hyi, pimr, pimy, ei, hf2)
+          +cs2i = TH.Tower.safe.clean(g, ix, iy,
+                  TH.Tower.mul.safe(g, ix, iy, hxi, hyi, ei, hf2))
+          +hd2i = TH.Tower.safe.depth(g, ix, iy,
+                  TH.Tower.mul.safe(g, ix, iy, hxi, hyi, ei, hf2))
+          +e2 = Equal.trans(Nat, T.Tower.depth(T.Tower.mul(g, ix, iy)),
+                  T.Tower.depth(ix), T.Tower.depth(dx), hd2i,
+                  Equal.trans(Nat, T.Tower.depth(ix), T.Tower.depth(rx),
+                    T.Tower.depth(dx),
+                    Equal.sym(Nat, T.Tower.depth(rx), T.Tower.depth(ix), hxri), hxrd))
+          +hf3 = Equal.trans(Nat, g, Nat.add(1n, T.Tower.depth(ix)),
+                  Nat.add(1n, T.Tower.depth(T.Tower.mul(g, ix, iy))), hf2,
+                  Equal.cong(Nat, Nat, u => Nat.add(1n, u),
+                    T.Tower.depth(ix), T.Tower.depth(T.Tower.mul(g, ix, iy)),
+                    Equal.sym(Nat, T.Tower.depth(T.Tower.mul(g, ix, iy)),
+                      T.Tower.depth(ix), hd2i)))
+          +cp2 = TH.Tower.pos.mul(g, ix, iy, pimr, pimy)
+          +cp2d = TH.Tower.pos.mul(g, T.Tower.mul(g, ix, iy), dx, cp2, pradr)
+          +p2 = TH.Tower.neg_pair(g, T.Tower.mul(g, ix, iy), dx, cs2i, hxd, cp2, pradr,
+                  e2, hf3)
+          +cs2 = TH.Tower.safe.clean(g, T.Tower.mul(g, ix, iy), dx,
+                  TH.Tower.mul.safe(g, T.Tower.mul(g, ix, iy), dx, cs2i, hxd, e2, hf3))
+          +hd2 = TH.Tower.safe.depth(g, T.Tower.mul(g, ix, iy), dx,
+                  TH.Tower.mul.safe(g, T.Tower.mul(g, ix, iy), dx, cs2i, hxd, e2, hf3))
+          +e3 = Equal.trans(Nat, T.Tower.depth(rx), T.Tower.depth(ry),
+                  T.Tower.depth(iy), er, hyri)
+          +p3 = TH.Tower.neg_pair(g, rx, iy, hxr, hyi, prer, pimy, e3, hf1)
+          +cs3 = TH.Tower.safe.clean(g, rx, iy,
+                  TH.Tower.mul.safe(g, rx, iy, hxr, hyi, e3, hf1))
+          +hd3 = TH.Tower.safe.depth(g, rx, iy,
+                  TH.Tower.mul.safe(g, rx, iy, hxr, hyi, e3, hf1))
+          +cp3 = TH.Tower.pos.mul(g, rx, iy, prer, pimy)
+          +e4 = Equal.trans(Nat, T.Tower.depth(ix), T.Tower.depth(rx),
+                  T.Tower.depth(ry),
+                  Equal.sym(Nat, T.Tower.depth(rx), T.Tower.depth(ix), hxri), er)
+          +p4 = TH.Tower.neg_pair(g, ix, ry, hxi, hyr, pimr, prey, e4, hf2)
+          +cs4 = TH.Tower.safe.clean(g, ix, ry,
+                  TH.Tower.mul.safe(g, ix, ry, hxi, hyr, e4, hf2))
+          +hd4 = TH.Tower.safe.depth(g, ix, ry,
+                  TH.Tower.mul.safe(g, ix, ry, hxi, hyr, e4, hf2))
+          +cp4 = TH.Tower.pos.mul(g, ix, ry, pimr, prey)
+          # the re coordinate pairs (mul(g,rx,ry)) with (mul(g,mul(g,ix,iy),dx)),
+          # the im coordinate pairs the two cross products
+          +eA = Equal.trans(Nat, T.Tower.depth(T.Tower.mul(g, rx, ry)), T.Tower.depth(rx),
+                  T.Tower.depth(T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx)), hd1,
+                  Equal.trans(Nat, T.Tower.depth(rx), T.Tower.depth(ix),
+                    T.Tower.depth(T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx)), hxri,
+                    Equal.trans(Nat, T.Tower.depth(ix),
+                      T.Tower.depth(T.Tower.mul(g, ix, iy)),
+                      T.Tower.depth(T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx)),
+                      Equal.sym(Nat, T.Tower.depth(T.Tower.mul(g, ix, iy)),
+                        T.Tower.depth(ix), hd2i),
+                      Equal.sym(Nat,
+                        T.Tower.depth(T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx)),
+                        T.Tower.depth(T.Tower.mul(g, ix, iy)), hd2))))
+          +eB = Equal.trans(Nat, T.Tower.depth(T.Tower.mul(g, rx, iy)), T.Tower.depth(rx),
+                  T.Tower.depth(T.Tower.mul(g, ix, ry)), hd3,
+                  Equal.trans(Nat, T.Tower.depth(rx), T.Tower.depth(ix),
+                    T.Tower.depth(T.Tower.mul(g, ix, ry)), hxri,
+                    Equal.sym(Nat, T.Tower.depth(T.Tower.mul(g, ix, ry)),
+                      T.Tower.depth(ix), hd4)))
+          # mneg: the re coordinate rewrites the first summand and the radicand
+          # one, the im coordinate the two cross products
+          +ea1 = TH.Tower.negpair.mneg(g, rx, ry, p1)
+          +ea2i = TH.Tower.negpair.mneg(g, ix, iy, p2i)
+          +ea2t = Equal.trans(T.Tower,
+                    T.Tower.mul(g, T.Tower.mul(g, ix, T.Tower.neg(iy)), dx),
+                    T.Tower.mul(g, T.Tower.neg(T.Tower.mul(g, ix, iy)), dx),
+                    T.Tower.neg(T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx)),
+                    Equal.cong(T.Tower, T.Tower, u => T.Tower.mul(g, u, dx),
+                      T.Tower.mul(g, ix, T.Tower.neg(iy)),
+                      T.Tower.neg(T.Tower.mul(g, ix, iy)), ea2i),
+                    TH.Tower.negpair.nmul(g, T.Tower.mul(g, ix, iy), dx, p2))
+          +emre = Tower.neg_coord(
+                    T.Tower.mul(g, rx, T.Tower.neg(ry)), T.Tower.mul(g, rx, ry),
+                    T.Tower.mul(g, T.Tower.mul(g, ix, T.Tower.neg(iy)), dx),
+                    T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx),
+                    ea1, ea2t, cs1, cs2, cp1, cp2d, eA)
+          +emim = Tower.neg_coord(
+                    T.Tower.mul(g, rx, T.Tower.neg(iy)), T.Tower.mul(g, rx, iy),
+                    T.Tower.mul(g, ix, T.Tower.neg(ry)), T.Tower.mul(g, ix, ry),
+                    TH.Tower.negpair.mneg(g, rx, iy, p3),
+                    TH.Tower.negpair.mneg(g, ix, ry, p4),
+                    cs3, cs4, cp3, cp4, eB)
+          # nmul: the same, with the negation on the first argument
+          +enre = Tower.neg_coord(
+                    T.Tower.mul(g, T.Tower.neg(rx), ry), T.Tower.mul(g, rx, ry),
+                    T.Tower.mul(g, T.Tower.mul(g, T.Tower.neg(ix), iy), dx),
+                    T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx),
+                    TH.Tower.negpair.nmul(g, rx, ry, p1),
+                    Equal.trans(T.Tower,
+                      T.Tower.mul(g, T.Tower.mul(g, T.Tower.neg(ix), iy), dx),
+                      T.Tower.mul(g, T.Tower.neg(T.Tower.mul(g, ix, iy)), dx),
+                      T.Tower.neg(T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx)),
+                      Equal.cong(T.Tower, T.Tower, u => T.Tower.mul(g, u, dx),
+                        T.Tower.mul(g, T.Tower.neg(ix), iy),
+                        T.Tower.neg(T.Tower.mul(g, ix, iy)),
+                        TH.Tower.negpair.nmul(g, ix, iy, p2i)),
+                      TH.Tower.negpair.nmul(g, T.Tower.mul(g, ix, iy), dx, p2)),
+                    cs1, cs2, cp1, cp2d, eA)
+          +enim = Tower.neg_coord(
+                    T.Tower.mul(g, T.Tower.neg(rx), iy), T.Tower.mul(g, rx, iy),
+                    T.Tower.mul(g, T.Tower.neg(ix), ry), T.Tower.mul(g, ix, ry),
+                    TH.Tower.negpair.nmul(g, rx, iy, p3),
+                    TH.Tower.negpair.nmul(g, ix, ry, p4),
+                    cs3, cs4, cp3, cp4, eB)
+          # each field is two congruence steps: the coordinates are independent,
+          # so the re step holds the im coordinate and the im step holds the re
+          # coordinate -- at the value the previous step left it.
+          +em = Equal.trans(T.Tower,
+                  T.Ext{T.Tower.add(T.Tower.mul(g, rx, T.Tower.neg(ry)),
+                        T.Tower.mul(g, T.Tower.mul(g, ix, T.Tower.neg(iy)), dx)),
+                    T.Tower.add(T.Tower.mul(g, rx, T.Tower.neg(iy)),
+                      T.Tower.mul(g, ix, T.Tower.neg(ry))), dx},
+                  T.Ext{T.Tower.neg(T.Tower.add(T.Tower.mul(g, rx, ry),
+                        T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx))),
+                    T.Tower.add(T.Tower.mul(g, rx, T.Tower.neg(iy)),
+                      T.Tower.mul(g, ix, T.Tower.neg(ry))), dx},
+                  T.Ext{T.Tower.neg(T.Tower.add(T.Tower.mul(g, rx, ry),
+                        T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx))),
+                    T.Tower.neg(T.Tower.add(T.Tower.mul(g, rx, iy),
+                      T.Tower.mul(g, ix, ry))), dx},
+                  Equal.cong(T.Tower, T.Tower,
+                    u => T.Ext{u, T.Tower.add(T.Tower.mul(g, rx, T.Tower.neg(iy)),
+                             T.Tower.mul(g, ix, T.Tower.neg(ry))), dx},
+                    T.Tower.add(T.Tower.mul(g, rx, T.Tower.neg(ry)),
+                      T.Tower.mul(g, T.Tower.mul(g, ix, T.Tower.neg(iy)), dx)),
+                    T.Tower.neg(T.Tower.add(T.Tower.mul(g, rx, ry),
+                      T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx))), emre),
+                  Equal.cong(T.Tower, T.Tower,
+                    u => T.Ext{T.Tower.neg(T.Tower.add(T.Tower.mul(g, rx, ry),
+                             T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx))), u, dx},
+                    T.Tower.add(T.Tower.mul(g, rx, T.Tower.neg(iy)),
+                      T.Tower.mul(g, ix, T.Tower.neg(ry))),
+                    T.Tower.neg(T.Tower.add(T.Tower.mul(g, rx, iy),
+                      T.Tower.mul(g, ix, ry))), emim))
+          +en = Equal.trans(T.Tower,
+                  T.Ext{T.Tower.add(T.Tower.mul(g, T.Tower.neg(rx), ry),
+                        T.Tower.mul(g, T.Tower.mul(g, T.Tower.neg(ix), iy), dx)),
+                    T.Tower.add(T.Tower.mul(g, T.Tower.neg(rx), iy),
+                      T.Tower.mul(g, T.Tower.neg(ix), ry)), dx},
+                  T.Ext{T.Tower.neg(T.Tower.add(T.Tower.mul(g, rx, ry),
+                        T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx))),
+                    T.Tower.add(T.Tower.mul(g, T.Tower.neg(rx), iy),
+                      T.Tower.mul(g, T.Tower.neg(ix), ry)), dx},
+                  T.Ext{T.Tower.neg(T.Tower.add(T.Tower.mul(g, rx, ry),
+                        T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx))),
+                    T.Tower.neg(T.Tower.add(T.Tower.mul(g, rx, iy),
+                      T.Tower.mul(g, ix, ry))), dx},
+                  Equal.cong(T.Tower, T.Tower,
+                    u => T.Ext{u, T.Tower.add(T.Tower.mul(g, T.Tower.neg(rx), iy),
+                             T.Tower.mul(g, T.Tower.neg(ix), ry)), dx},
+                    T.Tower.add(T.Tower.mul(g, T.Tower.neg(rx), ry),
+                      T.Tower.mul(g, T.Tower.mul(g, T.Tower.neg(ix), iy), dx)),
+                    T.Tower.neg(T.Tower.add(T.Tower.mul(g, rx, ry),
+                      T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx))), enre),
+                  Equal.cong(T.Tower, T.Tower,
+                    u => T.Ext{T.Tower.neg(T.Tower.add(T.Tower.mul(g, rx, ry),
+                             T.Tower.mul(g, T.Tower.mul(g, ix, iy), dx))), u, dx},
+                    T.Tower.add(T.Tower.mul(g, T.Tower.neg(rx), iy),
+                      T.Tower.mul(g, T.Tower.neg(ix), ry)),
+                    T.Tower.neg(T.Tower.add(T.Tower.mul(g, rx, iy),
+                      T.Tower.mul(g, ix, ry))), enim))
+          TH.NegBoth{em, en}
+        case T.Base{a} T.Ext{ry, iy, dy}:
+          Empty.absurd(TH.Tower.NegPair<f, T.Base{a}, T.Ext{ry, iy, dy}>,
+            NH.eq_ne_gt(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
+              0n, Nat.add(1n, T.Tower.depth(ry)), h)))
+        case T.Ext{rx, ix, dx} T.Base{b}:
+          Empty.absurd(TH.Tower.NegPair<f, T.Ext{rx, ix, dx}, T.Base{b}>,
+            NH.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
+              Nat.add(1n, T.Tower.depth(rx)), 0n, h)))
+        case T.Bad{} _:
+          Empty.absurd(TH.Tower.NegPair<f, T.Bad{}, y>, hx)
+        case T.Fuel{} _:
+          Empty.absurd(TH.Tower.NegPair<f, T.Fuel{}, y>, hx)
+        case _ T.Bad{}:
+          Empty.absurd(TH.Tower.NegPair<f, x, T.Bad{}>, hy)
+        case _ T.Fuel{}:
+          Empty.absurd(TH.Tower.NegPair<f, x, T.Fuel{}>, hy)
+
+# The two readable laws are projections of the pair, one call each.
+def T.Tower.mul_neg(f, x, y, hx, hy, px, py, h, hf):
+  TH.Tower.negpair.mneg(f, x, y, TH.Tower.neg_pair(f, x, y, hx, hy, px, py, h, hf))
+
+def T.Tower.neg_mul(f, x, y, hx, hy, px, py, h, hf):
+  TH.Tower.negpair.nmul(f, x, y, TH.Tower.neg_pair(f, x, y, hx, hy, px, py, h, hf))

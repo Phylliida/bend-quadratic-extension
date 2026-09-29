@@ -99,6 +99,49 @@ def Tower.safe.depth(+f: Nat, +x: T.Tower, +y: T.Tower,
     case SafeExt{cs, hd}:
       hd
 
+# mul_neg and neg_mul are one induction, for the same reason mul.depth and
+# mul.clean are (round forty-five): each half needs the other where it is needed.
+# mul(f, x, neg y)'s radicand coordinate is mul(g, mul(g, ix, neg iy), dx), and
+# getting from there to neg(mul(g, mul(g, ix, iy), dx)) goes through the negation
+# on the *first* argument -- which is neg_mul at the pair (mul(g, ix, iy), dx).
+# Symmetrically neg_mul's radicand coordinate needs mul_neg at the same pair. So
+# the two conclusions travel together, as one indexed evidence type: one
+# recursive call hands back both, and each is in hand exactly where the other is
+# wanted. The two readable laws in tower.bend are projections of this pair.
+#
+# The fuel is the exact one of mul.depth/mul.clean (f == 1n+depth(x)), for the
+# same reason: the induction needs each sub-product's own cleanliness and level,
+# and the pair that supplies those is stated at that fuel only.
+type Tower.NegPair<-f: Nat, -x: T.Tower, -y: T.Tower> is Data:
+  NegBoth{mneg: {T.Tower.mul(f, x, T.Tower.neg(y)) == T.Tower.neg(T.Tower.mul(f, x, y)) : T.Tower},
+          nmul: {T.Tower.mul(f, T.Tower.neg(x), y) == T.Tower.neg(T.Tower.mul(f, x, y)) : T.Tower}}
+
+law Tower.neg_pair:
+  for +f: Nat
+  for +x: T.Tower
+  for +y: T.Tower
+  for hx: T.Tower.clean(x)
+  for hy: T.Tower.clean(y)
+  for px: T.Tower.pos(x)
+  for py: T.Tower.pos(y)
+  for h: {T.Tower.depth(x) == T.Tower.depth(y) : Nat}
+  for hf: {f == Nat.add(1n, T.Tower.depth(x)) : Nat}
+  Tower.NegPair<f, x, y>
+
+def Tower.negpair.mneg(+f: Nat, +x: T.Tower, +y: T.Tower,
+    q: Tower.NegPair<f, x, y>) ->
+    {T.Tower.mul(f, x, T.Tower.neg(y)) == T.Tower.neg(T.Tower.mul(f, x, y)) : T.Tower}:
+  match q:
+    case NegBoth{mneg, nmul}:
+      mneg
+
+def Tower.negpair.nmul(+f: Nat, +x: T.Tower, +y: T.Tower,
+    q: Tower.NegPair<f, x, y>) ->
+    {T.Tower.mul(f, T.Tower.neg(x), y) == T.Tower.neg(T.Tower.mul(f, x, y)) : T.Tower}:
+  match q:
+    case NegBoth{mneg, nmul}:
+      nmul
+
 # The same facts at any fuel above the threshold, plus the fuel law
 # =================================================================
 #

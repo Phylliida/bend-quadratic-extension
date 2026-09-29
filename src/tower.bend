@@ -588,3 +588,40 @@ law Tower.neg_add:
   for py: Tower.pos(y)
   for h: {Tower.depth(x) == Tower.depth(y) : Nat}
   {Tower.neg(Tower.add(x, y)) == Tower.add(Tower.neg(x), Tower.neg(y)) : Tower}
+
+# mul_neg: x * (-y) = -(x * y), and neg_mul: (-x) * y = -(x * y). Both are
+# projections of Tower.neg_pair (tower_helpers.bend), which is where the
+# induction lives: the radicand coordinate of either conclusion needs the other
+# half -- mul(f, x, neg y)'s is mul(g, mul(g, ix, neg iy), dx), and reaching
+# neg(mul(g, mul(g, ix, iy), dx)) from it goes through the negation on the first
+# argument, which is neg_mul at the pair (mul(g, ix, iy), dx). Neither half is
+# provable on its own, exactly as with mul.depth and mul.clean.
+#
+# The hypotheses are what the induction consumes at every coordinate --
+# cleanliness and positivity of both operands, and the operand-level depth
+# equation -- plus the exact fuel mul.depth/mul.clean use, because each
+# sub-product's cleanliness is only available at that fuel.
+
+law Tower.mul_neg:
+  for +f: Nat
+  for +x: Tower
+  for +y: Tower
+  for hx: Tower.clean(x)
+  for hy: Tower.clean(y)
+  for px: Tower.pos(x)
+  for py: Tower.pos(y)
+  for h: {Tower.depth(x) == Tower.depth(y) : Nat}
+  for hf: {f == Nat.add(1n, Tower.depth(x)) : Nat}
+  {Tower.mul(f, x, Tower.neg(y)) == Tower.neg(Tower.mul(f, x, y)) : Tower}
+
+law Tower.neg_mul:
+  for +f: Nat
+  for +x: Tower
+  for +y: Tower
+  for hx: Tower.clean(x)
+  for hy: Tower.clean(y)
+  for px: Tower.pos(x)
+  for py: Tower.pos(y)
+  for h: {Tower.depth(x) == Tower.depth(y) : Nat}
+  for hf: {f == Nat.add(1n, Tower.depth(x)) : Nat}
+  {Tower.mul(f, Tower.neg(x), y) == Tower.neg(Tower.mul(f, x, y)) : Tower}

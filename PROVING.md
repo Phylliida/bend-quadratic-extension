@@ -6907,3 +6907,78 @@ their fills must destructure each leaf to `Rat{n, d}` to reach the spelled law.
 successor denominator; `Rat.neg_neg` needs `{c == cmp(np, nn)}` and
 `{gcd(mag(np, nn), 1+dp) == 1}` -- reduced-form evidence too, the heaviest of the
 block.
+
+## Round sixty-three -- mul_neg and neg_mul: the second pair law, a helper name that only breaks other files
+
+**Landed.** `Tower.mul_neg` (`mul(f, x, neg(y)) == neg(mul(f, x, y))`, tower.bend
+line 605) and `Tower.neg_mul` (line 617): `clean` and `pos` on both operands, the
+operand-level depth equation, and the fuel at exactly `f == 1n + depth(x)`. In
+`tower_helpers.bend`: the indexed evidence type `Tower.NegPair<f, x, y>` holding
+`mneg` and `nmul`, the induction `Tower.neg_pair`, and the projections
+`negpair.mneg`/`negpair.nmul` that the two readable laws consist of. In
+`tower_proofs.bend`: the proof helper `Tower.neg_coord` (two coordinate congruences
+plus `neg_add` backwards, four calls per half), the `neg_pair` fill, and the two
+one-call projection fills. **First-time check of the Base/Base leaves**: the assumed
+signature `Rat.mul_neg(a, b, pa, pb)` / `Rat.neg_mul(a, b, pa, pb)` was right.
+
+**Why the pair, again.** The Ext/Ext arm's radicand coordinate of `mul_neg` is
+`mul(g, mul(g, ix, neg(iy)), dx)`; one congruence gets it to
+`mul(g, neg(mul(g, ix, iy)), dx)`, and from there to
+`neg(mul(g, mul(g, ix, iy), dx))` only through `neg_mul` *at the pair
+`(mul(g, ix, iy), dx)`*. `neg_mul`'s radicand coordinate symmetrically needs
+`mul_neg` there. So neither half is provable alone and the pair is stated once and
+projected twice -- round forty-five's `mul.safe` argument, second instance. The
+five recursive pairs are the sub-products, each carrying clean, depth and pos; `p2`
+is the one whose two halves are used by the same congruence.
+
+**Fill fixes, in the order the checker asked for them.** (1) `neg_coord`'s outer
+`trans` middle must be the first leg's exact endpoint (`add(neg(u1), t2)`, not
+`add(neg(u1), neg(u2))`). (2) Two `Equal.sym` calls were wrapping `hxri` where the
+chain wanted `depth(rx) -> depth(ix)` in its native direction. (3) `hd2` was never
+bound (two patch anchors were non-unique; a third, unique one landed). (4) `eA`
+wanted `hd2` sym'd -- the native direction is product-to-coordinate, the chain needs
+coordinate-to-product. (5) The pair call `p2` takes the *inner* product's
+`pos(mul(g, ix, iy))`, while `neg_coord` for the radicand coordinate takes the
+*outer* product's `cp2d`. (6) Assembly: one `Equal.cong` per field moves only one
+coordinate -- the goal wants both negated, so each field is two `trans` steps, the
+first holding the second coordinate in its negated spelling.
+
+**A message-only obstruction, twice.** Both patch failures this round were silent
+until the checker ran: the first rewrite's anchor `s.index("          TH.NegBoth{")`
+matched the Base/Base arm's constructor before the Ext/Ext arm's, so the 9,771-char
+replacement deleted the Ext/Ext arm's whole prelude and left its body inside the
+Base/Base arm. The symptom was `expected : a defined name / observed : rx` with a
+Base/Base context -- arm matching was correct, an Ext/Ext pattern variable was
+unbound. Recovery: `git checkout -- src/tower_proofs.bend` (every edit in the file
+was this round's own) and re-append with all six fixes baked in, which is cheaper
+than six in-place patches. Anchors on constructor calls must count-check.
+
+**New rule: a module-prefixed *helper* def breaks every importing file.**
+`T.Tower.neg_coord` -- a helper, not a fill -- typechecked when
+`src/tower_proofs.bend` was checked alone and failed in both probes that import it,
+with a location inside tower_proofs:
+
+    expected : a defined name
+    observed : src/tower.Tower.neg_coord
+
+The prefix resolves through the aliased module's *law* table, so `T.X` is only
+callable from elsewhere when `X` is a law of `tower.bend`. Helper defs take a bare
+name -- the precedent is `Rat.mul.den.pos.coords` in `rat_proofs.bend`, called bare
+by its prefixed sibling. Renamed to `Tower.neg_coord`; both probes green. Diagnostic
+to keep: **a green proofs file with red consumers** means a name that resolves only
+inside its own module.
+
+Counts: tower.bend 251 = rat.bend's 229 plus its own twenty-two (was 249/20);
+tower_helpers.bend 268 = 251 plus its own seventeen (was 265/16); README 165
+readable / 141 helpers / 305 total (was 163/140/303). All eleven gates green -- nat
+0.47, int 0.61, rat 2.87, qrat 5.69, qext 0.41, tower 3.47, probe.bend 2.98,
+payoff 7.02, tower.depth 3.18, mul.depth.arm 3.17, scratch 2.83 s, inversion triple
+`(Rat{Int{7n, 0n}, 2n}, Rat{Int{0n, 7n}, 2n}, Rat{Int{0n, 0n}, 0n})` unchanged.
+
+**Goal state.** The negation block now has five of its laws (`sub_eq_add_neg`,
+`add_neg`, `neg_add`, `mul_neg`, `neg_mul`). Left: `neg_neg`, `mul_zero`, and the
+four identities -- which wait on the canonicality carrier, since `Rat.add_zero`,
+`Rat.zero_add`, `Rat.mul_one` and `Rat.one_mul` are stated at spelled `Rat{n, d}`
+with `fx` and admit no `.arb` form. The three ring laws still wait on route (a) of
+round sixty: the cross-level fact threaded through
+`add.clean`/`mul.clean`/`mul.safe`.

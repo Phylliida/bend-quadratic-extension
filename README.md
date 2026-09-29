@@ -83,11 +83,12 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 20 / 7, qrat 36 / none, qext 2 / none -- 163 readable
-  laws, 140 helpers, 303 in total (the split itself landed 282; the product's pair
+  13, rat 40 / 28, tower 22 / 8, qrat 36 / none, qext 2 / none -- 165 readable
+  laws, 141 helpers, 305 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
-  `mul.fuel.ext` to the helper tier, round forty-eight).
+  `mul.fuel.ext` to the helper tier, round forty-eight; the negation pair added
+  `mul_neg`/`neg_mul` and `neg_pair`, round sixty-three).
 
 - `src/int.bend` — `Int` type, the ops (`Int.zero`, `Int.one`, `Int.add`,
   `Int.neg`, `Int.sub`, `Int.mul`), `Int.canon` (the canonical
@@ -212,7 +213,14 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   next and are coordinatewise: `add_neg` (x + (-x) = zero(x), clean + pos) and
   `neg_add` (the distribution -(x+y) = (-x)+(-y), clean + pos + the operand-level
   depth equation). Both `neg` and `zero` keep the radicand, and `add` keeps its
-  first operand's, so neither needs a level witness either (round sixty-two).
+  first operand's, so neither needs a level witness either (round sixty-two). The
+  block's two product laws are `mul_neg` and `neg_mul` (`x * (-y) = -(x * y)` and
+  `(-x) * y = -(x * y)`): clean and pos on both operands, the depth equation, and
+  the fuel fixed at `1n + depth(x)` -- not a convenience, but the exact fuel at
+  which each sub-product's cleanliness evidence exists. They are one induction
+  rather than two, because the radicand coordinate of each is a lower-level
+  instance of the other; the pair travels as `Tower.NegPair` and the two readable
+  laws are its projections (round sixty-three).
 - `src/tower_helpers.bend` — the helper laws split out of tower.bend (round
   forty-three): `mul.fuel.zero` and `mul.fuel.base`, the termination-fuel
   obligation, which says nothing about tower values; and `mul.safe` (round
@@ -244,7 +252,11 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   that the wider pairwise witness cannot be: cross fields make `same(x, x)` unprovable,
   and `same.of_eq` dies with it. `Tower.level.sym` and `Tower.level.trans` make it an
   equivalence, and transitivity is what will assemble the cross pair `(rx, iy)` that
-  `mul_comm` needs from the three aligned pairs around the two operands.
+  `mul_comm` needs from the three aligned pairs around the two operands. Round
+  sixty-three added the second pair law of the same shape as `mul.safe`:
+  `Tower.NegPair` (indexed by the fuel and the two operands, holding both halves of
+  `mul_neg`/`neg_mul` at once) with `neg_pair` and the projections
+  `negpair.mneg`/`negpair.nmul`.
 - `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law.
   `depth.zero`, `add.depth`, `add.clean`, `mul.safe` and `mul.above` are structural
   inductions in the fill: the match refines the law at each branch, and each arm
@@ -255,7 +267,11 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   `Tower.Same.Ext` in the `Ext`/`Ext` arm, so one case destructures it, and the
   arms whose shapes cannot agree carry `Empty` and go absurd. `mul.depth` and
   `mul.clean` are one projection call each, and the
-  `.base`/`.ext` unfoldings are definitional.
+  `.base`/`.ext` unfoldings are definitional. `neg_pair` is the same shape of
+  induction for the negation pair, with one proof helper beside it: `Tower.neg_coord`
+  turns two coordinate congruences plus `neg_add` into one coordinate of the pair
+  law, and is called four times per half. That helper is named without a module
+  prefix on purpose -- see PROVING.md round sixty-three.
 - `probe.bend` — consumer check for the ten division laws.
 - `probe.payoff.bend` — consumer check for the payoff and the operations: the
   two conversions the design rests on (positive and negative divisor spelling),
