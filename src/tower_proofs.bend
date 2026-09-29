@@ -9,6 +9,8 @@ import ./nat_proofs.bend as NN
 # not named in this file, but it is what fills rat.bend's laws, so the tower
 # proofs file reports a complete closure rather than 229 outstanding ones
 import ./rat_proofs.bend as RP
+# the commutativity law reaches the Rat leaves, where Rat.add_comm is unconditional
+import ./rat.bend as R
 
 # Tower proofs
 # ============
@@ -639,3 +641,55 @@ def TH.Tower.mul.above(f, x, y, hx, hy, h, hf):
 # mul.fuel.ext is the third field of the same induction
 def TH.Tower.mul.fuel.ext(f, x, y, hx, hy, h, hf):
   TH.Tower.above.eq(f, x, y, TH.Tower.mul.above(f, x, y, hx, hy, h, hf))
+
+# add_comm: the first law that needs the level witness, and one of the two that
+# need nothing of the coefficients -- Rat.add_comm is unconditional. The Ext arm
+# destructures the witness with a single case, because Tower.same reduces to
+# Tower.Same.Ext there; the disagreeing arms carry Empty and go absurd. The
+# three congruences walk the coordinates and then the radicand, and the nested
+# Equal.trans carries the four endpoints (trans takes exactly two legs, so the
+# outer call's third term is the final endpoint, not the inner chain's middle).
+def T.Tower.add_comm(x, y, hs):
+  match x y:
+    case T.Base{a} T.Base{b}:
+      Equal.cong(R.Rat, T.Tower, u => T.Base{u}, R.Rat.add(a, b),
+        R.Rat.add(b, a), R.Rat.add_comm(a, b))
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+      match hs:
+        case T.SameExt{+sre, +sim, +sd}:
+          +e1 = T.Tower.add_comm(rx, ry, sre)
+          +e2 = T.Tower.add_comm(ix, iy, sim)
+          +eA = Equal.cong(T.Tower, T.Tower,
+            u => T.Ext{u, T.Tower.add(ix, iy), dx},
+            T.Tower.add(rx, ry), T.Tower.add(ry, rx), e1)
+          +eB = Equal.cong(T.Tower, T.Tower,
+            u => T.Ext{T.Tower.add(ry, rx), u, dx},
+            T.Tower.add(ix, iy), T.Tower.add(iy, ix), e2)
+          +eC = Equal.cong(T.Tower, T.Tower,
+            u => T.Ext{T.Tower.add(ry, rx), T.Tower.add(iy, ix), u}, dx, dy, sd)
+          Equal.trans(T.Tower,
+            T.Ext{T.Tower.add(rx, ry), T.Tower.add(ix, iy), dx},
+            T.Ext{T.Tower.add(ry, rx), T.Tower.add(ix, iy), dx},
+            T.Ext{T.Tower.add(ry, rx), T.Tower.add(iy, ix), dy},
+            eA,
+            Equal.trans(T.Tower,
+              T.Ext{T.Tower.add(ry, rx), T.Tower.add(ix, iy), dx},
+              T.Ext{T.Tower.add(ry, rx), T.Tower.add(iy, ix), dx},
+              T.Ext{T.Tower.add(ry, rx), T.Tower.add(iy, ix), dy},
+              eB, eC))
+    case T.Base{a} T.Ext{ry, iy, dy}:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+    case T.Ext{rx, ix, dx} T.Base{b}:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+    case T.Base{a} T.Bad{}:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+    case T.Base{a} T.Fuel{}:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+    case T.Ext{rx, ix, dx} T.Bad{}:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+    case T.Ext{rx, ix, dx} T.Fuel{}:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+    case T.Bad{} _:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)
+    case T.Fuel{} _:
+      Empty.absurd({T.Tower.add(x, y) == T.Tower.add(y, x) : T.Tower}, hs)

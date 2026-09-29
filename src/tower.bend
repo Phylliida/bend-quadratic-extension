@@ -258,6 +258,44 @@ def Tower.clean(t: Tower) -> Data:
     case Fuel{}:
       Empty
 
+# The level-discipline witness: what two operands have to agree about before an
+# operation that reads its radicand from the first operand may be commuted.
+#
+# Round forty-six measured why this is not a per-value fact. Tower.clean recurses
+# on one operand and says nothing about a second one, and the swap of two depth-1
+# values whose radicands are 2 and 3 is simply false -- the results differ in the
+# third field alone. So the witness is a relation between two operands, in the
+# shape route two of that round's fork measured: a *computed family* in the style
+# of Tower.clean -- one type per pair of shapes, each with a single constructor,
+# so a consume site destructures without a case split and the pairs that cannot
+# agree get Empty.
+#
+# The Base case carries nothing: at the leaves the operands are Rats and the Rat
+# laws are unconditional there. The Ext fields are indexed by the operands' own
+# parts -- the family is applied to them directly, so no projection defs are
+# needed, exactly as CleanExt's cre is typed by Tower.clean(re).
+type Tower.Same.Base is Data:
+  SameBase{}
+
+type Tower.Same.Ext<-rx: Tower, -ix: Tower, -dx: Tower,
+                     -ry: Tower, -iy: Tower, -dy: Tower> is Data:
+  SameExt{sre: Tower.same(rx, ry),
+          sim: Tower.same(ix, iy),
+          sd: {dx == dy : Tower}}
+
+# A wildcard operand does not do: the family is stuck on a variable, so every arm
+# whose shapes disagree spells both of them out and reports Empty. Those arms
+# close at the call site with Empty.absurd, the idiom the fills already use for
+# the Bad and Fuel arms.
+def Tower.same(x: Tower, y: Tower) -> Data:
+  match x y:
+    case Base{a} Base{b}:
+      Tower.Same.Base
+    case Ext{rx, ix, dx} Ext{ry, iy, dy}:
+      Tower.Same.Ext<rx, ix, dx, ry, iy, dy>
+    case _ _:
+      Empty
+
 # Safety: a clean call is a clean result
 # ======================================
 #
@@ -405,3 +443,15 @@ law Tower.one.ext:
   for im: Tower
   for d: Tower
   {Tower.one(Ext{re, im, d}) == Ext{Tower.one(re), Tower.zero(im), d} : Tower}
+
+# The commutativity laws need hs because add keeps the first operand's radicand:
+# add(x, y) is Ext{add(rx, ry), add(ix, iy), dx}, so swapping is a claim about the
+# radicand slot as well as the coordinates. mul_comm is deliberately not here
+# yet: its Ext arm's third recursive call takes a *product* as an argument, so it
+# needs a witness for values the law has not been given one for -- a composition
+# law for this witness, which is the level discipline's preservation theorem.
+law Tower.add_comm:
+  for +x: Tower
+  for +y: Tower
+  for hs: Tower.same(x, y)
+  {Tower.add(x, y) == Tower.add(y, x) : Tower}

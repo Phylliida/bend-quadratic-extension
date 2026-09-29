@@ -1717,6 +1717,65 @@ associativity and distributivity laws remain blocked on the coefficient decision
 of round forty-seven as well, since their Rat twins (`add_assoc.arb`,
 `mul_assoc.arb`, `mul_distrib.arb`) all carry a positivity hypothesis.
 
+### Route 2 is adopted, and add_comm is the first ring law (round fifty)
+
+The user's constraints settled the fork rather than a preference among the three
+routes: laws carry the least machinery they need (`minimal complexity as needed`),
+the design has to support a thirty-deep circle-chain, checking has to stay fast,
+and -- the deciding one -- the verification must be complete *without* a caller's
+discipline. Route 3 fails that last test: an explicit radicand parameter makes the
+ring laws unconditional by letting a caller pass any level, so a wrong level is a
+silently wrong value, which is exactly the discipline the tower's fail-loud design
+exists to avoid. Route 1 (`Tower.At<x, c>`) is sound but threads a level term
+through every law's signature and by the round-forty-nine measurement needs the
+same computed-family treatment. Route 2 states the obligation *in the type*, where
+a caller who does not have it cannot call the law at all, and it was measured green
+in round forty-nine.
+
+So `Tower.same` and its two shapes now live in `src/tower.bend`, right after
+`Tower.clean`, and `Tower.add_comm` is the first law stated with one:
+
+    law Tower.add_comm:
+      for +x: Tower
+      for +y: Tower
+      for hs: Tower.same(x, y)
+      {Tower.add(x, y) == Tower.add(y, x) : Tower}
+
+Its fill is a structural induction on the two shapes, and the witness is what makes
+the `Ext`/`Ext` arm work: the hypothesis reduces to `Same.Ext<...>` there, so a
+single-case match destructures it into `sre`, `sim` and `sd`, the two recursive
+instances come from the first two, and `sd` is what the third congruence needs to
+move the result's third field from `dx` to `dy`. The seven arms whose shapes cannot
+agree carry `Empty` and close with `Empty.absurd`. `Rat.add_comm` is unconditional,
+so the `Base`/`Base` arm is one congruence and the witness carries nothing there.
+
+`mul_comm` is deliberately *not* in this landing, and the reason is worth recording
+before someone tries to write it. `Tower.mul`'s `Ext` arm calls
+`mul(g, mul(g, ix, iy), dx)` -- the third recursive call takes a *product* as its
+first argument. Swapping the operands makes that call's arguments
+`mul(g, iy, ix)` and `dy`, so the instance the law needs is at the pair
+`(mul(g, ix, iy), mul(g, iy, ix))` and `(dx, dy)` -- values for which the law was
+handed no witness. The operands' witnesses do not compose automatically: what is
+missing is a *preservation* law, `same(x, y)` and `same(u, v)` giving
+`same(mul(f, x, u), mul(f, y, v))` (with the fuel bookkeeping the shape depends
+on), which is the level discipline's closure theorem and the right next unit.
+
+### The coefficient half of the fork: positivity goes into the same witness
+
+Round forty-seven recorded that the identity laws need a fact about a coefficient,
+not just a level relation, and that the two decisions should be one. Applying the
+same constraints: a *second* hypothesis on every law is surface a caller must
+carry, and canonical coordinates with `f1`/`f2` bridges would make every solver
+step heavy, which the speed constraint rules out for a thirty-deep chain. So the
+positivity a coefficient needs belongs in `Tower.same` too -- one witness, one
+hypothesis per law, still fail-loud (a caller who cannot show positivity of the
+leaves cannot call the law, rather than getting a silently degenerate rational).
+What that needs first is the Rat-side propagation to *obtain* the facts rather than
+assume them: `Rat.add`'s and `Rat.mul`'s denominators are products and sums of
+their inputs', so a small family of `den.pos`-style laws (the shape `Rat.neg.den.pos`
+already has) is what turns a tower built from `lift`-ed rationals into a value
+whose positivity is provable at every level.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

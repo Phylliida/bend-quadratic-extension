@@ -83,8 +83,8 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 16 / 5, qrat 36 / none, qext 2 / none -- 159 readable
-  laws, 129 helpers, 288 in total (the split itself landed 282; the product's pair
+  13, rat 40 / 28, tower 17 / 5, qrat 36 / none, qext 2 / none -- 160 readable
+  laws, 129 helpers, 289 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
   `mul.fuel.ext` to the helper tier, round forty-eight).
@@ -185,14 +185,20 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   parts at the level below), `Tower.depth`, `Tower.zero`, `Tower.lift` (one
   constructor, so lifting is constant-time rather than merely linear), the `Tower.wf`
   evidence family with its two transport defs, and Step 2's level arithmetic:
-  `Tower.add(+d, x, y)`, `Tower.neg(x)`, `Tower.mul(+f, +d, x, y)` and
-  `Tower.one(t)`, with the radicand read off the first operand's own third field
-  (intrinsic, round thirty-nine; only *shapes* are compared, so the level
-  discipline is the laws' job) and `mul` descending on a `Nat` fuel. Sixteen
-  laws: the level arithmetic (`add.depth`, `add.clean`, `mul.depth`, `mul.clean`),
+  `Tower.add(x, y)`, `Tower.neg(x)`, `Tower.mul(+f, x, y)` and `Tower.one(t)`,
+  with the radicand read off the first operand's own third field (intrinsic,
+  round thirty-nine) and `mul` descending on a `Nat` fuel. Seventeen laws: the
+  level arithmetic (`add.depth`, `add.clean`, `mul.depth`, `mul.clean`),
   `zero.base`, `depth.zero`, `depth.lift`, `lift.zero`, `add.base`, `add.ext`,
   `neg.ext`, `sub_eq_add_neg`, `mul.base`, `mul.ext` (the
-  `sqrt(d) * sqrt(d) = d` unfolding), `one.base`, `one.ext`.
+  `sqrt(d) * sqrt(d) = d` unfolding), `one.base`, `one.ext`, and `add_comm` --
+  the first ring law, and the first law to need the `Tower.same` witness family
+  that sits above `Tower.clean`: a computed family in `clean`'s own shape, one
+  type per pair of shapes, saying at an `Ext` pair that the coordinates agree and
+  that the two radicands are one term. Two depth-1 operands whose radicands are 2
+  and 3 commute only in their coordinates -- the third field is the first
+  operand's either way -- which is why the law needs the witness at all
+  (rounds forty-six and fifty).
 - `src/tower_helpers.bend` — the helper laws split out of tower.bend (round
   forty-three): `mul.fuel.zero` and `mul.fuel.base`, the termination-fuel
   obligation, which says nothing about tower values; and `mul.safe` (round
@@ -212,7 +218,10 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   recurses on the tail with the facts the recursion needs (`mul.safe`'s Ext/Ext arm
   makes four
   recursive calls at the smaller fuel, each handing back both facts about a
-  sub-product). `mul.depth` and `mul.clean` are one projection call each, and the
+  sub-product). `add_comm` is a structural induction over the two shapes: the witness reduces to
+  `Tower.Same.Ext` in the `Ext`/`Ext` arm, so one case destructures it, and the
+  arms whose shapes cannot agree carry `Empty` and go absurd. `mul.depth` and
+  `mul.clean` are one projection call each, and the
   `.base`/`.ext` unfoldings are definitional.
 - `probe.bend` — consumer check for the ten division laws.
 - `probe.payoff.bend` — consumer check for the payoff and the operations: the
@@ -251,8 +260,8 @@ computes instead of that line. The count is
 transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
 QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 265 = 129 Nat +
 32 Int + 68 Rat + 36 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own thirty-six laws), tower.bend 245 = rat.bend's 229 plus
-its own sixteen, and tower_helpers.bend 250 = tower.bend's 245 plus its own five.
+rat.bend's plus its own thirty-six laws), tower.bend 246 = rat.bend's 229 plus
+its own seventeen, and tower_helpers.bend 250 = tower.bend's 245 plus its own five.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.

@@ -6336,3 +6336,43 @@ not the inner chain's middle:
 
 Recorded in TOWER-PLAN's Step-2 section. The fork itself is still the user's
 call -- this round is the measurement that makes one of the three routes cheap.
+
+## Round fifty -- Route 2 is adopted and Tower.add_comm is proved
+
+The fork is closed. The deciding constraint was the user's: verification complete
+without a caller's discipline. Route 3 (an explicit radicand parameter) buys
+unconditional laws by letting a caller name any level, so a wrong level is a
+silently wrong value -- the one failure mode the tower's fail-loud markers exist to
+prevent. Route 1 (`Tower.At`) is sound but drags a level term through every
+signature and, per round forty-nine, needs the same computed-family treatment.
+Route 2 puts the obligation in the type, where not having it means not being able to
+call the law.
+
+`Tower.Same.Base`, `Tower.Same.Ext` and `def Tower.same` are now in `src/tower.bend`
+directly after `Tower.clean`, and `Tower.add_comm` is the first law carrying
+`for hs: Tower.same(x, y)`. The fill is a two-shape structural induction; the
+`Ext`/`Ext` arm matches `hs` once (the family has reduced to `Same.Ext` there),
+takes the two recursive instances from `sre` and `sim`, and uses `sd` in the third
+congruence to move the result's radicand from `dx` to `dy`. The seven disagreeing
+arms -- `Base`/`Ext`, `Ext`/`Base`, the four with a marker, and the two marker-first
+`_` arms -- carry `Empty` and close with `Empty.absurd`. The `Base`/`Base` arm is
+one `Equal.cong` over `Rat.add_comm`, which is unconditional: that is why the Base
+witness can be empty.
+
+The fill checked on its first run, which is worth noting against the file's history:
+the probe had already measured every mechanic it uses (the shape of the family, the
+single-case destructure, the wildcard's failure, the construction of a witness, and
+the nested two-leg `Equal.trans`), so this landing was assembly rather than search.
+`tower.bend` now reports 246 TODOs (245 + one), i.e. seventeen own laws on top of
+rat.bend's 229; the tiers read 160 readable / 129 helpers / 289 total; all eleven
+gates check and `scratch.bend` still prints the inversion triple.
+
+Recorded as the next unit: `mul_comm` needs a *composition* law for the witness.
+`mul`'s third recursive call takes a product as its first argument, so the swapped
+instance is a pair of values the law was given no witness for; the missing theorem is
+`same(x, y) and same(u, v) implies same(mul(f, x, u), mul(f, y, v))`, i.e. the level
+discipline is preserved by the operations. And the coefficient half of round
+forty-seven is decided the same way: positivity joins the same witness rather than
+becoming a second hypothesis or forcing canonical coordinates with bridges, which
+needs a small `den.pos`-style propagation family on the Rat side first, so that
+positivity is *obtainable* rather than assumed.
