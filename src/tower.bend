@@ -255,7 +255,6 @@ def Tower.clean(t: Tower) -> Data:
 # the top. The equal-depth hypothesis is what rules out the mixed-shape arms, and
 # it is the caller's obligation -- bend cannot express "x is at d's level" as a
 # type, which is why the hypothesis is a proposition rather than a signature.
-
 # add preserves the level, and that is what lets the clean law build the level
 # relations for its own result: the three fields of an Ext result get their
 # relations from the depth of the coordinates that produced them.
@@ -270,7 +269,6 @@ law Tower.add.depth:
   for +y: Tower
   for h: {Tower.depth(x) == Tower.depth(y) : Nat}
   {Tower.depth(Tower.add(x, y)) == Tower.depth(x) : Nat}
-
 law Tower.add.clean:
   for +x: Tower
   for +y: Tower
@@ -286,34 +284,19 @@ law Tower.add.clean:
 # always enough and the radicand is never touched. This is the base case of the
 # obligation; the extension case is where the recursion has to descend a level,
 # and that is a separate question (see TOWER-PLAN section 7, round thirty-three).
-
-law Tower.mul.fuel.zero:
-  for +x: Tower
-  for +y: Tower
-  {Tower.mul(0n, x, y) == Fuel{} : Tower}
-
-law Tower.mul.fuel.base:
-  for +g: Nat
-  for a: R.Rat
-  for b: R.Rat
-  Tower.clean(Tower.mul(1n+g, Base{a}, Base{b}))
-
 # zero at the bottom level is a zero
 law Tower.zero.base:
   for v: R.Rat
   {Tower.zero(Base{v}) == Base{R.Rat.zero()} : Tower}
-
 # zero does not change the level
 law Tower.depth.zero:
   for +t: Tower
   {Tower.depth(Tower.zero(t)) == Tower.depth(t) : Nat}
-
 # lift raises the level by exactly one
 law Tower.depth.lift:
   for +t: Tower
   for +d: Tower
   {Tower.depth(Tower.lift(t, d)) == 1n+Tower.depth(t) : Nat}
-
 # lift distributes over zero: the level operation zero survives the embedding
 law Tower.lift.zero:
   for +t: Tower
@@ -327,12 +310,10 @@ law Tower.lift.zero:
 # unfolding, stated so that later laws -- and callers -- can rewrite with it
 # without re-deriving it; the ring laws that follow in Step 2 work by induction on
 # top of exactly these.
-
 law Tower.add.base:
   for a: R.Rat
   for b: R.Rat
   {Tower.add(Base{a}, Base{b}) == Base{R.Rat.add(a, b)} : Tower}
-
 law Tower.add.ext:
   for rx: Tower
   for ix: Tower
@@ -342,19 +323,16 @@ law Tower.add.ext:
   for dy: Tower
   {Tower.add(Ext{rx, ix, dx}, Ext{ry, iy, dy})
    == Ext{Tower.add(rx, ry), Tower.add(ix, iy), dx} : Tower}
-
 law Tower.neg.ext:
   for rx: Tower
   for ix: Tower
   for dx: Tower
   {Tower.neg(Ext{rx, ix, dx}) == Ext{Tower.neg(rx), Tower.neg(ix), dx} : Tower}
-
 law Tower.mul.base:
   for +g: Nat
   for a: R.Rat
   for b: R.Rat
   {Tower.mul(1n+g, Base{a}, Base{b}) == Base{R.Rat.mul(a, b)} : Tower}
-
 # the sqrt(d) * sqrt(d) = d reduction, as the unfolding the plan asks for. Spelled
 # at a successor fuel, since the definition matches on the fuel.
 law Tower.mul.ext:
@@ -369,11 +347,9 @@ law Tower.mul.ext:
    == Ext{Tower.add(Tower.mul(g, rx, ry), Tower.mul(g, Tower.mul(g, ix, iy), dx)),
           Tower.add(Tower.mul(g, rx, iy), Tower.mul(g, ix, ry)),
           dx} : Tower}
-
 law Tower.one.base:
   for v: R.Rat
   {Tower.one(Base{v}) == Base{R.Rat.one()} : Tower}
-
 law Tower.one.ext:
   for re: Tower
   for im: Tower

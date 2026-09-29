@@ -1,5 +1,6 @@
 import Base
 import ./src/tower.bend as T
+import ./src/tower_helpers.bend as TH
 import ./src/tower_proofs.bend as TP
 import ./src/nat.bend as N
 import ./src/nat_proofs.bend as NN

@@ -1,5 +1,6 @@
 import Base
 import ./tower.bend as T
+import ./tower_helpers.bend as TH
 # succ_inj (successor cancellation) and succ_add_ne (k = (1+b)+k is impossible)
 # are the two nat facts the safety proofs run on
 import ./nat.bend as N
@@ -167,8 +168,8 @@ def T.Tower.add.clean(x, y, hx, hy, h):
     case _ T.Fuel{}:
       Empty.absurd(T.Tower.clean(T.Tower.add(x, T.Fuel{})), hy)
 
-def T.Tower.mul.fuel.base(g, a, b):
+def TH.Tower.mul.fuel.base(g, a, b):
   T.CleanOk{}
 
-def T.Tower.mul.fuel.zero(x, y):
+def TH.Tower.mul.fuel.zero(x, y):
   {==}
