@@ -1200,3 +1200,75 @@ def TH.Tower.level.sym(x, y, h):
       Empty.absurd(T.Tower.level(y, x), h)
     case T.Fuel{} T.Fuel{}:
       T.LevelBase{}
+
+
+def TH.Tower.level.trans(x, y, z, hxy, hyz):
+  match x y:
+    case T.Base{a} T.Base{b}:
+      match z:
+        case T.Base{c}:
+          T.LevelBase{}
+        case T.Ext{rz, iz, dz}:
+          Empty.absurd(T.Tower.level(x, z), hyz)
+        case T.Bad{}:
+          Empty.absurd(T.Tower.level(x, z), hyz)
+        case T.Fuel{}:
+          Empty.absurd(T.Tower.level(x, z), hyz)
+    case T.Base{a} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.level(x, z), hxy)
+    case T.Base{a} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, z), hxy)
+    case T.Base{a} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, z), hxy)
+    case T.Ext{rx, ix, dx} T.Base{b}:
+      Empty.absurd(T.Tower.level(x, z), hxy)
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+      match z:
+        case T.Base{c}:
+          Empty.absurd(T.Tower.level(x, z), hyz)
+        case T.Ext{rz, iz, dz}:
+          T.LevelExt{+lre, +lim, +ld} = hxy
+          T.LevelExt{+mre, +mim, +md} = hyz
+          T.LevelExt{TH.Tower.level.trans(rx, ry, rz, lre, mre),
+                     TH.Tower.level.trans(ix, iy, iz, lim, mim),
+                     Equal.trans(T.Tower, dx, dy, dz, ld, md)}
+        case T.Bad{}:
+          Empty.absurd(T.Tower.level(x, z), hyz)
+        case T.Fuel{}:
+          Empty.absurd(T.Tower.level(x, z), hyz)
+    case T.Ext{rx, ix, dx} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, z), hxy)
+    case T.Ext{rx, ix, dx} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, z), hxy)
+    case T.Bad{} T.Base{b}:
+      Empty.absurd(T.Tower.level(x, z), hxy)
+    case T.Bad{} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.level(x, z), hxy)
+    case T.Bad{} T.Bad{}:
+      match z:
+        case T.Base{c}:
+          Empty.absurd(T.Tower.level(x, z), hyz)
+        case T.Ext{rz, iz, dz}:
+          Empty.absurd(T.Tower.level(x, z), hyz)
+        case T.Bad{}:
+          T.LevelBase{}
+        case T.Fuel{}:
+          Empty.absurd(T.Tower.level(x, z), hyz)
+    case T.Bad{} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, z), hxy)
+    case T.Fuel{} T.Base{b}:
+      Empty.absurd(T.Tower.level(x, z), hxy)
+    case T.Fuel{} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.level(x, z), hxy)
+    case T.Fuel{} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, z), hxy)
+    case T.Fuel{} T.Fuel{}:
+      match z:
+        case T.Base{c}:
+          Empty.absurd(T.Tower.level(x, z), hyz)
+        case T.Ext{rz, iz, dz}:
+          Empty.absurd(T.Tower.level(x, z), hyz)
+        case T.Bad{}:
+          Empty.absurd(T.Tower.level(x, z), hyz)
+        case T.Fuel{}:
+          T.LevelBase{}

@@ -234,3 +234,15 @@ law Tower.level.sym:
   for +y: T.Tower
   for h: T.Tower.level(x, y)
   T.Tower.level(y, x)
+
+# Level is transitive, and transitivity is what assembles the cross pair. The three
+# aligned pairs that sit around two operands -- x's own coordinates (re, im), the pair
+# across the operands (rx, ry), y's own coordinates (ry, iy) -- chain into level(rx, iy),
+# the pair mul_comm's recursive instance needs and same(x, y) cannot hand over.
+law Tower.level.trans:
+  for +x: T.Tower
+  for +y: T.Tower
+  for +z: T.Tower
+  for hxy: T.Tower.level(x, y)
+  for hyz: T.Tower.level(y, z)
+  T.Tower.level(x, z)
