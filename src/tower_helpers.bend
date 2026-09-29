@@ -246,3 +246,15 @@ law Tower.level.trans:
   for hxy: T.Tower.level(x, y)
   for hyz: T.Tower.level(y, z)
   T.Tower.level(x, z)
+
+# Closure under add: the first propagation law of the coefficient carrier. The leaf
+# case is R.Rat.add.den.pos read at the two coordinates; the Ext case is two recursive
+# instances. No depth agreement appears -- add computes Ext{..., dx} whatever the depths
+# are, and positivity is a per-value fact, so unlike add.clean this law needs no
+# hypothesis beyond the two witnesses.
+law Tower.pos.add:
+  for +x: T.Tower
+  for +y: T.Tower
+  for hx: T.Tower.pos(x)
+  for hy: T.Tower.pos(y)
+  T.Tower.pos(T.Tower.add(x, y))

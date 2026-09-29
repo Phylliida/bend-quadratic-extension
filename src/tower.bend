@@ -497,6 +497,43 @@ law Tower.one.ext:
 # yet: its Ext arm's third recursive call takes a *product* as an argument, so it
 # needs a witness for values the law has not been given one for -- a composition
 # law for this witness, which is the level discipline's preservation theorem.
+# Tower.Pos: every Rat leaf of the value has a positive denominator.
+#
+# The coefficient half of the carrier. Round fifty-six measured that it cannot be
+# derived: Rat.add_assoc.arb asks {Nat.cmp(0n, Rat.denof(a)) == LT{}} of each
+# coordinate, Rat.denof(Rat{p, d}) is the field d, and Nat.cmp(0n, d) is stuck at a
+# variable -- the general statement is false outright (Rat{Int{0n,0n}, 0n}). Positivity
+# is a property of the *spelling* (Nat.cmp(0n, 1n+dp) is LT{} by {==}), and a law stated
+# at variable coordinates has to be handed it.
+#
+# Hence a per-value family, like Tower.clean and unlike the pairwise Tower.Same:
+# reflexivity is what a witness family needs to be usable, and the leaf facts
+# propagate through the operations by Rat laws that already exist (Rat.add.den.pos,
+# Rat.mul.den.pos, Rat.neg.den.pos, landed for the QExt rationalization).
+#
+# The marker arms are Pos.Marker rather than Empty, for round fifty-one's reason: the
+# operations are total even where they cannot do their job, so a closure law's shape
+# induction reaches Bad and Fuel results and has to say something there.
+type Tower.Pos.Marker is Data:
+  PosOk{}
+
+type Tower.Pos.Base<-a: R.Rat> is Data:
+  PosBase{pden: {Nat.cmp(0n, R.Rat.denof(a)) == LT{} : Cmp}}
+
+type Tower.Pos.Ext<-re: Tower, -im: Tower> is Data:
+  PosExt{pre: Tower.pos(re), pim: Tower.pos(im)}
+
+def Tower.pos(t: Tower) -> Data:
+  match t:
+    case Base{a}:
+      Tower.Pos.Base<a>
+    case Ext{re, im, d}:
+      Tower.Pos.Ext<re, im>
+    case Bad{}:
+      Tower.Pos.Marker
+    case Fuel{}:
+      Tower.Pos.Marker
+
 law Tower.add_comm:
   for +x: Tower
   for +y: Tower

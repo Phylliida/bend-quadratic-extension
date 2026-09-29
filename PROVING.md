@@ -6655,3 +6655,38 @@ positivity hypotheses on the Rat side (`Rat.mul_neg`, `Rat.neg_mul`, `Rat.add_ne
 `add_assoc`'s law and fill are reverted, not forced: no finite law statement can name
 every leaf's denominator, which is what a witness type is for. Counts unchanged (tower
 17 own / 246, helpers 12 own / 258); gates unchanged; the coefficient probe deleted.
+
+## Round fifty-seven
+
+The first piece of the carrier round fifty-six forced: `Tower.Pos`, a per-value family
+saying every Rat leaf's denominator is positive, plus its closure under `add`. Per-value
+rather than pairwise on purpose -- reflexivity is a witness family's price of admission
+(round fifty-three), and positivity is a property of a *value's* leaves, not of a pair.
+
+Readable tier (`src/tower.bend`, beside `Tower.clean`, `Tower.Same`, `Tower.Level`):
+`Pos.Marker` (`PosOk{}`), `Pos.Base<-a: R.Rat>` (`pden: {Nat.cmp(0n, R.Rat.denof(a)) ==
+LT{} : Cmp}`), `Pos.Ext<-re, -im>` (`pre`, `pim`), and `def Tower.pos`. Helper tier:
+`law Tower.pos.add` -- `pos(x)`, `pos(y)` entail `pos(add(x, y))`, with *no* depth
+hypothesis, unlike `add.clean`: `add` builds `Ext{..., dx}` whatever the depths are, and
+the conclusion is per-value. Fill in `tower_proofs.bend`: sixteen arms; Base/Base is
+`R.Rat.add.den.pos(a, b, pa, pb)` after destructuring both witnesses, Ext/Ext is two
+recursive instances, everything else (including every marker mix) is `PosOk{}`.
+"All terms check." on the first run after one spelling fix.
+
+Two spellings, both now recorded in TOWER-PLAN:
+
+- a family's own dispatch def spells its arms **fully qualified**: `Tower.Pos.Base<a>`,
+  matching `Tower.Clean.Ext<re, im, d>` in `Tower.clean`. A bare `Pos.Base<a>` fails with
+  `a declared datatype (unknown: tower.tower.Pos.Base)` -- the name is resolved against
+  the def's own qualified context, so the prefix doubles.
+- the indexed field's type is `R.Rat`, not `Rat`: `expected : a defined name /
+  observed : tower.Rat`. `Tower` needs no prefix because it is the module's own type;
+  `Rat` is imported and must carry its alias.
+
+Counts: `src/tower.bend` 246 TODOs (unchanged -- the family is a type plus a def, not a
+law), `src/tower_helpers.bend` 259 = 246 + its own thirteen. Gates all green at
+nat_proofs 0.45s, int 0.50s, rat 2.81s, qrat 5.59s, qext 0.43s, tower_proofs 2.90s,
+probe.bend 3.25s, probe.payoff 6.97s, probe.tower.depth 2.79s, probe.mul.depth.arm 2.44s,
+scratch 2.40s with the inversion triple unchanged. Next: `pos.mul`, `pos.neg` (their Rat
+propagation laws already exist), then the level fields and the ring laws whose bundle is
+`clean` + `pos` + `level`.

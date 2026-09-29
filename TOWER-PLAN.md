@@ -1992,6 +1992,44 @@ one carrier extension with a blast radius already counted: three construction si
 `add_assoc`'s law and fill are reverted rather than forced: no finite statement can name
 every leaf's denominator, which is precisely what a witness type is for.
 
+### The carrier's first piece: a per-value positivity family, and closure under add (round fifty-seven)
+
+`Tower.Pos` lands in the readable tier beside the other families, and `Tower.pos.add` in
+the helper tier:
+
+    type Tower.Pos.Marker is Data: PosOk{}
+    type Tower.Pos.Base<-a: R.Rat> is Data:
+      PosBase{pden: {Nat.cmp(0n, R.Rat.denof(a)) == LT{} : Cmp}}
+    type Tower.Pos.Ext<-re: Tower, -im: Tower> is Data:
+      PosExt{pre: Tower.pos(re), pim: Tower.pos(im)}
+
+Per-value, like `clean` and unlike the pairwise `Tower.Same`: reflexivity is what a
+witness family has to have to be usable, and the orientation is what round fifty-three
+killed in the pairwise design. The marker arms are `Pos.Marker`, not `Empty`, for round
+fifty-one's reason -- the operations are total where they cannot do their job.
+
+The closure law is sixteen arms and *no depth agreement*, unlike `add.clean`: `add`
+computes `Ext{..., dx}` whatever the depths are, and positivity is a per-value fact. The
+leaf case is `R.Rat.add.den.pos` read at the two coordinates; the Ext case is two
+recursive instances; the marker arms are `PosOk{}`. "All terms check." first run.
+
+Two spellings measured, both cheap to get wrong:
+
+- inside a family's own dispatch def the arms are written **fully qualified** --
+  `Tower.Pos.Base<a>`, `Tower.Clean.Ext<re, im, d>` -- and a bare `Pos.Base<a>` resolves
+  to the doubled name (`a declared datatype (unknown: tower.tower.Pos.Base)`);
+- an indexed field's type must be `R.Rat`, not `Rat` (`expected : a defined name /
+  observed : tower.Rat`), because the readable tier's own names are not in the module's
+  scope the way `Tower` is.
+
+What remains of the carrier: closure under `mul` and `neg` (both propagation laws exist
+on the Rat side -- `Rat.mul.den.pos`, `Rat.neg.den.pos`), the two level fields in
+`CleanExt` (round fifty-four) and their propagation (`Tower.level.add`/`level.mul`), and
+then the ring laws and the identity block, each stated with the bundle `clean(x)`,
+`pos(x)`, `level(x, y)`. Open question for the next round: whether those three
+hypotheses should fold into one family for the laws' sake (the user's minimal-law-surface
+criterion) or stay three named facts.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

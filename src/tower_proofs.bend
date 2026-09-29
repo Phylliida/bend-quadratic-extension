@@ -1272,3 +1272,44 @@ def TH.Tower.level.trans(x, y, z, hxy, hyz):
           Empty.absurd(T.Tower.level(x, z), hyz)
         case T.Fuel{}:
           T.LevelBase{}
+
+
+def TH.Tower.pos.add(x, y, hx, hy):
+  match x y:
+    case T.Base{a} T.Base{b}:
+      T.PosBase{+pa} = hx
+      T.PosBase{+pb} = hy
+      T.PosBase{R.Rat.add.den.pos(a, b, pa, pb)}
+    case T.Base{a} T.Ext{ry, iy, dy}:
+      T.PosOk{}
+    case T.Base{a} T.Bad{}:
+      T.PosOk{}
+    case T.Base{a} T.Fuel{}:
+      T.PosOk{}
+    case T.Ext{rx, ix, dx} T.Base{b}:
+      T.PosOk{}
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+      T.PosExt{+pre, +pim} = hx
+      T.PosExt{+pre2, +pim2} = hy
+      T.PosExt{TH.Tower.pos.add(rx, ry, pre, pre2),
+                TH.Tower.pos.add(ix, iy, pim, pim2)}
+    case T.Ext{rx, ix, dx} T.Bad{}:
+      T.PosOk{}
+    case T.Ext{rx, ix, dx} T.Fuel{}:
+      T.PosOk{}
+    case T.Bad{} T.Base{b}:
+      T.PosOk{}
+    case T.Bad{} T.Ext{ry, iy, dy}:
+      T.PosOk{}
+    case T.Bad{} T.Bad{}:
+      T.PosOk{}
+    case T.Bad{} T.Fuel{}:
+      T.PosOk{}
+    case T.Fuel{} T.Base{b}:
+      T.PosOk{}
+    case T.Fuel{} T.Ext{ry, iy, dy}:
+      T.PosOk{}
+    case T.Fuel{} T.Bad{}:
+      T.PosOk{}
+    case T.Fuel{} T.Fuel{}:
+      T.PosOk{}
