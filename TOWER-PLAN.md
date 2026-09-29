@@ -1942,6 +1942,56 @@ both hypotheses and rebuilds from two recursive calls plus
 `level(x, z)` to `Empty` whatever z is, which is why z is scrutinised only in the
 agreeing arms and the table is 28 arms rather than 64.
 
+### The coefficient wall, measured: add_assoc, and why the witness must carry positivity (round fifty-six)
+
+`add_assoc` is the ring law that needs no *level* agreement: `add` keeps the first
+operand's radicand (`Ext{..., dx}`) and both sides of associativity have `x` first, so
+`dx` stands on both sides and the Ext/Ext/Ext arm is decided by the coordinates alone --
+the Rat leaves plus two recursive instances. Sixty-four arms were written and the depth
+plumbing works (`N.succ_inj` on the operands' equation, two `Equal.trans` chains relating
+the imaginary depths through `hri`, exactly the `add.clean` recipe). It reached the leaf
+and stopped, and the reason is the round-forty-seven fork arriving for real:
+
+    expected : {rat.Rat.add(rat.Rat.add(a, b), c) == rat.Rat.add(a, rat.Rat.add(b, c)) : rat.Rat}
+    observed : @+px:{Nat.cmp(0n, rat.Rat.denof(a)) == LT{} : Cmp} -> @+py:{...} -> @+pz:{...} -> ...
+
+The arbitrary-value Rat associativity the tower needs is `Rat.add_assoc.arb`
+(`rat_helpers.bend`; the readable `Rat.add_assoc` is stated at canonical coordinates and
+carries their evidence), and it demands the **positivity of each coordinate's
+denominator**. The tower witness carries no coefficient facts at all: `CleanOk{}`, the
+leaf case, carries nothing. `add_comm` was landable only because `Rat.add_comm` is
+unconditional at raw Rats -- the boundary between the two ring laws is now a measured
+fact, not a guess.
+
+Is the missing fact derivable instead of carried? A probe law stated the obvious general
+form and the answer is no:
+
+    law Probe.denpos:  for +r: R.Rat  {Nat.cmp(0n, R.Rat.denof(r)) == LT{} : Cmp}
+    expected : Nat.cmp(0n, d)
+    observed : LT{}
+    Context:  p : src/int.Int   d : Nat
+
+`denof(Rat{p, d})` is the field `d`, and `Nat.cmp(0n, d)` is stuck while `d` is a
+variable -- and the statement is in fact false (`Rat{Int{0n,0n}, 0n}` is a value with
+denominator zero). Positivity is a property of the *spelling* (`cmp(0n, 1n+dp)` is `LT{}`
+by `{==}`), and a law stated at variable coordinates cannot reach it. So it is carried,
+which is what round forty-seven decided in principle; round fifty-six is the measurement
+that makes it forced.
+
+**One design change serves both remaining blocks.** The carrier `CleanExt` gains the
+level fields (`level(re, im)`, `level(re, d)` -- see round fifty-four) *and* the
+per-coefficient positivity facts, and both halves are then propagated, not assumed: the
+propagation laws already exist, landed for the QExt rationalization --
+`Rat.mul.den.pos`, `Rat.add.den.pos`, `Rat.neg.den.pos` (`rat.bend`), each at arbitrary
+Rats with exactly these hypotheses. So the ring laws (`mul_comm`, `mul_assoc`,
+`mul_distrib`) and the identity/negation block (`Rat.mul_neg`, `Rat.neg_mul`,
+`Rat.add_neg`, `Rat.mul_inv.*` all carry positivity; checked in the same read) wait on
+one carrier extension with a blast radius already counted: three construction sites
+(`tower_proofs.bend` 148, 311, 596) and six destructuring sites.
+
+`add_assoc`'s law and fill are reverted rather than forced: no finite statement can name
+every leaf's denominator, which is precisely what a witness type is for.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

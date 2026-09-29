@@ -6601,3 +6601,57 @@ This file's own lesson, hit twice now: an assert-based docs patch must read the 
 current text first -- this round's README patch matched and the TOWER-PLAN one did not
 (the prose had rewrapped when it was written), so the plan section and this round entry
 arrive in their own commit rather than the code commit.
+
+## Round fifty-six
+
+The goal's item (2) asks for the five ring laws. `add_comm` landed in round fifty (the
+pairwise witness), and the next one, `add_assoc`, looked like the cheap half: `add` keeps
+the first operand's radicand and both sides of associativity have `x` first, so the
+radicand field agrees and no level coherence is needed. Stated in the readable tier with
+`clean(x)`, `clean(y)`, `clean(z)` and the two depth equations, filled as sixty-four
+shape arms -- all definitional except Base/Base/Base (one `Equal.cong` over the Rat leaf)
+and Ext/Ext/Ext (two recursive instances).
+
+Two failures, both kept:
+
+- mechanical: the fill's def must be named for the module that *states* the law. The law
+  is in `tower.bend` (readable tier), so the fill is `def T.Tower.add_assoc(...)`, not
+  `TH.` -- the checker says it plainly ("no law named TH.Tower.add_assoc is in scope").
+  Related: the callable arbitrary-value Rat associativity is `RH.Rat.add_assoc.arb`
+  (`rat_helpers.bend`, needs `import ./rat_helpers.bend as RH`); `RP.Rat.add_assoc` is
+  the readable law at canonical coordinates and cannot be called at arbitrary values.
+- substantive (the round's finding): the Base/Base/Base arm stops on
+
+      expected : {Rat.add(Rat.add(a, b), c) == Rat.add(a, Rat.add(b, c)) : Rat}
+      observed : @+px:{Nat.cmp(0n, Rat.denof(a)) == LT{} : Cmp} -> @+py:{...} -> @+pz:{...} -> ...
+
+  `Rat.add_assoc.arb` demands each coordinate's denominator be positive, and the tower
+  witness carries no coefficient facts (`CleanOk{}` carries nothing at the leaf).
+  `add_comm` escaped this only because `Rat.add_comm` is unconditional -- measured
+  boundary, not an assumption.
+
+Then the question that decides the design: derivable, or carried? A probe law at the
+general form answered it:
+
+      law Probe.denpos:  for +r: R.Rat  {Nat.cmp(0n, R.Rat.denof(r)) == LT{} : Cmp}
+      expected : Nat.cmp(0n, d)
+      observed : LT{}
+      Context:  p : src/int.Int   d : Nat
+
+`denof(Rat{p, d})` is `d`, and `cmp(0n, d)` is stuck at a variable; the general statement
+is false as well (`Rat{Int{0n,0n}, 0n}`). Positivity is a spelling property
+(`cmp(0n, 1n+dp)` is `LT{}` by `{==}`) that variable-coordinate laws cannot reach. So the
+carrier must hold it -- round forty-seven's decision, now forced by measurement.
+
+Good news in the same read: the propagation family already exists.
+`Rat.mul.den.pos`, `Rat.add.den.pos` and `Rat.neg.den.pos` are laws at arbitrary Rats
+taking exactly these hypotheses, landed for the QExt rationalization. So extending
+`CleanExt` with per-coefficient positivity (beside the round-fifty-four level fields) is
+provable rather than assumed, and it is *one* change for both remaining blocks of the
+goal: `mul_comm`/`mul_assoc`/`mul_distrib` and the identity/negation block all carry
+positivity hypotheses on the Rat side (`Rat.mul_neg`, `Rat.neg_mul`, `Rat.add_neg`,
+`Rat.mul_inv.gt/.lt`).
+
+`add_assoc`'s law and fill are reverted, not forced: no finite law statement can name
+every leaf's denominator, which is what a witness type is for. Counts unchanged (tower
+17 own / 246, helpers 12 own / 258); gates unchanged; the coefficient probe deleted.
