@@ -1152,3 +1152,51 @@ def TH.Tower.same.mul(f, x, y, u, v, hx, hu):
           Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
         case T.Fuel{} T.Bad{}:
           Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
+
+def TH.Tower.level.refl(x):
+  match x:
+    case T.Base{a}:
+      T.LevelBase{}
+    case T.Ext{rx, ix, dx}:
+      T.LevelExt{TH.Tower.level.refl(rx), TH.Tower.level.refl(ix), {==}}
+    case T.Bad{}:
+      T.LevelBase{}
+    case T.Fuel{}:
+      T.LevelBase{}
+
+def TH.Tower.level.sym(x, y, h):
+  match x y:
+    case T.Base{a} T.Base{b}:
+      T.LevelBase{}
+    case T.Base{a} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.level(y, x), h)
+    case T.Base{a} T.Bad{}:
+      Empty.absurd(T.Tower.level(y, x), h)
+    case T.Base{a} T.Fuel{}:
+      Empty.absurd(T.Tower.level(y, x), h)
+    case T.Ext{rx, ix, dx} T.Base{b}:
+      Empty.absurd(T.Tower.level(y, x), h)
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+      T.LevelExt{+lre, +lim, +ld} = h
+      T.LevelExt{TH.Tower.level.sym(rx, ry, lre), TH.Tower.level.sym(ix, iy, lim),
+                 Equal.sym(T.Tower, dx, dy, ld)}
+    case T.Ext{rx, ix, dx} T.Bad{}:
+      Empty.absurd(T.Tower.level(y, x), h)
+    case T.Ext{rx, ix, dx} T.Fuel{}:
+      Empty.absurd(T.Tower.level(y, x), h)
+    case T.Bad{} T.Base{b}:
+      Empty.absurd(T.Tower.level(y, x), h)
+    case T.Bad{} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.level(y, x), h)
+    case T.Bad{} T.Bad{}:
+      T.LevelBase{}
+    case T.Bad{} T.Fuel{}:
+      Empty.absurd(T.Tower.level(y, x), h)
+    case T.Fuel{} T.Base{b}:
+      Empty.absurd(T.Tower.level(y, x), h)
+    case T.Fuel{} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.level(y, x), h)
+    case T.Fuel{} T.Bad{}:
+      Empty.absurd(T.Tower.level(y, x), h)
+    case T.Fuel{} T.Fuel{}:
+      T.LevelBase{}

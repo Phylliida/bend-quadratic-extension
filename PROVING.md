@@ -6527,3 +6527,43 @@ measurement is how many fills construct a `CleanExt` and would have to supply th
 the level coherence in its own evidence type beside `clean`.
 
 Recorded in TOWER-PLAN as "The cross fields kill reflexivity..." before section 8.
+
+## Round fifty-four -- The level family, the reflexive half of the witness
+
+Round fifty-three killed the pairwise route by measurement (`same(x, x)` unprovable once
+cross fields are added, and `same.of_eq` dies with it). This round lands the first half of
+the replacement, and it is purely additive: `tower.bend` stays at 246 TODOs, all eleven
+gates stay green, `tower_proofs.bend` 2.79 s, `scratch.bend` still prints the inversion
+triple `(7/2, -7/2, 0)`.
+
+`Tower.Level<x, y>` -- readable tier, beside `Tower.same` -- is the level relation: same
+shape, the same depth, the same radicand at every step. Its Ext arm is
+`LevelExt{lre: Tower.level(rx, ry), lim: Tower.level(ix, iy), ld: {dx == dy : Tower}}`:
+aligned pairs only, which is precisely what keeps it reflexive. `Tower.level.refl` fills
+by structural induction -- four arms, the Ext arm rebuilding `LevelExt` from two
+recursive calls and `{==}` -- and `Tower.level.sym` fills by the sixteen-arm shape table:
+twelve disagreeing arms closed by `Empty.absurd(T.Tower.level(y, x), h)`, three trivial
+witnesses, and the Ext/Ext arm destructuring the hypothesis with
+`T.LevelExt{+lre, +lim, +ld} = h` and rebuilding with
+`Equal.sym(T.Tower, dx, dy, ld)`.
+
+Three mechanics, all worth keeping:
+
+* A `law` in the helper tier spells its types qualified (`for +x: T.Tower`, `T.Tower.level(x, x)`);
+  a bare `Tower` there is `expected : a defined name / observed : tower_helpers.Tower`.
+  The fills spell the same law `TH.Tower.level.refl`, matching the module alias.
+* A multi-binder destructuring has to name the constructor: `+lre, +lim, +ld = h` is a
+  parse error, `T.LevelExt{+lre, +lim, +ld} = h` is the idiom (measured against
+  `T.CleanExt{...} = hx` in the existing fills). Distinct binders on the two sides of a
+  `match x y` are not cosmetic either -- reuse reads as a shadowed self-call and reports
+  as a termination failure.
+* `Equal.sym` takes four arguments, not one: `Equal.sym(T.Tower, dx, dy, ld)` for
+  `{dx == dy} -> {dy == dx}`. With one argument the checker reads the equation as the
+  *type* argument and reports `expected : Type / observed : {dx == dy : tower.Tower}`.
+
+**What is left of the design** (recorded in TOWER-PLAN): `CleanExt` gains
+`level(re, im)` and `level(re, d)` beside its depth equations, a `Tower.level.trans` joins
+`sym` so the cross pair `(rx, iy)` can be assembled from the aligned pairs around it, and
+then the ring laws restate on `clean(x)`, `clean(y)`, `level(x, y)`. The blast radius of
+the `CleanExt` change is measured: three construction sites (lines 148, 311, 596 of
+`tower_proofs.bend`) and six destructuring sites.

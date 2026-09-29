@@ -1905,6 +1905,34 @@ becomes its own evidence type beside `clean`. The blast radius of the first opti
 measurable by counting the fills that construct `CleanExt`; that count is the next
 measurement.
 
+### The level family lands, and it is the reflexive half of the witness (round fifty-four)
+
+`Tower.Level<x, y>` (readable tier, beside `Tower.same`) says x and y sit at the same
+level: same shape, same depth, the same radicand at every step of the chain. Its Ext arm
+carries `level(re, ry)`, `level(ix, iy)` and `{dx == dy}` -- aligned pairs only. That is
+exactly what makes it reflexive, and it is why it can carry what `Tower.same` cannot:
+
+    law Tower.level.refl:
+      for +x: T.Tower
+      T.Tower.level(x, x)
+
+fills by structural induction (four arms, one recursive), where `same(x, x)` cannot once
+cross fields are added (round fifty-three). `Tower.level.sym` fills by the sixteen-arm
+shape table -- the twelve disagreeing arms absurd through the hypothesis, four trivial
+witnesses, and the Ext/Ext arm rebuilding `LevelExt` from two recursive instances plus
+`Equal.sym(T.Tower, dx, dy, ld)`.
+
+Both are additive: `tower.bend` stays at 246 TODOs and the eleven gates stay green
+(`tower_proofs.bend` 2.79 s). Counts now 160 readable / 135 helpers / 295 total.
+
+The design this lands is the per-value route with a pairwise *level* relation on the side:
+`CleanExt` gains `level(re, im)` and `level(re, d)` (its current fields relate depths,
+never levels), and then the cross pair `(rx, iy)` that `mul_comm`'s recursive instance
+needs is assembled from the aligned pairs around it -- `level(rx, ry)` across the
+operands, `level(ry, iy)` inside y -- through `level.sym` and a `level.trans` still to be
+proved. The blast radius of the `CleanExt` strengthening is measured: three construction
+sites (`tower_proofs.bend` lines 148, 311, 596) and six destructuring sites.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

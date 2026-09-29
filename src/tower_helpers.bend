@@ -220,3 +220,17 @@ law Tower.same.of_eq:
   for +y: T.Tower
   for h: {x == y : T.Tower}
   T.Tower.same(x, y)
+
+law Tower.level.refl:
+  for +x: T.Tower
+  T.Tower.level(x, x)
+
+# Level is symmetric, and it is what makes the cross pair assemble: the three aligned
+# pairs that sit around a value -- (re, im) inside x, (rx, ry) across the operands,
+# (ry, iy) inside y -- combine, through symmetry and transitivity, into the cross pair
+# (rx, iy) that mul_comm's recursive instance needs.
+law Tower.level.sym:
+  for +x: T.Tower
+  for +y: T.Tower
+  for h: T.Tower.level(x, y)
+  T.Tower.level(y, x)

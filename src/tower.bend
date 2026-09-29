@@ -308,6 +308,41 @@ def Tower.same(x: Tower, y: Tower) -> Data:
     case _ _:
       Empty
 
+# Tower.Level<x, y>: x and y sit at the same level -- same shape, the same depth, and
+# the same radicand at every step of the chain. It is deliberately weaker than
+# Tower.same, which also relates a value's coordinates to each other (a cross pair).
+# Level relates aligned pairs only, which is what makes it *reflexive*: its Ext arm is
+# exactly the two recursive instances plus the radicand equation. Round fifty-three
+# measured why that matters -- adding cross fields to Tower.same makes same(x, x)
+# unprovable (probe.crossrefl.bend refused `expected : Probe.s4(rx, ix) / observed :
+# Probe.s4(rx, rx)`), and same.of_eq, whose Ext arm ends at exactly that goal, dies
+# with it.
+#
+# The Base case carries nothing, exactly as in Tower.same: two base values sit at the
+# same level whatever Rat values they hold, because the Rat laws are unconditional at
+# the leaves (Rat.add_comm, Rat.mul_comm).
+type Tower.Level.Base is Data:
+  LevelBase{}
+
+type Tower.Level.Ext<-rx: Tower, -ix: Tower, -dx: Tower,
+                      -ry: Tower, -iy: Tower, -dy: Tower> is Data:
+  LevelExt{lre: Tower.level(rx, ry),
+           lim: Tower.level(ix, iy),
+           ld: {dx == dy : Tower}}
+
+def Tower.level(x: Tower, y: Tower) -> Data:
+  match x y:
+    case Base{a} Base{b}:
+      Tower.Level.Base
+    case Ext{rx, ix, dx} Ext{ry, iy, dy}:
+      Tower.Level.Ext<rx, ix, dx, ry, iy, dy>
+    case Bad{} Bad{}:
+      Tower.Level.Base
+    case Fuel{} Fuel{}:
+      Tower.Level.Base
+    case _ _:
+      Empty
+
 # Safety: a clean call is a clean result
 # ======================================
 #
