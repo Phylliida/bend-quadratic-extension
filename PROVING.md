@@ -6982,3 +6982,71 @@ four identities -- which wait on the canonicality carrier, since `Rat.add_zero`,
 with `fx` and admit no `.arb` form. The three ring laws still wait on route (a) of
 round sixty: the cross-level fact threaded through
 `add.clean`/`mul.clean`/`mul.safe`.
+
+## Round sixty-four -- the canonicality carrier: a hypothesis stated over the projections, measured before it was built
+
+Round sixty-three left the identity block waiting on one decision: `Rat.add_zero`,
+`Rat.zero_add`, `Rat.mul_one` and `Rat.one_mul` are stated at spelled `Rat{n, d}`
+with `fx: {Rat.mk(n, d) == Rat{n, d}}`, there is no `.arb` version, and there cannot
+be one -- at a non-canonical value the equation is false (adding zero to
+`Rat{Int{2n,0n}, 2n}` normalizes to `1/1`, which is not that value). So
+canonicality has to travel as a per-value hypothesis, exactly as positivity does.
+
+**Probed before built** (`probe.canon.bend`, untracked). The shape is `Tower.Pos`'s:
+a computed family, one type per shape, the leaf carrying the value-level fact, the
+`Ext` case recursing on all three parts, markers inhabited at `Bad`/`Fuel`. The
+question was what the leaf field can *say*, and the first attempt answered it
+negatively: stated over the projections --
+`CanonBase{cfx: {Rat.mk(Rat.numof(a), Rat.denof(a)) == a}}` -- the field is not the
+`fx` the Rat law wants. The law's own `fx` is at `Rat{numof(a), denof(a)}`, not at
+`a`, and instantiating the Rat law at the projections does not help:
+
+    expected : {Rat.mk(Rat.numof(a), Rat.denof(a)) == Rat{Rat.numof(a), Rat.denof(a)}}
+    observed : {Rat.mk(Rat.numof(a), Rat.denof(a)) == a}
+
+Destructuring the leaf to get `n` and `d` out is not available either -- the family's
+index is a pattern variable, and a pattern variable is not matchable ("a match on a
+parameter or field: this name is a def or a consumed binder: give the value its own
+def", the round forty-five constraint again). Hence a carrier that *says* the
+spelling instead of trying to unfold it:
+
+    type Tower.Canon.Base<-a: R.Rat> is Data:
+      CanonBase{ce: {a == R.Rat{R.Rat.numof(a), R.Rat.denof(a)} : R.Rat},
+                cfx: {R.Rat.mk(R.Rat.numof(a), R.Rat.denof(a)) == a : R.Rat}}
+
+`ce` is the equation the fill cannot otherwise obtain; `cfx` is the law's `fx`
+transported along it. Both are definitional at a value that is already its own
+normal form -- `CanonBase{{==}, {==}}` builds at `Base{Rat{Int{5n,0n}, 1n}}`, i.e.
+`mk(5, 1)` really does reduce to `Rat{Int{5n,0n}, 1n}` -- which is what a caller holds,
+and neither is provable at a variable, which is the point of carrying it.
+
+An intermediate design with explicit `cn: Int, cd: Nat` fields was measured green
+first; the projection form is the same measurement with two fewer fields and no
+`Int` import in the readable tier, so that is what landed.
+
+**The fill.** `add_zero`'s Base arm is the canonical shape of this block: the arm's
+goal reduces to `{Base{Rat.add(a, Rat.zero())} == Base{a}}`, so the fill first
+rewrites `a` to `Rat{numof(a), denof(a)}` -- two `%` steps, one per occurrence, each
+ascribed with the hole and the other slots spelled as the checker prints them, and
+each fed `Equal.sym` of `ce` because `%` replaces the equation's *right* endpoint --
+and then hands `Equal.trans(cfx, ce)` to `R.Rat.add_zero(numof(a), denof(a), ...)`
+under one congruence `u => T.Base{u}`. The `Ext` arm is two recursive calls and two
+congruences, with `dx` in the third slot on both sides (add keeps its first operand's
+radicand, so no level hypothesis is needed); the markers are definitional, since add
+propagates them and zero is the identity on them. It checked on the first run.
+
+**Counts.** tower.bend 252 = rat.bend's 229 plus its own twenty-three (was 251/22);
+tower_helpers.bend 269 = that 252 plus its own seventeen (its own law count is
+unchanged: the carrier is a type and a def, and no helper law was needed). README now reads 166 readable / 141 helpers / 307 total; the
+old total was one short of its own sum (165 + 141 = 306), which is recorded here
+because it sat in the file for two rounds. All eleven gates green -- nat 0.33, int
+0.40, rat 3.28, qrat 5.71, qext 0.53, tower 3.44, probe.bend 2.87, payoff 6.74,
+tower.depth 2.39, mul.depth.arm 2.50, scratch 2.88 s, inversion triple
+`(Rat{Int{7n, 0n}, 2n}, Rat{Int{0n, 7n}, 2n}, Rat{Int{0n, 0n}, 0n})` unchanged.
+
+**Goal state.** The identity half is open with its carrier now in hand: `zero_add`,
+`mul_one`, `one_mul` (the same shape, one leaf each), `mul_zero` (stated at
+`Rat{n, 1n+dp}`, so it needs no canonicality) and `neg_neg` (which additionally wants
+`{c == cmp(np, nn)}` and the gcd evidence). The three ring laws still wait on route
+(a) of round sixty: the cross-level fact threaded through
+`add.clean`/`mul.clean`/`mul.safe`.

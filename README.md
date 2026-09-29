@@ -83,12 +83,13 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 22 / 8, qrat 36 / none, qext 2 / none -- 165 readable
-  laws, 141 helpers, 305 in total (the split itself landed 282; the product's pair
+  13, rat 40 / 28, tower 23 / 8, qrat 36 / none, qext 2 / none -- 166 readable
+  laws, 141 helpers, 307 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
   `mul.fuel.ext` to the helper tier, round forty-eight; the negation pair added
-  `mul_neg`/`neg_mul` and `neg_pair`, round sixty-three).
+  `mul_neg`/`neg_mul` and `neg_pair`, round sixty-three; round sixty-four added
+  `Tower.add_zero` and with it the second carrier type, `Tower.Canon`).
 
 - `src/int.bend` — `Int` type, the ops (`Int.zero`, `Int.one`, `Int.add`,
   `Int.neg`, `Int.sub`, `Int.mul`), `Int.canon` (the canonical
@@ -256,7 +257,13 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   sixty-three added the second pair law of the same shape as `mul.safe`:
   `Tower.NegPair` (indexed by the fuel and the two operands, holding both halves of
   `mul_neg`/`neg_mul` at once) with `neg_pair` and the projections
-  `negpair.mneg`/`negpair.nmul`.
+  `negpair.mneg`/`negpair.nmul`. Round sixty-four added the coefficient carrier's
+  second half, `Tower.Canon` (beside `Tower.Pos`): the four identity laws are stated at
+  spelled `Rat{n, d}` with `fx: {Rat.mk(n, d) == Rat{n, d}}` and admit no `.arb`
+  form, because at a non-canonical value the equation is false -- and the family
+  cannot destructure its own index, so its leaf carries the two things a fill cannot
+  get otherwise: the equation that the value *is* its projection spelling, and `fx`
+  at that spelling. `Tower.add_zero` is the first law built on it.
 - `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law.
   `depth.zero`, `add.depth`, `add.clean`, `mul.safe` and `mul.above` are structural
   inductions in the fill: the match refines the law at each branch, and each arm
@@ -271,7 +278,11 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   induction for the negation pair, with one proof helper beside it: `Tower.neg_coord`
   turns two coordinate congruences plus `neg_add` into one coordinate of the pair
   law, and is called four times per half. That helper is named without a module
-  prefix on purpose -- see PROVING.md round sixty-three.
+  prefix on purpose -- see PROVING.md round sixty-three. `add_zero` is the first
+  fill whose Base arm has to *rewrite* before calling its Rat law: the goal there is
+  `Base{Rat.add(a, Rat.zero())} = Base{a}`, the left side is `Mk`'s output, and the
+  Rat law is stated at `Rat{n, d}` -- so two `%` steps rewrite `a` to its projection
+  spelling and the canon witness's `fx` is handed over (round sixty-four).
 - `probe.bend` — consumer check for the ten division laws.
 - `probe.payoff.bend` — consumer check for the payoff and the operations: the
   two conversions the design rests on (positive and negative divisor spelling),

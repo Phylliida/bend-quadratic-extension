@@ -2373,3 +2373,50 @@ type, `depth`, `zero`, `lift`, and the `wf` evidence family with two transport i
 can only be measured where laws are filled (§6.1); the arithmetic half of `wf`, which needs
 Step 2's ordering; the `Elem(t)`-indexed route §3.2 measured as feasible but which Step 2
 would have to adopt wholesale; and every step of §7 from Step 2 on.
+
+### The canonicality carrier: a hypothesis about a spelling, stated over the projections (round sixty-four)
+
+The identity laws are the second place the invariant "no fact about a coefficient is
+carried" broke. `Rat.add_zero`, `Rat.zero_add`, `Rat.mul_one` and `Rat.one_mul` are
+stated at spelled `Rat{n, d}` with `fx: {Rat.mk(n, d) == Rat{n, d}}`; there is no
+`.arb` form and there cannot be, since the identity fails outright at a non-canonical
+value. Canonicality is therefore a property of the *spelling*, like positivity, and
+it travels the same way: a per-value family, `Tower.Canon`, sibling of `Tower.Pos`.
+
+Two constraints shaped the leaf, both measured rather than reasoned about:
+
+- **The family cannot destructure its own index.** A pattern variable is not
+  matchable -- "a match on a parameter or field: this name is a def or a consumed
+  binder: give the value its own def" -- so a leaf cannot simply unpack `a` into
+  `n` and `d` to reach the Rat law's spelling.
+- **A field stated over the projections is not the law's `fx`.** With
+  `cfx: {Rat.mk(Rat.numof(a), Rat.denof(a)) == a}`, the law wants
+  `{Rat.mk(Rat.numof(a), Rat.denof(a)) == Rat{Rat.numof(a), Rat.denof(a)}}` --
+  the same equation with `a` replaced by its own eta-expansion, which is not
+  definitional.
+
+So the leaf carries the two facts that cannot be derived, and nothing more:
+
+```
+CanonBase{ce: {a == Rat{Rat.numof(a), Rat.denof(a)}},
+          cfx: {Rat.mk(Rat.numof(a), Rat.denof(a)) == a}}
+```
+
+`ce` says the value *is* its projection spelling; `cfx` is the Rat law's `fx` along
+it. Both are `{==}` at a value that is already normal, which is what a caller with a
+concrete tower has; neither is provable at a variable, which is exactly why it is a
+hypothesis. A variant with explicit `cn: Int, cd: Nat` fields was measured green
+first and discarded: two more fields and an `Int` import in the readable tier for no
+gain.
+
+**How a fill uses it** (`add_zero`, the first law on this carrier): the Base arm's
+goal is `Base{Rat.add(a, Rat.zero())} = Base{a}` -- the left side being `Mk`'s output
+-- so the fill rewrites `a` to `Rat{numof(a), denof(a)}` (two `%` steps, one per
+occurrence, each fed `Equal.sym(ce)` because `%` replaces an equation's right
+endpoint), then hands `Equal.trans(cfx, ce)` to `Rat.add_zero` under one congruence
+`u => T.Base{u}`. The Ext arm needs nothing new: two recursive calls, two
+congruences, and `dx` in the third slot on both sides.
+
+What remains for the block: `zero_add`, `mul_one`, `one_mul` (the same shape, one
+leaf each), `mul_zero` (stated at `Rat{n, 1n+dp}`, so it needs no canonicality at all)
+and `neg_neg` (which additionally wants `{c == cmp(np, nn)}` and the gcd evidence).

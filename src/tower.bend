@@ -534,6 +534,45 @@ def Tower.pos(t: Tower) -> Data:
     case Fuel{}:
       Tower.Pos.Marker
 
+# Tower.Canon: every Rat leaf of the value is its own normal form.
+#
+# The coefficient carrier's other half. Rat.add_zero, Rat.zero_add, Rat.mul_one and
+# Rat.one_mul are stated at Rat{n, d} with fx: {Rat.mk(n, d) == Rat{n, d}}, and no
+# .arb version can exist: at a non-canonical value the equation is false outright --
+# adding zero to Rat{Int{2n,0n}, 2n} normalizes to 1/1, which is not that value.
+# Canonicality is a property of the spelling, exactly as positivity is, so the
+# identity laws are handed it rather than deriving it.
+#
+# The leaf field is not the law's fx verbatim, because the family cannot destructure
+# its own index: a pattern variable is not matchable ("give the value its own def").
+# So the two things the fill cannot obtain any other way are what it carries -- the
+# equation saying the value *is* its projection spelling, and fx at that spelling.
+# Round sixty-four measured that this is enough: the fill rewrites the value to its
+# spelling and hands fx to the Rat law.
+#
+# Marker arms are inhabited, like Pos's and for the same reason: the operations are
+# total there and a closure law's shape induction reaches them.
+type Tower.Canon.Marker is Data:
+  CanonOk{}
+
+type Tower.Canon.Base<-a: R.Rat> is Data:
+  CanonBase{ce: {a == R.Rat{R.Rat.numof(a), R.Rat.denof(a)} : R.Rat},
+            cfx: {R.Rat.mk(R.Rat.numof(a), R.Rat.denof(a)) == a : R.Rat}}
+
+type Tower.Canon.Ext<-re: Tower, -im: Tower, -d: Tower> is Data:
+  CanonExt{cre: Tower.canon(re), cim: Tower.canon(im), cd: Tower.canon(d)}
+
+def Tower.canon(t: Tower) -> Data:
+  match t:
+    case Base{a}:
+      Tower.Canon.Base<a>
+    case Ext{re, im, d}:
+      Tower.Canon.Ext<re, im, d>
+    case Bad{}:
+      Tower.Canon.Marker
+    case Fuel{}:
+      Tower.Canon.Marker
+
 law Tower.add_comm:
   for +x: Tower
   for +y: Tower
@@ -625,3 +664,17 @@ law Tower.neg_mul:
   for h: {Tower.depth(x) == Tower.depth(y) : Nat}
   for hf: {f == Nat.add(1n, Tower.depth(x)) : Nat}
   {Tower.mul(f, Tower.neg(x), y) == Tower.neg(Tower.mul(f, x, y)) : Tower}
+
+# add_zero: x + 0 = x, the first of the block that needs canonicality.
+#
+# Its Base arm is Rat.add_zero at the leaf, and the goal there is
+# Base{Rat.add(a, Rat.zero())} = Base{a}: the left side is Mk's output, so the
+# equation holds only if a is its own normal form -- which is what the canon
+# witness supplies. The Ext arm is two recursive calls and two congruences. add
+# keeps its first operand's radicand, so the third field is dx on both sides and no
+# level hypothesis is needed; the markers are definitional, since add propagates
+# them and zero is the identity on them.
+law Tower.add_zero:
+  for +x: Tower
+  for cx: Tower.canon(x)
+  {Tower.add(x, Tower.zero(x)) == x : Tower}

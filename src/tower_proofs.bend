@@ -2077,3 +2077,41 @@ def T.Tower.mul_neg(f, x, y, hx, hy, px, py, h, hf):
 
 def T.Tower.neg_mul(f, x, y, hx, hy, px, py, h, hf):
   TH.Tower.negpair.nmul(f, x, y, TH.Tower.neg_pair(f, x, y, hx, hy, px, py, h, hf))
+
+# add_zero: the Base arm is Rat.add_zero handed the canon witness's fx, with the
+# value first rewritten to the spelling the Rat law is stated at; the congruence
+# carries the result back up to Tower. The Ext arm recurses coordinatewise -- zero
+# is defined that way -- and the markers are definitional.
+def T.Tower.add_zero(x, cx):
+  match x:
+    case T.Base{a}:
+      match cx:
+        case T.CanonBase{+ce, +cfx}:
+          %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.add(_, R.Rat.zero())} == T.Base{a} : T.Tower}
+          %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.add(R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, R.Rat.zero())} == T.Base{_} : T.Tower}
+          Equal.cong(R.Rat, T.Tower, u => T.Base{u},
+            R.Rat.add(R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, R.Rat.zero()),
+            R.Rat{R.Rat.numof(a), R.Rat.denof(a)},
+            R.Rat.add_zero(R.Rat.numof(a), R.Rat.denof(a),
+              Equal.trans(R.Rat, R.Rat.mk(R.Rat.numof(a), R.Rat.denof(a)), a,
+                R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, cfx, ce)))
+    case T.Ext{rx, ix, dx}:
+      match cx:
+        case T.CanonExt{+cre, +cim, +cd}:
+          +e1 = T.Tower.add_zero(rx, cre)
+          +e2 = T.Tower.add_zero(ix, cim)
+          +c1 = Equal.cong(T.Tower, T.Tower,
+                  u => T.Ext{u, T.Tower.add(ix, T.Tower.zero(ix)), dx},
+                  T.Tower.add(rx, T.Tower.zero(rx)), rx, e1)
+          +c2 = Equal.cong(T.Tower, T.Tower,
+                  u => T.Ext{rx, u, dx},
+                  T.Tower.add(ix, T.Tower.zero(ix)), ix, e2)
+          Equal.trans(T.Tower,
+            T.Ext{T.Tower.add(rx, T.Tower.zero(rx)),
+                  T.Tower.add(ix, T.Tower.zero(ix)), dx},
+            T.Ext{rx, T.Tower.add(ix, T.Tower.zero(ix)), dx},
+            T.Ext{rx, ix, dx}, c1, c2)
+    case T.Bad{}:
+      {==}
+    case T.Fuel{}:
+      {==}
