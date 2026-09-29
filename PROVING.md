@@ -6148,3 +6148,69 @@ inductions never need a fact about a pair. Those go next.
 
 The measurement lives in `probe.addcomm.bend` (untracked, repo root), which is the
 source of both transcripts above.
+
+## Round forty-seven -- The identity block starts, and the evidence problem has a second face
+
+The block after the ring laws is the identity and negation group: `neg_neg`,
+`add_neg`, `neg_add`, `mul_neg`, `neg_mul`, `add_zero`, `zero_add`, `mul_one`,
+`one_mul`, `mul_zero`. Round forty-six called these unblocked because they are unary
+-- no fact about a *pair* of operands -- and that is true as far as it goes. What it
+missed is that they are the first tower laws whose proof needs a fact about a
+*coefficient*, and the design carries none.
+
+**Landed: `Tower.sub` and `Tower.sub_eq_add_neg`.** `sub` is `add(x, neg(y))` by
+definition, exactly as `Rat.sub` is, so its twin law is the definition's unfolding and
+its fill is `{==}`. It is the one law of the block that needs nothing of its operands;
+`tower.bend` now has sixteen stated laws. `Tower.sub_eq_add_neg` mirrors
+`Rat.sub_eq_add_neg`'s name rather than the dotted style, since a def named `sub` is
+what it is about.
+
+**Measured: the Rat value laws are stated at spellings.** `Rat.neg_neg` is
+
+    for +c: Cmp
+    for +np, +nn, +dp: Nat
+    for +e: {c == Nat.cmp(np, nn) : Cmp}
+    for +g1: {N.Nat.gcd(Rat.mag(np, nn), 1n+dp) == 1n : Nat}
+    {Rat.neg(Rat.neg(Rat{Rat.num(np, nn), 1n+dp})) == Rat{Rat.num(np, nn), 1n+dp} : Rat}
+
+A call at an arbitrary `v` fails on the law's *first* parameter: `expected : Cmp /
+observed : src/rat.Rat`. The caller does not get to pass a value at all -- it must
+supply the spelling's comparison hypothesis and its parts. There is no
+`Rat.neg_neg.arb`.
+
+The split across the library is by what each law needs of its operand:
+
+* *General modulo positivity* (`+px: {Nat.cmp(0n, Rat.denof(x)) == LT{} : Cmp}`):
+  `Rat.add_neg`, `Rat.zero_mul`, and the whole `.arb` family -- `add_assoc.arb`,
+  `mul_assoc.arb`, `mul_distrib.arb`, `neg_add.arb`. `Rat.add_neg`'s own comment
+  records why positivity is not cosmetic: at `xd = 0` the sum's denominator is 0, `mk`
+  returns `Rat{Int{0,0}, 0}` there, and no law compares that with `Rat.zero()`.
+* *Canonical* (`+fx: {Rat.mk(n, d) == Rat{n, d} : Rat}`): `add_zero`, `zero_add`,
+  `mul_one`, `one_mul`.
+* *Both*: `mul_zero` wants a positive denominator *and* a `Rat{n, 1+dp}` spelling.
+* *Canonical and reduced and positive*: `neg_neg`, as above.
+
+So `Tower.neg.neg`'s Base arm -- `Base{Rat.neg(Rat.neg(v))}` against `Base{v}` for an
+arbitrary `v` -- has no law to call. The same is true of the identity laws for a
+coefficient that is not in a spelling.
+
+**Two faces, one decision.** The tower's evidence must say the level relation between
+operands (round forty-six) *and* the per-coefficient facts (this round). Positivity is
+the carryable one: it is a recursive property of a value, so a `Tower`-level evidence
+type can hold it, provided the Rat library has positivity versions of the laws the
+tower calls. Canonicality is a bridge law away (`mk(n,d) == Rat{n,d}` is exactly what
+`fx` hypotheses transport). The routes are recorded in TOWER-PLAN's Step 2 together,
+because choosing them separately would mean restating the evidence type twice.
+
+**Why the existing tower laws escaped.** `add.depth`, `add.clean`, `mul.depth`,
+`mul.clean` conclude structural facts -- depth reads structure, clean recurses on it --
+so no coefficient identity is ever needed. The value laws are the first to need one,
+and the ring laws are the first to need a pair.
+
+**Also fixed.** `tower.bend`'s radicand commentary still described the retired
+parameter design ("the radicand is an operation *parameter* ... callers pass the level's
+own") and still claimed that a call mixing levels returns `Bad`. Only *shapes* are
+compared, so it now states the intrinsic design and hands the level discipline to the
+laws, where round forty-six measured it belongs.
+
+`probe.negneg.bend` (untracked) is the source of the transcript above.

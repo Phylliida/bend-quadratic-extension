@@ -360,3 +360,10 @@ def T.Tower.mul.depth(x, y, hx, hy, h):
 def T.Tower.mul.clean(x, y, hx, hy, h):
   TH.Tower.safe.clean(Nat.add(1n, T.Tower.depth(x)), x, y,
     TH.Tower.mul.safe(Nat.add(1n, T.Tower.depth(x)), x, y, hx, hy, h, {==}))
+
+# x - y = x + (-y): the definition's own unfolding, so the fill is {==}. Unfolding
+# Tower.sub is all that happens here -- no operand evidence is involved, which is
+# why this law of the identity block is provable while its neighbours wait on the
+# coefficient facts recorded in PROVING round forty-seven.
+def T.Tower.sub_eq_add_neg(x, y):
+  {==}

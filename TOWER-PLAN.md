@@ -1525,7 +1525,41 @@ Routes 1 and 2 both need projection defs (`re`, `im`, `rad`) -- retired in round
 unnecessary *for the operations*, and needed again to *state* an evidence type whose fields live in
 the operands' parts.
 
-**What is not blocked.** The identity and negation block, and `mul.fuel.ext`, are unary statements:
+**The same fork has a second face: the coefficients.** The identity and negation
+laws are unary, so they need no fact relating two operands -- but they need facts
+about the *coefficients*, and those are not carried either. The Rat library states
+its value laws at spellings: `Rat.neg_neg` is stated for `Rat{Rat.num(np, nn), 1n+dp}`
+with `{c == cmp(np, nn)}` and `{gcd(mag(np, nn), 1+dp) == 1n}`, so it does not apply
+to an arbitrary value (measured: calling it at a variable fails on the law's own first
+parameter, `expected : Cmp / observed : src/rat.Rat` -- the caller must supply the
+spelling's parts), and there is no `neg_neg.arb`. Some laws are general modulo
+*positivity* (`Rat.add_neg`, `Rat.zero_mul`, and the `.arb` family `add_assoc.arb`,
+`mul_assoc.arb`, `mul_distrib.arb`, `neg_add.arb` all take
+`{cmp(0n, denof(x)) == LT{}}`); others take canonicality (`add_zero`, `zero_add`,
+`mul_one`, `one_mul` take `{mk(n, d) == Rat{n, d}}`); `mul_zero` wants both a positive
+denominator and a `Rat{n, 1+dp}` spelling.
+
+So the evidence the tower's value laws need is **two** things, and they should be
+chosen together: the level relation between operands (the ring laws), and per
+coefficient facts -- positivity at least, and a canonicality bridge where a law is
+stated at a spelling. Two routes for the second: add the missing positivity versions
+to the Rat library (`neg_neg.arb`, `add_zero.arb`, `zero_add.arb`, `mul_one.arb`,
+`one_mul.arb`, `mul_zero.arb`, each at an arbitrary operand with `+px`, mirroring the
+`.arb` family that exists), which leaves the tower needing only positivity; or carry
+the facts in the tower's own evidence. Either way it is one design decision, not two.
+
+The tower laws that already exist escaped this because they conclude *structural*
+facts: `add.depth` and `mul.depth` read structure, `add.clean` and `mul.clean` recurse
+on structure, and no coefficient identity is ever needed. The value laws are the first
+that need one.
+
+**What is not blocked (revised).** `mul.fuel.ext` is unaffected by either face: its
+proof equates two *products* structurally and uses no Rat identity at all (the
+congruences it needs are under `add`/`mul` themselves, and the fuel comparison is
+defined on `Nat`). It is next. The identity and negation block is blocked on the
+coefficient facts above -- `Tower.sub_eq_add_neg` landed anyway, since it is the
+definition's own unfolding and needs nothing. The remainder of the older sentence
+still holds: those laws are unary statements:
 `neg(neg(x)) = x`, `neg(add(x, y)) = add(neg(x), neg(y))`, `mul(f, x, one(x)) = x` pick the first
 operand's radicand on *both* sides, so their inductions never need a fact about a pair. Those are
 next; the ring laws wait on the fork above.

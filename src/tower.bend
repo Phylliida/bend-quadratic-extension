@@ -67,30 +67,37 @@ def Tower.lift(+t: Tower, d: Tower) -> Tower:
 # ============================================
 #
 # A multiplication at level k needs the level's own radicand. For an operand
-# Ext{re, im, d} at level k that is d, which the caller supplies; but the
-# *coordinate* level below k has a different radicand -- the one stored inside the
-# coordinates -- and that is what the depth-2 test of round thirty-four caught:
-# the recursion was handing the level-k radicand to a level-(k-1) multiplication,
-# whose operands then sat at different depths and came back as Bad. rad reads the
-# right one off the operand, so the recursion descends without the caller having to
-# thread a chain of radicands.
+# Ext{re, im, d} at level k that is d, and the *coordinate* level below k has a
+# different one -- the radicand stored inside the coordinates -- which is what the
+# depth-2 test of round thirty-four caught: the recursion was handing the level-k
+# radicand to a level-(k-1) multiplication, whose operands then sat at different
+# depths and came back as Bad. Each operation therefore reads the radicand off the
+# operand it is descending into (dx, the first operand's own third field), so the
+# recursion descends without the caller threading a chain of radicands.
 
 # One level's arithmetic, generically
 # ===================================
 #
-# The radicand is an operation *parameter* for the level being combined: it is
-# what the result's third field records, and callers pass the level's own. What
-# the recursion needs is *not* that value but the radicand one level down, which
-# is a function of the operands rather than something a caller can thread --
-# Tower.rad reads it off them. Round thirty-four measured why: handing the level's
-# radicand to a coordinate-level multiplication put its operands at different
-# depths and the result came back as Bad.
+# The radicand is *intrinsic*: it is what the result's third field records, and
+# every operation takes it from its first operand rather than from a parameter.
+# Round thirty-nine landed that -- the explicit-parameter design of round
+# twenty-two needed a side condition at every call, and retiring it let add and mul
+# share one evidence type -- and what it costs is recorded here.
 #
-# Two operands at *different* levels are not a value of the theory -- there is no
-# ring holding both -- and a call that mixes them returns Bad, not a plausible
-# zero. The marker arms are last, after the matching ones, so they cannot
-# swallow a legitimate call; a marker operand propagates its own marker. No law
-# reaches any of them.
+# A call that mixes a Base with an Ext returns Bad, not a plausible zero: two
+# operands of different *shapes* are not a value of the theory. Radicand
+# disagreement is a different matter and this definition does not detect it: add
+# and mul compare shapes, not radicands, so two Ext operands that agree in shape
+# but not in level combine silently, and the result takes its radicand from the
+# first. Round forty-six measured exactly that (the swap of two depth-1 values with
+# radicands 2 and 3 differs in the third field alone), and the consequence is that
+# the level discipline is not the definition's to enforce but the *laws'*: a law
+# that states an operation on two operands needs evidence that they sit at one
+# level, and a caller who cannot state it never builds the value.
+#
+# The marker arms are last, after the matching ones, so they cannot swallow a
+# legitimate call; a marker operand propagates its own marker. No law reaches any
+# of them.
 #
 # mul reduces with sqrt(d) * sqrt(d) = d: the im*im term is multiplied by d, an
 # element of the level below, exactly as the depth-1 QExt.mul does.
@@ -118,6 +125,11 @@ def Tower.neg(x: Tower) -> Tower:
       Bad{}
     case Fuel{}:
       Fuel{}
+
+# Tower.sub: x - y = x + (-y). The definition, exactly as Rat.sub is, so its twin
+# below is a definitional equality rather than an arithmetic fact.
+def Tower.sub(x: Tower, y: Tower) -> Tower:
+  Tower.add(x, Tower.neg(y))
 
 # mul is fuel-driven, and it has to be. bend checks that a self-call decreases --
 # "arguments are read left to right: each passed unchanged until one shrinks" --
@@ -359,6 +371,13 @@ law Tower.neg.ext:
   for ix: Tower
   for dx: Tower
   {Tower.neg(Ext{rx, ix, dx}) == Ext{Tower.neg(rx), Tower.neg(ix), dx} : Tower}
+# Tower.sub_eq_add_neg: x - y = x + (-y) -- true by definition here, the same way
+# Rat.sub_eq_add_neg is. It is the one law of the identity block that needs nothing
+# of its operands: no evidence, no coefficient fact, no induction.
+law Tower.sub_eq_add_neg:
+  for +x: Tower
+  for +y: Tower
+  {Tower.sub(x, y) == Tower.add(x, Tower.neg(y)) : Tower}
 law Tower.mul.base:
   for +g: Nat
   for a: R.Rat
