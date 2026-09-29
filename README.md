@@ -83,9 +83,9 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 13 / 2, qrat 36 / none, qext 2 / none -- 156 readable
-  laws, 126 helpers, 282 in total, the number the repo had before the split
-  (PROVING.md, rounds forty-three and forty-four).
+  13, rat 40 / 28, tower 15 / 3, qrat 36 / none, qext 2 / none -- 158 readable
+  laws, 127 helpers, 285 in total (the split itself landed 282; the product's pair
+  law added two readable statements and one helper, PROVING.md round forty-five).
 
 - `src/int.bend` — `Int` type, the ops (`Int.zero`, `Int.one`, `Int.add`,
   `Int.neg`, `Int.sub`, `Int.mul`), `Int.canon` (the canonical
@@ -189,12 +189,21 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   fuel. Eleven laws: `zero.base`, `depth.zero`, `depth.lift`, `lift.zero`,
   `add.base`, `add.ext`, `neg.ext`, `mul.base`, `mul.ext` (the
   `sqrt(d) * sqrt(d) = d` unfolding), `one.base`, `one.ext`.
-- `src/tower_helpers.bend` — the two helper laws split out of tower.bend (round
+- `src/tower_helpers.bend` — the helper laws split out of tower.bend (round
   forty-three): `mul.fuel.zero` and `mul.fuel.base`, the termination-fuel
-  obligation, which says nothing about tower values.
-- `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law: `depth.zero` is a
-  structural induction in the fill (the match refines the law at the branch and the
-  Ext branch calls the fill itself on the tail), the other three are definitional.
+  obligation, which says nothing about tower values; and `mul.safe` (round
+  forty-five), the product's two facts as one induction, together with the indexed
+  evidence type `Tower.Safe` it concludes and the two projection defs a caller
+  reads it with. It sits here rather than in tower.bend because it is plumbing:
+  `mul.depth` and `mul.clean` are the readable statements, and each is one
+  projection call.
+- `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law.
+  `depth.zero`, `add.depth`, `add.clean` and `mul.safe` are structural inductions
+  in the fill: the match refines the law at each branch, and each arm recurses on
+  the tail with the facts the recursion needs (`mul.safe`'s Ext/Ext arm makes four
+  recursive calls at the smaller fuel, each handing back both facts about a
+  sub-product). `mul.depth` and `mul.clean` are one projection call each, and the
+  `.base`/`.ext` unfoldings are definitional.
 - `probe.bend` — consumer check for the ten division laws.
 - `probe.payoff.bend` — consumer check for the payoff and the operations: the
   two conversions the design rests on (positive and negative divisor spelling),

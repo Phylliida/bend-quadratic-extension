@@ -278,6 +278,36 @@ law Tower.add.clean:
   for h: {Tower.depth(x) == Tower.depth(y) : Nat}
   Tower.clean(Tower.add(x, y))
 
+# The same two facts for a product
+# ================================
+#
+# Stated as two laws because that is how a caller reaches for them, but they are
+# one induction, and neither can be stated without the operand's cleanliness:
+# mul recurses into a coordinate product times the radicand, so its recursive
+# calls need clean evidence for a product, and its arms need the depths of the
+# sub-products. The pair is proved together in Tower.mul.safe
+# (tower_helpers.bend), where the cycle, the fuel sufficiency equation and the
+# reason it is needed are all written out; these two laws are its projections.
+#
+# The fuel is `1n+Tower.depth(x)`: one level per operand, which is the fuel a
+# caller has when x and y sit at the same level. At a smaller fuel the product
+# is Ext{Fuel{}, Fuel{}, dx} and both of these are false, so the fuel is part of
+# the statement rather than a parameter a caller may pick.
+law Tower.mul.depth:
+  for +x: Tower
+  for +y: Tower
+  for hx: Tower.clean(x)
+  for hy: Tower.clean(y)
+  for h: {Tower.depth(x) == Tower.depth(y) : Nat}
+  {Tower.depth(Tower.mul(1n+Tower.depth(x), x, y)) == Tower.depth(x) : Nat}
+law Tower.mul.clean:
+  for +x: Tower
+  for +y: Tower
+  for hx: Tower.clean(x)
+  for hy: Tower.clean(y)
+  for h: {Tower.depth(x) == Tower.depth(y) : Nat}
+  Tower.clean(Tower.mul(1n+Tower.depth(x), x, y))
+
 # Fuel sufficiency at the bottom shape
 # ===================================
 #

@@ -23,3 +23,78 @@ law Tower.mul.fuel.base:
   for a: R.Rat
   for b: R.Rat
   T.Tower.clean(T.Tower.mul(1n+g, T.Base{a}, T.Base{b}))
+
+# The two facts a product needs, proved as one induction
+# ======================================================
+#
+# mul.clean and mul.depth are mutually dependent, and that is a measurement
+# rather than a style choice. mul.depth's Ext/Ext arm calls mul on a product --
+# `mul(g, mul(g, ix, iy), dx)` -- so that call needs *clean* evidence for
+# `mul(g, ix, iy)`, and no depth law produces one. mul.clean's Ext/Ext arm needs
+# the *depths* of the four sub-products: they are what add.clean's equal-depth
+# hypothesis takes, and what the result's own level relations are built from.
+# So neither law can be proved first: each one's Ext/Ext arm needs the other's
+# conclusion about a product one recursion step down. Proving the pair in one
+# induction is what removes the cycle. The recursive call returns both facts at
+# the smaller fuel, so each is in hand exactly where the other is needed.
+#
+# Two measurements shaped the statement, and both are about the fuel.
+#
+# First, the fuel is a parameter with a sufficiency equation rather than a
+# `1n+g` in the conclusion. At a fuel that runs out the claim is simply false:
+# take x at depth 2 and fuel 1, and mul unfolds its arm with g = 0, so all four
+# sub-products are `mul(0n, ...)` = Fuel{}, the coordinates are add(Fuel{},
+# Fuel{}) = Fuel{}, and the product is Ext{Fuel{}, Fuel{}, dx}. Its depth is
+# `1n+depth(Fuel{})` = 1, not depth(x) = 2, and its clean evidence would need
+# `clean(Fuel{})`, which is Empty. So `hf: {f == 1n+Tower.depth(x)}` -- the fuel
+# is exactly one level per operand, which is what the definition's own recursion
+# consumes -- is not decoration. It is also what each recursive call needs: the
+# operand one level down has depth one less, so its fuel is its own depth.
+#
+# Second, the fuel has to be a parameter for the fill's recursion to be legal at
+# all. Bend requires a self-call's arguments to read left to right with each one
+# unchanged until one shrinks, and the third recursive call is
+# `mul(g, mul(g, ix, iy), dx)` -- a computed *product* in the second slot. With
+# the fuel spelled `1n+g` in the conclusion it is the fill's first parameter that
+# is already the smaller one, so nothing before the product can shrink and the
+# call is rejected ("a decreasing self-call"). With the fuel as a parameter the
+# fill matches on it, `case 1n+g` puts `g` in scope as a strict subterm of that
+# parameter, and the fuel shrinking in the first slot frees every later argument
+# -- which is exactly how Tower.mul's own definition gets away with the same
+# call.
+#
+# Tower.Safe<x, p> is the pair for a product p of operands at x's level: p is
+# clean, and p sits at x's level.
+
+type Tower.Safe<-x: T.Tower, -p: T.Tower> is Data:
+  SafeExt{csafe: T.Tower.clean(p),
+          hdepth: {T.Tower.depth(p) == T.Tower.depth(x) : Nat}}
+
+law Tower.mul.safe:
+  for +f: Nat
+  for +x: T.Tower
+  for +y: T.Tower
+  for hx: T.Tower.clean(x)
+  for hy: T.Tower.clean(y)
+  for h: {T.Tower.depth(x) == T.Tower.depth(y) : Nat}
+  for hf: {f == Nat.add(1n, T.Tower.depth(x)) : Nat}
+  Tower.Safe<x, T.Tower.mul(f, x, y)>
+
+# The pair's two halves. Defs rather than laws, and they take the pair as a
+# parameter, because that is the one place bend lets a destructuring match look
+# at a value: "a match cannot scrutinize a computed value: give it its own def".
+# A recursive call's result is computed, so the arm below cannot take it apart
+# directly; it hands the pair to one of these instead.
+def Tower.safe.clean(+f: Nat, +x: T.Tower, +y: T.Tower,
+    s: Tower.Safe<x, T.Tower.mul(f, x, y)>) ->
+    T.Tower.clean(T.Tower.mul(f, x, y)):
+  match s:
+    case SafeExt{cs, hd}:
+      cs
+
+def Tower.safe.depth(+f: Nat, +x: T.Tower, +y: T.Tower,
+    s: Tower.Safe<x, T.Tower.mul(f, x, y)>) ->
+    {T.Tower.depth(T.Tower.mul(f, x, y)) == T.Tower.depth(x) : Nat}:
+  match s:
+    case SafeExt{cs, hd}:
+      hd

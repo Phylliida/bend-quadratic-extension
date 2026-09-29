@@ -1400,6 +1400,73 @@ with `mul.clean` the same shape as the landed `add.clean` (the four substantive 
 marker arms), `mul.depth`'s Ext/Ext arm already verified in `probe.tower.mul.depth.arm.bend`, and
 `mul.fuel.ext` the statement that has been checked since round thirty-three.
 
+### The pair law: one induction removes the cycle, and the fuel becomes a parameter (round forty-five)
+
+Round forty-two's chain of three laws was a cycle, and the way out is not an ordering.
+
+The cycle is this. `mul.depth`'s Ext/Ext arm has a recursive call whose *first operand is a
+product* -- `mul(g, mul(g, ix, iy), dx)` -- so proving it needs `clean(mul(g, ix, iy))`, which is
+`mul.clean`'s conclusion. And `mul.clean`'s Ext/Ext arm needs the *depths* of the four
+sub-products, which is `mul.depth`'s conclusion (they are the equal-depth hypothesis `add.clean`
+takes, and the raw material of the result's own level relations). Neither law comes first.
+
+**What does come first is the pair.** `Tower.mul.safe` concludes an indexed evidence type
+
+    type Tower.Safe<-x: T.Tower, -p: T.Tower> is Data:
+      SafeExt{csafe: T.Tower.clean(p),
+              hdepth: {T.Tower.depth(p) == T.Tower.depth(x) : Nat}}
+
+so one recursive call hands back both facts about a sub-product, and each is in hand exactly where
+the other is needed. The two readable laws are then projections of the pair, one call each.
+`probe.safe.bend` measured the mechanism first: a law can conclude an indexed user-defined evidence
+type, a fill can build one (`{==}` as a field), and a fill can project its fields. That last part
+has a constraint worth recording, because it costs a def per projection: **a match cannot scrutinize
+a computed value**. Destructuring the result of a recursive call -- `SafeExt{cs, hd} = s1` -- is
+rejected whether `s1` is a `let`-bound name or the call written inline, so the pair is read through
+defs that take it as a *parameter* (`Tower.safe.clean`, `Tower.safe.depth`); matching a parameter is
+legal, matching a computed value is not. Each recursive call is therefore made twice, once per
+half. That is not sharing, and it is not needed: the fuel is what bounds the work, and the same
+product is recomputed rather than named.
+
+Two measurements shaped the statement, and both are about the fuel.
+
+**The claim is false at insufficient fuel**, so sufficiency is part of the statement rather than an
+assumption a caller might forget. Take `x` at depth 2 and fuel 1: the arm runs with `g = 0`, so all
+four sub-products are `mul(0n, ...)` = `Fuel{}`, both coordinates are `add(Fuel{}, Fuel{})` =
+`Fuel{}`, and the product is `Ext{Fuel{}, Fuel{}, dx}` -- depth `1n+depth(Fuel{})` = 1, not 2, and
+its cleanliness would need `clean(Fuel{})`, which is `Empty`. The law therefore carries
+`hf: {f == 1n+Tower.depth(x)}`: the fuel is exactly one level per operand, which is the fuel the
+definition's own recursion consumes. Each recursive call needs its own instance of it, and the
+chain is short because the operand one level down has depth one less: `hf1` is `hf` with `succ_inj`
+on both sides, `hf2` replaces `depth(rx)` by `depth(ix)` through the operand's `hri` field, and
+`hf3` uses the *sub-product's own* depth fact from the second recursive call.
+
+**The fuel has to be a parameter, independently of that.** Bend requires a self-call's arguments to
+read left to right with each one unchanged until one shrinks, and the third recursive call is
+`mul(g, mul(g, ix, iy), dx)` -- a computed product in the second slot. With the fuel spelled `1n+g`
+in the conclusion, that call is rejected verbatim:
+
+    a decreasing self-call (arguments are read left to right: each passed unchanged until one shrinks)
+
+The fuel is the *first* argument and it is already the smaller one, so nothing before the product
+can shrink. As a parameter, the fill matches on it, `case 1n+g` puts `g` in scope as a strict
+subterm of that parameter, and the fuel shrinking in the first slot frees every later argument --
+which is exactly how `Tower.mul`'s own definition gets away with the identical call. Restating the
+law at `1n+Tower.depth(x)` in the readable file is then the projection at `f := 1n+Tower.depth(x)`
+with `hf := {==}`, which is definitional because `1n+Tower.depth(x)` *is*
+`Nat.add(1n, Tower.depth(x))`.
+
+So the obligation round thirty-three narrowed to one law is discharged: `mul.depth` -- and its
+partner `mul.clean`, which round forty-two found was needed too -- are both proved, at the exact
+fuel one level per operand. What is still to state is Step 2's fuel-sufficiency law itself
+(`mul.fuel.ext` in round thirty-six's terms), which now takes the intrinsic-radicand signature the
+redesign settled on: at any fuel above the threshold the product is the same, so a caller need not
+carry the exactness equation that `mul.depth` and `mul.clean` state.
+
+The shape the rest of Step 2 will use is settled too: state the pair, prove it as one induction
+whose fuel is a parameter, expose the halves as projections. The same left-to-right rule will show
+up in the ring laws' fills, where every recursion descends into coordinates.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

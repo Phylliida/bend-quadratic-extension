@@ -6011,3 +6011,82 @@ be inferred.
 **Where the three tiers ended up:** int 19/13, rat 40/28, tower 13/2, nat 46/83,
 qrat 36/0, qext 2/0 -- 156 readable laws, 126 helpers, 282 in total, which is the
 number the repo had before the split.
+
+## Round forty-five -- The product's two facts are one induction, and the fuel becomes a parameter
+
+Rounds forty-one and forty-two left the multiplication chain as three laws in order:
+`mul.clean` -> `mul.depth` -> `mul.fuel.ext`. That order is a cycle, and the fill
+found it before a proof would have.
+
+**The cycle.** `mul.depth`'s Ext/Ext arm has a recursive call whose first operand is
+a *product*: `mul(g, mul(g, ix, iy), dx)`. Proving that call needs
+`clean(mul(g, ix, iy))`, which is `mul.clean`'s conclusion. And `mul.clean`'s
+Ext/Ext arm needs the *depths* of the four sub-products -- they are the equal-depth
+hypothesis `add.clean` takes, and the raw material of the result's own level
+relations -- which is `mul.depth`'s conclusion. Neither law comes first.
+
+**What comes first is the pair.** `Tower.mul.safe` concludes an indexed evidence
+type, `Tower.Safe<x, p>`, carrying both facts about a product: `csafe:
+Tower.clean(p)` and `hdepth: {Tower.depth(p) == Tower.depth(x)}`. One recursive call
+hands back both, so each is in hand exactly where the other is needed, and the two
+readable laws are projections of the pair -- one call each, in
+`Tower.mul.depth` and `Tower.mul.clean`.
+
+**The mechanism was measured before the proof.** `probe.safe.bend` (untracked, in
+the repo root) checked that a law can conclude an indexed user-defined evidence
+type, that a fill can build one (`{==}` as the depth field), and that a fill can
+project its fields. The first attempt also measured the constraint that shapes the
+rest of the file: **a match cannot scrutinize a computed value**. Destructuring a
+recursive call's result -- `SafeExt{cs, hd} = s1`, and the same with the call
+written inline -- is rejected ("give it its own def"), so the pair is read through
+defs that take it as a *parameter* (`Tower.safe.clean`, `Tower.safe.depth`);
+matching a parameter is legal, matching a computed value is not. Each recursive
+call is therefore written twice, once per half. Nothing is shared, and nothing needs
+to be: the fuel bounds the work, and the sub-product is recomputed rather than
+named.
+
+**The claim is false at insufficient fuel**, so sufficiency is stated rather than
+assumed. At `x` of depth 2 and fuel 1 the arm runs with `g = 0`, all four
+sub-products are `mul(0n, ...)` = `Fuel{}`, both coordinates are `add(Fuel{},
+Fuel{})` = `Fuel{}`, and the product is `Ext{Fuel{}, Fuel{}, dx}`: depth 1, not 2,
+and its cleanliness would need `clean(Fuel{})`, which is `Empty`. The law carries
+`hf: {f == 1n+Tower.depth(x)}` -- one level per operand, the fuel the definition's
+own recursion consumes. Each recursive call needs its own instance, and the chain is
+three links: `hf1` is `hf` with `succ_inj` on both sides, `hf2` replaces
+`depth(rx)` by `depth(ix)` through the operand's `hri`, and `hf3` uses the
+*sub-product's own* depth fact from the second recursive call (which is why the
+pair, and not two separate laws, is what makes the third call provable).
+
+**The fuel has to be a parameter**, which is the second measurement and is
+independent of the first. Bend requires a self-call's arguments to read left to
+right with each unchanged until one shrinks, and the third call passes a computed
+product in the second slot. With the fuel spelled `1n+g` in the conclusion the
+checker refuses verbatim:
+
+    a decreasing self-call (arguments are read left to right: each passed unchanged until one shrinks)
+
+The fuel is the first argument and it is already the smaller one, so nothing before
+the product can shrink. As a parameter, `match f: case 1n+g` puts `g` in scope as a
+strict subterm of it, the fuel shrinks in the first slot, and every later argument is
+free -- which is exactly how `Tower.mul`'s own definition gets away with the
+identical call. The readable statement at `1n+Tower.depth(x)` is then the projection
+at `f := 1n+Tower.depth(x)` with `hf := {==}`, definitional because
+`1n+Tower.depth(x)` *is* `Nat.add(1n, Tower.depth(x))`.
+
+Three of the four fill bugs this round were orientation: `Equal.sym` applied to a
+hypothesis the trans already wanted in the given direction, twice, and `Equal.cong`
+called with its endpoints in the other order once. The checker names the expected
+and observed types and they are exact mirrors, so each is a one-line fix; the habit
+worth keeping is that the middle of a `trans` is the first leg's *endpoint*, and
+every leg's two ends have to be read off the leg, not off the statement.
+
+**Counts, measured.** `tower.bend` 15 laws (13 readable before this round) and
+`tower_helpers.bend` 3 laws plus the type `Tower.Safe`. Every other library is
+untouched: nat 46/83, int 19/13, rat 40/28, qrat 36, qext 2.
+
+**All ten gates check**: the six `*_proofs.bend` files, `probe.bend`,
+`probe.payoff.bend`, `probe.tower.depth.bend`, `probe.mul.depth.arm.bend`, and
+`scratch.bend` still prints its inversion triple. `tower_proofs.bend` runs in 2.8 s
+end to end, which is over the one-second rule and is now the slowest of the six;
+the arm's four recursive calls written twice are the reason, and the backlogged
+fast-path item covers it.
