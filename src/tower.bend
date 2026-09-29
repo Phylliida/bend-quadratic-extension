@@ -550,6 +550,14 @@ def Tower.pos(t: Tower) -> Data:
 # Round sixty-four measured that this is enough: the fill rewrites the value to its
 # spelling and hands fx to the Rat law.
 #
+# Round seventy-one gave the leaf a third field of the same kind. Rat.neg is not an
+# involution at arbitrary values: it is mk(neg xn, xd), and mk normalizes, so at a
+# non-canonical Rat the double negation lands on the canonical form rather than on the
+# value. Rat.neg_neg is stated at a spelled, reduced Rat{Rat.num(np, nn), 1n+dp} with
+# that spelling's coprimality as a hypothesis, and it has no .arb form, so the leaf
+# fact is handed in with the other two -- neg(neg(a)) == a, which is exactly what
+# Tower.neg_neg's Base arm needs.
+#
 # Marker arms are inhabited, like Pos's and for the same reason: the operations are
 # total there and a closure law's shape induction reaches them.
 type Tower.Canon.Marker is Data:
@@ -557,7 +565,8 @@ type Tower.Canon.Marker is Data:
 
 type Tower.Canon.Base<-a: R.Rat> is Data:
   CanonBase{ce: {a == R.Rat{R.Rat.numof(a), R.Rat.denof(a)} : R.Rat},
-            cfx: {R.Rat.mk(R.Rat.numof(a), R.Rat.denof(a)) == a : R.Rat}}
+            cfx: {R.Rat.mk(R.Rat.numof(a), R.Rat.denof(a)) == a : R.Rat},
+            cneg: {R.Rat.neg(R.Rat.neg(a)) == a : R.Rat}}
 
 # The Ext variant carries two more things: the level relation between the value's two
 # coordinates, and the one between its first coordinate and the radicand. Those are the
@@ -679,6 +688,19 @@ law Tower.neg_mul:
   for h: {Tower.depth(x) == Tower.depth(y) : Nat}
   for hf: {f == Nat.add(1n, Tower.depth(x)) : Nat}
   {Tower.mul(f, Tower.neg(x), y) == Tower.neg(Tower.mul(f, x, y)) : Tower}
+
+# neg_neg: -(-x) = x, the one law of the negation block that needs a leaf fact.
+#
+# neg is coordinatewise and keeps the radicand, so the Ext arm is two recursive calls
+# and two congruences; the markers are definitional, since neg is the identity on them.
+# What is not structural is the Base leaf: Rat.neg_neg is stated at a spelled, reduced
+# value (the double negation normalizes, so at a non-canonical Rat it is false), which
+# is why the leaf's involution travels in the canon witness beside the spelling
+# equations. One hypothesis, like the rest of the block.
+law Tower.neg_neg:
+  for +x: Tower
+  for cx: Tower.canon(x)
+  {Tower.neg(Tower.neg(x)) == x : Tower}
 
 # add_zero: x + 0 = x, the first of the block that needs canonicality.
 #

@@ -83,8 +83,8 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 26 / 23, qrat 36 / none, qext 2 / none -- 169 readable
-  laws, 147 helpers, 316 in total (the split itself landed 282; the product's pair
+  13, rat 40 / 28, tower 27 / 23, qrat 36 / none, qext 2 / none -- 170 readable
+  laws, 147 helpers, 317 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
   `mul.fuel.ext` to the helper tier, round forty-eight; the negation pair added
@@ -92,7 +92,8 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   `Tower.add_zero` and with it the second carrier type, `Tower.Canon`; round
   sixty-five added its mirror
   `Tower.zero_add`; round seventy added `Tower.one.level` to the helper tier and
-  `Tower.mul_one`/`Tower.one_mul` to the readable tier). The per-library numbers are the
+  `Tower.mul_one`/`Tower.one_mul` to the readable tier; round seventy-one added `Tower.neg_neg`
+  to the readable tier and the canon leaf's third field, `cneg`). The per-library numbers are the
   own law counts of that library's tier files (`grep -c '^law '`), which is why they sum
   to the totals.
 
@@ -194,7 +195,7 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   evidence family with its two transport defs, and Step 2's level arithmetic:
   `Tower.add(x, y)`, `Tower.neg(x)`, `Tower.mul(+f, x, y)` and `Tower.one(t)`,
   with the radicand read off the first operand's own third field (intrinsic,
-  round thirty-nine) and `mul` descending on a `Nat` fuel. Twenty-eight laws: the
+  round thirty-nine) and `mul` descending on a `Nat` fuel. Twenty-nine laws: the
   level arithmetic (`add.depth`, `add.clean`, `mul.depth`, `mul.clean`),
   `zero.base`, `depth.zero`, `depth.lift`, `lift.zero`, `add.base`, `add.ext`,
   `neg.ext`, `sub_eq_add_neg`, `mul.base`, `mul.ext` (the
@@ -266,7 +267,7 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   second half, `Tower.Canon` (beside `Tower.Pos`): the four identity laws are stated at
   spelled `Rat{n, d}` with `fx: {Rat.mk(n, d) == Rat{n, d}}` and admit no `.arb`
   form, because at a non-canonical value the equation is false -- and the family
-  cannot destructure its own index, so its leaf carries the two things a fill cannot
+  cannot destructure its own index, so its leaf carries the things a fill cannot
   get otherwise: the equation that the value *is* its projection spelling, and `fx`
   at that spelling. `Tower.add_zero` and `Tower.zero_add` are the laws built on it
   so far. Round sixty-seven gave the family two sibling fields -- the level relation
@@ -297,7 +298,15 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   operand boundary with `one.level` and `zero.level`, and closes its coordinates on
   `add_zero`/`zero_add`; between them the two laws consume all four identity leaves. Their
   Base leaves are `Rat.mul_one`/`Rat.one_mul` at the canonical spelling, which is exactly
-  the `fx` equation `Tower.Canon` hands over.
+  the `fx` equation `Tower.Canon` hands over. Round seventy-one closed the negation
+  block with `Tower.neg_neg` (`-(-x) = x`) and gave the canon leaf a third field with it,
+  `cneg: {Rat.neg(Rat.neg(a)) == a}`: `Rat.neg` is `mk(neg xn, xd)` and `mk` normalizes, so
+  the double negation of a non-canonical Rat is its canonical form, and `Rat.neg_neg` -- the
+  only version that can exist -- is stated at a spelled, reduced value. `neg` is
+  coordinatewise and keeps the radicand, so the law still takes a single hypothesis, the
+  canon witness, and its Ext arm is two recursive calls and two congruences. A `probe.cneg.bend`
+  measurement (untracked) builds the extended witness at closed leaves -- all three fields
+  `{==}` -- and hands it to the law at a leaf and at depth 2.
 - `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law.
   `depth.zero`, `add.depth`, `add.clean`, `mul.safe` and `mul.above` are structural
   inductions in the fill: the match refines the law at each branch, and each arm
@@ -350,7 +359,7 @@ bend2/main.ts <file>` is the durable form). This checkout is on **Bend 2.0.27**
 (`bend` @ `d3790917`), fast-forwarded from a 2.0.5-era tree in PROVING round
 eighteen; every gate below was re-run there and the law counts are unchanged. The six
 `*_proofs.bend` files are the gates and print `All terms check.`, as do the
-two `probe*.bend` consumer files; the
+four tracked `probe*.bend` files; the
 laws-only files intentionally fail with
 `Error: N TODOs found.` (an open law is an unfilled TODO), and `scratch.bend`
 is the smoke test -- it has a `main`, so it prints the `Rat.inv` triple it
@@ -358,8 +367,9 @@ computes instead of that line. The count is
 transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
 QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 265 = 129 Nat +
 32 Int + 68 Rat + 36 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own thirty-six laws), tower.bend 249 = rat.bend's 229 plus
-its own twenty, and tower_helpers.bend 265 = tower.bend's 249 plus its own sixteen.
+rat.bend's plus its own thirty-six laws), tower.bend 256 = rat.bend's 229 plus
+its own twenty-seven, and tower_helpers.bend 279 = tower.bend's 256 plus its own
+twenty-three.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.

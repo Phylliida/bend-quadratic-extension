@@ -2086,7 +2086,7 @@ def T.Tower.add_zero(x, cx):
   match x:
     case T.Base{a}:
       match cx:
-        case T.CanonBase{+ce, +cfx}:
+        case T.CanonBase{+ce, +cfx, +cneg}:
           %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.add(_, R.Rat.zero())} == T.Base{a} : T.Tower}
           %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.add(R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, R.Rat.zero())} == T.Base{_} : T.Tower}
           Equal.cong(R.Rat, T.Tower, u => T.Base{u},
@@ -2124,7 +2124,7 @@ def T.Tower.zero_add(x, cx):
   match x:
     case T.Base{a}:
       match cx:
-        case T.CanonBase{+ce, +cfx}:
+        case T.CanonBase{+ce, +cfx, +cneg}:
           %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.add(R.Rat.zero(), _)} == T.Base{a} : T.Tower}
           %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.add(R.Rat.zero(), R.Rat{R.Rat.numof(a), R.Rat.denof(a)})} == T.Base{_} : T.Tower}
           Equal.cong(R.Rat, T.Tower, u => T.Base{u},
@@ -2579,7 +2579,7 @@ def T.Tower.mul_one(f, u, cu, pu, hf):
       match u:
         case T.Base{a}:
           match cu:
-            case T.CanonBase{+ce, +cfx}:
+            case T.CanonBase{+ce, +cfx, +cneg}:
               %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.mul(_, R.Rat.one())} == T.Base{a} : T.Tower}
               %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.mul(R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, R.Rat.one())} == T.Base{_} : T.Tower}
               Equal.cong(R.Rat, T.Tower, w => T.Base{w},
@@ -2689,7 +2689,7 @@ def T.Tower.one_mul(f, u, cu, pu, hf):
       match u:
         case T.Base{a}:
           match cu:
-            case T.CanonBase{+ce, +cfx}:
+            case T.CanonBase{+ce, +cfx, +cneg}:
               %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.mul(R.Rat.one(), _)} == T.Base{a} : T.Tower}
               %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.mul(R.Rat.one(), R.Rat{R.Rat.numof(a), R.Rat.denof(a)})} == T.Base{_} : T.Tower}
               Equal.cong(R.Rat, T.Tower, w => T.Base{w},
@@ -2782,3 +2782,35 @@ def T.Tower.one_mul(f, u, cu, pu, hf):
           {==}
         case T.Fuel{}:
           {==}
+
+# neg_neg: the Base arm is the canon leaf's third field under one congruence -- the
+# equation is exactly the goal's leaf equation, already at the spelled value -- and the
+# Ext arm is two recursive calls with the radicand in the third slot on both sides,
+# since neg keeps it. The markers are definitional.
+def T.Tower.neg_neg(x, cx):
+  match x:
+    case T.Base{a}:
+      match cx:
+        case T.CanonBase{+ce, +cfx, +cneg}:
+          Equal.cong(R.Rat, T.Tower, u => T.Base{u},
+            R.Rat.neg(R.Rat.neg(a)), a, cneg)
+    case T.Ext{rx, ix, dx}:
+      match cx:
+        case T.CanonExt{+cre, +cim, +cd, +lri, +lrd}:
+          +e1 = T.Tower.neg_neg(rx, cre)
+          +e2 = T.Tower.neg_neg(ix, cim)
+          +c1 = Equal.cong(T.Tower, T.Tower,
+                  u => T.Ext{u, T.Tower.neg(T.Tower.neg(ix)), dx},
+                  T.Tower.neg(T.Tower.neg(rx)), rx, e1)
+          +c2 = Equal.cong(T.Tower, T.Tower,
+                  u => T.Ext{rx, u, dx},
+                  T.Tower.neg(T.Tower.neg(ix)), ix, e2)
+          Equal.trans(T.Tower,
+            T.Ext{T.Tower.neg(T.Tower.neg(rx)),
+                  T.Tower.neg(T.Tower.neg(ix)), dx},
+            T.Ext{rx, T.Tower.neg(T.Tower.neg(ix)), dx},
+            T.Ext{rx, ix, dx}, c1, c2)
+    case T.Bad{}:
+      {==}
+    case T.Fuel{}:
+      {==}

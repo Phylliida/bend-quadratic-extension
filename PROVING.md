@@ -7365,3 +7365,40 @@ green: nat 0.35, int 0.55, rat 2.93, qrat 5.59, qext 0.51, tower_proofs 3.26, pr
 (the inversion triple unchanged). README counts corrected while patching them: the tier line
 now carries the measured own-law counts (169 readable, 147 helpers, 316 in total); the
 previous `146 helpers` was one short of the sum of the per-library helper counts.
+
+## Round seventy-one -- neg_neg: the law that needed a third canon field
+
+`Tower.neg_neg` (`-(-x) = x`) is the last law of the negation block, and the only one in the
+block that needs a leaf fact. The need is measured rather than assumed: `Rat.neg` is
+`mk(neg xn, xd)` and `mk` normalizes, so at a non-canonical Rat the double negation lands on
+the canonical form instead of on the value -- `Rat.neg_neg` is therefore stated at a spelled,
+reduced `Rat{Rat.num(np, nn), 1n+dp}` with that spelling's coprimality in hand, and no `.arb`
+form can exist. The canon carrier's leaf already hands a fill two spelling equations; this law
+needs a third, so `Tower.Canon.Base` gained `cneg: {Rat.neg(Rat.neg(a)) == a}`. That is round
+sixty-seven's precedent again, and `Canon` is the right home for the same reason: it is
+*handed in*, not produced, so a fact its holders already have costs them nothing.
+
+With it, `Tower.neg_neg` takes one hypothesis and needs nothing else. `neg` is coordinatewise
+and keeps the radicand, so the Ext arm is two recursive calls and two congruences with `dx` in
+the third slot on both sides, and both markers are definitional (`neg` is the identity on
+them). The Base arm is one `Equal.cong` around the leaf field -- the equation is already the
+goal's leaf equation, at the spelling the law wants.
+
+Both files checked green on the first run, and the whole landing was: one field, one law, one
+fill, four destructuring patterns updated in `tower_proofs.bend` (`T.CanonBase{+ce, +cfx}` ->
+`{+ce, +cfx, +cneg}` in the four identity/zero fills).
+
+A carrier extension has to be shown fillable before it is worth having -- a hypothesis nobody
+can supply is worse than the one already in hand -- so `probe.cneg.bend` measures it. At closed
+leaves with denominator 1 and a numerator coprime with it (`Rat{Int{5, 0}, 1}`,
+`Rat{Int{0, 2}, 1}`, `Rat{Int{3, 0}, 1}`) all three fields are literal arithmetic, so the whole
+witness is `T.CanonBase{{==}, {==}, {==}}`; the probe then hands each witness to the law, once
+at a leaf and once at a depth-2 value (`Ext{Base{5}, Base{-2}, Base{3}}`, whose `CanonExt`
+needs `T.LevelBase{}` for the two aligned pairs, since two base values sit at the same level
+whatever they hold). Both instances check with no proof content at all, which is the point:
+the third field is free to the caller at a closed leaf.
+
+Counts after the landing: `tower.bend` 256 (rat.bend's 229 plus its own twenty-seven),
+`tower_helpers.bend` 279; eleven gates green (`tower_proofs.bend` 3.66 s, `probe.payoff.bend`
+7.14 s -- the two consumer probes are the standing over-one-second backlog). Item (3) of the
+goal is closed; item (2) still waits on round sixty's cross-operand fact.

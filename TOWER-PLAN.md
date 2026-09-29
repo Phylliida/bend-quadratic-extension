@@ -2576,5 +2576,21 @@ law, and a law call's module prefix does not fall through to the importing modul
 `TH.Tower.add_zero` for a law stated in `tower.bend` is read as
 `tower_helpers.Tower.add_zero` and reported verbatim.
 
-Item (3) of the goal now has one law left, `neg_neg`; the three ring laws of item (2) still
-wait on round sixty's cross-operand fact.
+### neg_neg, and the canon leaf's third field (round seventy-one)
+
+Item (3) closes: `Tower.neg_neg` is the negation block's last law and the only one in it that
+needs a leaf fact. `Rat.neg` is `mk(neg xn, xd)` and `mk` normalizes, so the double negation of
+a non-canonical Rat *is* its canonical form -- `Rat.neg_neg`'s spelled, reduced statement is the
+only one that can exist, and it is false at a non-canonical value. So the leaf of `Tower.Canon`
+carries a third field, `cneg: {Rat.neg(Rat.neg(a)) == a}`, which is the whole of what the law
+needs: `neg` keeps the radicand, so the Ext arm is two recursive calls and two congruences and
+the law still takes a single hypothesis, the canon witness.
+
+`probe.cneg.bend` (untracked) measures that the extended witness is fillable rather than merely
+stated: at closed leaves with denominator 1 all three fields are `{==}`, and the law then
+delivers both at a leaf and at depth 2.
+
+Item (3) is closed. The three ring laws of item (2) -- `mul_comm`, `mul_assoc`, `mul_distrib` --
+still wait on round sixty's cross-operand fact (route (a): thread it through
+`add.clean`/`mul.clean`/`mul.safe` and extend `Tower.Safe`), which is the only objective work
+left.
