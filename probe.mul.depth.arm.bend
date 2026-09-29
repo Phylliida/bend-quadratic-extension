@@ -3,6 +3,7 @@ import ./src/tower.bend as T
 import ./src/tower_helpers.bend as TH
 import ./src/tower_proofs.bend as TP
 import ./src/nat.bend as N
+import ./src/nat_helpers.bend as NH
 import ./src/nat_proofs.bend as NN
 
 # The bookkeeping of mul.depth's Ext/Ext arm, with the recursive facts assumed.

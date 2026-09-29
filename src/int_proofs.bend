@@ -2,6 +2,7 @@ import Base
 import ./int.bend as I
 import ./int_helpers.bend as IH
 import ./nat.bend as N
+import ./nat_helpers.bend as NH
 import ./nat_proofs.bend as NP
 
 # Int proofs
@@ -33,8 +34,8 @@ def I.Int.add_assoc(x, y, z):
 def IH.Int.add_exchange(x, y, z):
   match x y z:
     case I.Int{xp, xn} I.Int{yp, yn} I.Int{zp, zn}:
-      %N.add_exchange(xp, yp, zp) : {I.Int{Nat.add(xp, Nat.add(yp, zp)), Nat.add(xn, Nat.add(yn, zn))} == I.Int{_, Nat.add(yn, Nat.add(xn, zn))} : I.Int}
-      %N.add_exchange(xn, yn, zn) : {I.Int{Nat.add(xp, Nat.add(yp, zp)), Nat.add(xn, Nat.add(yn, zn))} == I.Int{Nat.add(xp, Nat.add(yp, zp)), _} : I.Int}
+      %NH.add_exchange(xp, yp, zp) : {I.Int{Nat.add(xp, Nat.add(yp, zp)), Nat.add(xn, Nat.add(yn, zn))} == I.Int{_, Nat.add(yn, Nat.add(xn, zn))} : I.Int}
+      %NH.add_exchange(xn, yn, zn) : {I.Int{Nat.add(xp, Nat.add(yp, zp)), Nat.add(xn, Nat.add(yn, zn))} == I.Int{Nat.add(xp, Nat.add(yp, zp)), _} : I.Int}
       {==}
 
 def I.Int.add_zero(x):
@@ -92,8 +93,8 @@ def IH.Int.mul_assoc.pos(xp, xn, yp, yn, zp, zn):
   %Equal.sym(Nat, Nat.mul(Nat.mul(xn, yp), zn), Nat.mul(xn, Nat.mul(yp, zn)), N.mul_assoc(xn, yp, zn)) : {Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zp))), Nat.add(Nat.mul(xp, Nat.mul(yn, zn)), _)) == Nat.add(Nat.mul(xp, Nat.add(Nat.mul(yp, zp), Nat.mul(yn, zn))), Nat.mul(xn, Nat.add(Nat.mul(yp, zn), Nat.mul(yn, zp)))) : Nat}
   %N.mul_distrib(xp, Nat.mul(yp, zp), Nat.mul(yn, zn)) : {Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zp))), Nat.add(Nat.mul(xp, Nat.mul(yn, zn)), Nat.mul(xn, Nat.mul(yp, zn)))) == Nat.add(_, Nat.mul(xn, Nat.add(Nat.mul(yp, zn), Nat.mul(yn, zp)))) : Nat}
   %N.mul_distrib(xn, Nat.mul(yp, zn), Nat.mul(yn, zp)) : {Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zp))), Nat.add(Nat.mul(xp, Nat.mul(yn, zn)), Nat.mul(xn, Nat.mul(yp, zn)))) == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xp, Nat.mul(yn, zn))), _) : Nat}
-  %N.add_assoc_rev(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zp)), Nat.add(Nat.mul(xp, Nat.mul(yn, zn)), Nat.mul(xn, Nat.mul(yp, zn)))) : {_ == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xp, Nat.mul(yn, zn))), Nat.add(Nat.mul(xn, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zp)))) : Nat}
-  %N.add_exchange(Nat.mul(xp, Nat.mul(yn, zn)), Nat.mul(xn, Nat.mul(yn, zp)), Nat.mul(xn, Nat.mul(yp, zn))) : {Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), _) == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xp, Nat.mul(yn, zn))), Nat.add(Nat.mul(xn, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zp)))) : Nat}
+  %NH.add_assoc_rev(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zp)), Nat.add(Nat.mul(xp, Nat.mul(yn, zn)), Nat.mul(xn, Nat.mul(yp, zn)))) : {_ == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xp, Nat.mul(yn, zn))), Nat.add(Nat.mul(xn, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zp)))) : Nat}
+  %NH.add_exchange(Nat.mul(xp, Nat.mul(yn, zn)), Nat.mul(xn, Nat.mul(yn, zp)), Nat.mul(xn, Nat.mul(yp, zn))) : {Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), _) == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xp, Nat.mul(yn, zn))), Nat.add(Nat.mul(xn, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zp)))) : Nat}
   %N.add_comm(Nat.mul(xn, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zp))) : {Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), Nat.add(Nat.mul(xp, Nat.mul(yn, zn)), _)) == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xp, Nat.mul(yn, zn))), Nat.add(Nat.mul(xn, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zp)))) : Nat}
   %N.add_assoc(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xp, Nat.mul(yn, zn)), Nat.add(Nat.mul(xn, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zp)))) : {_ == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zp)), Nat.mul(xp, Nat.mul(yn, zn))), Nat.add(Nat.mul(xn, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zp)))) : Nat}
   {==}
@@ -107,8 +108,8 @@ def IH.Int.mul_assoc.neg(xp, xn, yp, yn, zp, zn):
   %Equal.sym(Nat, Nat.mul(Nat.mul(xn, yp), zp), Nat.mul(xn, Nat.mul(yp, zp)), N.mul_assoc(xn, yp, zp)) : {Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zn))), Nat.add(Nat.mul(xp, Nat.mul(yn, zp)), _)) == Nat.add(Nat.mul(xp, Nat.add(Nat.mul(yp, zn), Nat.mul(yn, zp))), Nat.mul(xn, Nat.add(Nat.mul(yp, zp), Nat.mul(yn, zn)))) : Nat}
   %N.mul_distrib(xp, Nat.mul(yp, zn), Nat.mul(yn, zp)) : {Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zn))), Nat.add(Nat.mul(xp, Nat.mul(yn, zp)), Nat.mul(xn, Nat.mul(yp, zp)))) == Nat.add(_, Nat.mul(xn, Nat.add(Nat.mul(yp, zp), Nat.mul(yn, zn)))) : Nat}
   %N.mul_distrib(xn, Nat.mul(yp, zp), Nat.mul(yn, zn)) : {Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zn))), Nat.add(Nat.mul(xp, Nat.mul(yn, zp)), Nat.mul(xn, Nat.mul(yp, zp)))) == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xp, Nat.mul(yn, zp))), _) : Nat}
-  %N.add_assoc_rev(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zn)), Nat.add(Nat.mul(xp, Nat.mul(yn, zp)), Nat.mul(xn, Nat.mul(yp, zp)))) : {_ == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xp, Nat.mul(yn, zp))), Nat.add(Nat.mul(xn, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zn)))) : Nat}
-  %N.add_exchange(Nat.mul(xp, Nat.mul(yn, zp)), Nat.mul(xn, Nat.mul(yn, zn)), Nat.mul(xn, Nat.mul(yp, zp))) : {Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), _) == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xp, Nat.mul(yn, zp))), Nat.add(Nat.mul(xn, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zn)))) : Nat}
+  %NH.add_assoc_rev(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xn, Nat.mul(yn, zn)), Nat.add(Nat.mul(xp, Nat.mul(yn, zp)), Nat.mul(xn, Nat.mul(yp, zp)))) : {_ == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xp, Nat.mul(yn, zp))), Nat.add(Nat.mul(xn, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zn)))) : Nat}
+  %NH.add_exchange(Nat.mul(xp, Nat.mul(yn, zp)), Nat.mul(xn, Nat.mul(yn, zn)), Nat.mul(xn, Nat.mul(yp, zp))) : {Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), _) == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xp, Nat.mul(yn, zp))), Nat.add(Nat.mul(xn, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zn)))) : Nat}
   %N.add_comm(Nat.mul(xn, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zn))) : {Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), Nat.add(Nat.mul(xp, Nat.mul(yn, zp)), _)) == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xp, Nat.mul(yn, zp))), Nat.add(Nat.mul(xn, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zn)))) : Nat}
   %N.add_assoc(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xp, Nat.mul(yn, zp)), Nat.add(Nat.mul(xn, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zn)))) : {_ == Nat.add(Nat.add(Nat.mul(xp, Nat.mul(yp, zn)), Nat.mul(xp, Nat.mul(yn, zp))), Nat.add(Nat.mul(xn, Nat.mul(yp, zp)), Nat.mul(xn, Nat.mul(yn, zn)))) : Nat}
   {==}
@@ -165,11 +166,11 @@ def I.Int.mul_distrib(x, y, z):
       %N.mul_distrib(xn, yn, zn) : {I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xp, zp)), _), Nat.add(Nat.mul(xp, Nat.add(yn, zn)), Nat.mul(xn, Nat.add(yp, zp)))} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
       %N.mul_distrib(xp, yn, zn) : {I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xp, zp)), Nat.add(Nat.mul(xn, yn), Nat.mul(xn, zn))), Nat.add(_, Nat.mul(xn, Nat.add(yp, zp)))} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
       %N.mul_distrib(xn, yp, zp) : {I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xp, zp)), Nat.add(Nat.mul(xn, yn), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xp, zn)), _)} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
-      %N.add_assoc_rev(Nat.mul(xp, yp), Nat.mul(xp, zp), Nat.add(Nat.mul(xn, yn), Nat.mul(xn, zn))) : {I.Int{_, Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xp, zn)), Nat.add(Nat.mul(xn, yp), Nat.mul(xn, zp)))} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
-      %N.add_exchange(Nat.mul(xn, yn), Nat.mul(xp, zp), Nat.mul(xn, zn)) : {I.Int{Nat.add(Nat.mul(xp, yp), _), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xp, zn)), Nat.add(Nat.mul(xn, yp), Nat.mul(xn, zp)))} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
+      %NH.add_assoc_rev(Nat.mul(xp, yp), Nat.mul(xp, zp), Nat.add(Nat.mul(xn, yn), Nat.mul(xn, zn))) : {I.Int{_, Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xp, zn)), Nat.add(Nat.mul(xn, yp), Nat.mul(xn, zp)))} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
+      %NH.add_exchange(Nat.mul(xn, yn), Nat.mul(xp, zp), Nat.mul(xn, zn)) : {I.Int{Nat.add(Nat.mul(xp, yp), _), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xp, zn)), Nat.add(Nat.mul(xn, yp), Nat.mul(xn, zp)))} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
       %N.add_assoc(Nat.mul(xp, yp), Nat.mul(xn, yn), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))) : {I.Int{_, Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xp, zn)), Nat.add(Nat.mul(xn, yp), Nat.mul(xn, zp)))} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
-      %N.add_assoc_rev(Nat.mul(xp, yn), Nat.mul(xp, zn), Nat.add(Nat.mul(xn, yp), Nat.mul(xn, zp))) : {I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), _} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
-      %N.add_exchange(Nat.mul(xn, yp), Nat.mul(xp, zn), Nat.mul(xn, zp)) : {I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.mul(xp, yn), _)} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
+      %NH.add_assoc_rev(Nat.mul(xp, yn), Nat.mul(xp, zn), Nat.add(Nat.mul(xn, yp), Nat.mul(xn, zp))) : {I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), _} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
+      %NH.add_exchange(Nat.mul(xn, yp), Nat.mul(xp, zn), Nat.mul(xn, zp)) : {I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.mul(xp, yn), _)} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
       %N.add_assoc(Nat.mul(xp, yn), Nat.mul(xn, yp), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp))) : {I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), _} == I.Int{Nat.add(Nat.add(Nat.mul(xp, yp), Nat.mul(xn, yn)), Nat.add(Nat.mul(xp, zp), Nat.mul(xn, zn))), Nat.add(Nat.add(Nat.mul(xp, yn), Nat.mul(xn, yp)), Nat.add(Nat.mul(xp, zn), Nat.mul(xn, zp)))} : I.Int}
       {==}
 
@@ -243,13 +244,13 @@ def IH.Int.canon.idem(c, xp, xn, e):
       I.Int.canon.pos(Nat.sub(xp, xn),
         Equal.trans(Cmp, Nat.cmp(Nat.sub(xp, xn), 0n), Nat.cmp(1n+Nat.sub(xp, 1n+xn), 0n), GT{},
           Equal.cong(Nat, Cmp, t => Nat.cmp(t, 0n), Nat.sub(xp, xn), 1n+Nat.sub(xp, 1n+xn),
-            N.sub_pos(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e))),
+            NH.sub_pos(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e))),
           {==}))
     case LT{}:
       I.Int.canon.neg(Nat.sub(xn, xp),
         Equal.trans(Cmp, Nat.cmp(0n, Nat.sub(xn, xp)), Nat.cmp(0n, 1n+Nat.sub(xn, 1n+xp)), LT{},
           Equal.cong(Nat, Cmp, t => Nat.cmp(0n, t), Nat.sub(xn, xp), 1n+Nat.sub(xn, 1n+xp),
-            N.sub_pos(xn, xp, N.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e)))),
+            NH.sub_pos(xn, xp, NH.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e)))),
           {==}))
 
 # Int.canon.scale.go: case on the comparison. The positive branch is the whole
@@ -292,7 +293,7 @@ def IH.Int.canon.scale.go(c, xp, xn, kp, e):
       %e : {I.Int.canon.go(_, Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)) == I.Int.mul(I.Int.canon.go(GT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
       %Equal.sym(Nat, Nat.mul(Nat.sub(xp, xn), 0n), 0n, N.mul_zero(Nat.sub(xp, xn))) : {I.Int{Nat.sub(Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)), 0n} == I.Int{Nat.add(Nat.mul(Nat.sub(xp, xn), 1n+kp), Nat.mul(0n, 0n)), Nat.add(_, Nat.mul(0n, 1n+kp))} : I.Int}
       %Equal.sym(Nat, Nat.add(Nat.mul(Nat.sub(xp, xn), 1n+kp), 0n), Nat.mul(Nat.sub(xp, xn), 1n+kp), N.add_zero(Nat.mul(Nat.sub(xp, xn), 1n+kp))) : {I.Int{Nat.sub(Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)), 0n} == I.Int{_, Nat.add(0n, Nat.mul(0n, 1n+kp))} : I.Int}
-      %N.mul_sub_right(xp, xn, 1n+kp, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e)) : {I.Int{_, 0n} == I.Int{Nat.mul(Nat.sub(xp, xn), 1n+kp), 0n} : I.Int}
+      %NH.mul_sub_right(xp, xn, 1n+kp, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e)) : {I.Int{_, 0n} == I.Int{Nat.mul(Nat.sub(xp, xn), 1n+kp), 0n} : I.Int}
       {==}
     case LT{}:
       %Equal.sym(Nat, Nat.mul(xn, 0n), 0n, N.mul_zero(xn)) : {I.Int.canon.go(Nat.cmp(Nat.add(Nat.mul(xp, 1n+kp), _), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, 1n+kp))), Nat.add(Nat.mul(xp, 1n+kp), _), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, 1n+kp))) == I.Int.mul(I.Int.canon.go(LT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
@@ -301,7 +302,7 @@ def IH.Int.canon.scale.go(c, xp, xn, kp, e):
       %Equal.sym(Cmp, Nat.cmp(Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)), Nat.cmp(xp, xn), N.cmp_mul_right(xp, xn, kp)) : {I.Int.canon.go(_, Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)) == I.Int.mul(I.Int.canon.go(LT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
       %e : {I.Int.canon.go(_, Nat.mul(xp, 1n+kp), Nat.mul(xn, 1n+kp)) == I.Int.mul(I.Int.canon.go(LT{}, xp, xn), I.Int{1n+kp, 0n}) : I.Int}
       %Equal.sym(Nat, Nat.mul(Nat.sub(xn, xp), 0n), 0n, N.mul_zero(Nat.sub(xn, xp))) : {I.Int{0n, Nat.sub(Nat.mul(xn, 1n+kp), Nat.mul(xp, 1n+kp))} == I.Int{Nat.add(Nat.mul(0n, 1n+kp), _), Nat.add(Nat.mul(0n, 0n), Nat.mul(Nat.sub(xn, xp), 1n+kp))} : I.Int}
-      %N.mul_sub_right(xn, xp, 1n+kp, N.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e))) : {I.Int{0n, _} == I.Int{0n, Nat.mul(Nat.sub(xn, xp), 1n+kp)} : I.Int}
+      %NH.mul_sub_right(xn, xp, 1n+kp, NH.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e))) : {I.Int{0n, _} == I.Int{0n, Nat.mul(Nat.sub(xn, xp), 1n+kp)} : I.Int}
       {==}
 
 # Int.canon.scale: destructure x and hand the comparison in. The call's
@@ -395,34 +396,34 @@ def IH.Int.scale.cancel(u, v, kp, e):
             I.Int{vp, un},
             I.Int{vp, vn},
             Equal.cong(Nat, I.Int, w => I.Int{w, un}, up, vp,
-              N.mul_right_cancel(up, vp, kp, eup)),
+              NH.mul_right_cancel(up, vp, kp, eup)),
             Equal.cong(Nat, I.Int, w => I.Int{vp, w}, un, vn,
-              N.mul_right_cancel(un, vn, kp, eun)))
+              NH.mul_right_cancel(un, vn, kp, eun)))
 
 def I.Int.canon.eqv.fwd(c1, xp, xn, c2, yp, yn, e1, e2, e):
   match c1:
     case GT{}:
       match c2:
         case GT{}:
-          %N.cmp_gt_sub_add(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e1)) : {Nat.add(_, yn) == Nat.add(yp, xn) : Nat}
+          %NH.cmp_gt_sub_add(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e1)) : {Nat.add(_, yn) == Nat.add(yp, xn) : Nat}
           %Equal.sym(Nat, Nat.sub(xp, xn), Nat.sub(yp, yn), IH.Int.eq.pos(Nat.sub(xp, xn), 0n, Nat.sub(yp, yn), 0n, e)) : {Nat.add(Nat.add(_, xn), yn) == Nat.add(yp, xn) : Nat}
           %Equal.sym(Nat, Nat.add(Nat.add(Nat.sub(yp, yn), xn), yn), Nat.add(Nat.sub(yp, yn), Nat.add(xn, yn)), N.add_assoc(Nat.sub(yp, yn), xn, yn)) : {_ == Nat.add(yp, xn) : Nat}
           %Equal.sym(Nat, Nat.add(xn, yn), Nat.add(yn, xn), N.add_comm(xn, yn)) : {Nat.add(Nat.sub(yp, yn), _) == Nat.add(yp, xn) : Nat}
           %N.add_assoc(Nat.sub(yp, yn), yn, xn) : {_ == Nat.add(yp, xn) : Nat}
-          %Equal.sym(Nat, Nat.add(Nat.sub(yp, yn), yn), yp, N.cmp_gt_sub_add(yp, yn, Equal.sym(Cmp, GT{}, Nat.cmp(yp, yn), e2))) : {Nat.add(_, xn) == Nat.add(yp, xn) : Nat}
+          %Equal.sym(Nat, Nat.add(Nat.sub(yp, yn), yn), yp, NH.cmp_gt_sub_add(yp, yn, Equal.sym(Cmp, GT{}, Nat.cmp(yp, yn), e2))) : {Nat.add(_, xn) == Nat.add(yp, xn) : Nat}
           {==}
         case EQ{}:
           Empty.absurd({Nat.add(xp, yn) == Nat.add(yp, xn) : Nat},
             Nat.succ_ne_zero(Nat.sub(xp, 1n+xn),
               Equal.trans(Nat, 0n, Nat.sub(xp, xn), 1n+Nat.sub(xp, 1n+xn),
                 Equal.sym(Nat, Nat.sub(xp, xn), 0n, IH.Int.eq.pos(Nat.sub(xp, xn), 0n, 0n, 0n, e)),
-                N.sub_pos(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e1)))))
+                NH.sub_pos(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e1)))))
         case LT{}:
           Empty.absurd({Nat.add(xp, yn) == Nat.add(yp, xn) : Nat},
             Nat.succ_ne_zero(Nat.sub(xp, 1n+xn),
               Equal.trans(Nat, 0n, Nat.sub(xp, xn), 1n+Nat.sub(xp, 1n+xn),
                 Equal.sym(Nat, Nat.sub(xp, xn), 0n, IH.Int.eq.pos(Nat.sub(xp, xn), 0n, 0n, Nat.sub(yn, yp), e)),
-                N.sub_pos(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e1)))))
+                NH.sub_pos(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e1)))))
     case EQ{}:
       match c2:
         case GT{}:
@@ -430,7 +431,7 @@ def I.Int.canon.eqv.fwd(c1, xp, xn, c2, yp, yn, e1, e2, e):
             Nat.succ_ne_zero(Nat.sub(yp, 1n+yn),
               Equal.trans(Nat, 0n, Nat.sub(yp, yn), 1n+Nat.sub(yp, 1n+yn),
                 IH.Int.eq.pos(0n, 0n, Nat.sub(yp, yn), 0n, e),
-                N.sub_pos(yp, yn, Equal.sym(Cmp, GT{}, Nat.cmp(yp, yn), e2)))))
+                NH.sub_pos(yp, yn, Equal.sym(Cmp, GT{}, Nat.cmp(yp, yn), e2)))))
         case EQ{}:
           %Equal.sym(Nat, xp, xn, N.cmp_eq(xp, xn, Equal.sym(Cmp, EQ{}, Nat.cmp(xp, xn), e1))) : {Nat.add(_, yn) == Nat.add(yp, xn) : Nat}
           %Equal.sym(Nat, Nat.add(xn, yn), Nat.add(yn, xn), N.add_comm(xn, yn)) : {_ == Nat.add(yp, xn) : Nat}
@@ -441,7 +442,7 @@ def I.Int.canon.eqv.fwd(c1, xp, xn, c2, yp, yn, e1, e2, e):
             Nat.succ_ne_zero(Nat.sub(yn, 1n+yp),
               Equal.trans(Nat, 0n, Nat.sub(yn, yp), 1n+Nat.sub(yn, 1n+yp),
                 IH.Int.eq.neg(0n, 0n, 0n, Nat.sub(yn, yp), e),
-                N.sub_pos(yn, yp, N.cmp_gt_of_lt(yp, yn, Equal.sym(Cmp, LT{}, Nat.cmp(yp, yn), e2))))))
+                NH.sub_pos(yn, yp, NH.cmp_gt_of_lt(yp, yn, Equal.sym(Cmp, LT{}, Nat.cmp(yp, yn), e2))))))
     case LT{}:
       match c2:
         case GT{}:
@@ -449,19 +450,19 @@ def I.Int.canon.eqv.fwd(c1, xp, xn, c2, yp, yn, e1, e2, e):
             Nat.succ_ne_zero(Nat.sub(xn, 1n+xp),
               Equal.trans(Nat, 0n, Nat.sub(xn, xp), 1n+Nat.sub(xn, 1n+xp),
                 Equal.sym(Nat, Nat.sub(xn, xp), 0n, IH.Int.eq.neg(0n, Nat.sub(xn, xp), Nat.sub(yp, yn), 0n, e)),
-                N.sub_pos(xn, xp, N.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1))))))
+                NH.sub_pos(xn, xp, NH.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1))))))
         case EQ{}:
           Empty.absurd({Nat.add(xp, yn) == Nat.add(yp, xn) : Nat},
             Nat.succ_ne_zero(Nat.sub(xn, 1n+xp),
               Equal.trans(Nat, 0n, Nat.sub(xn, xp), 1n+Nat.sub(xn, 1n+xp),
                 Equal.sym(Nat, Nat.sub(xn, xp), 0n, IH.Int.eq.neg(0n, Nat.sub(xn, xp), 0n, 0n, e)),
-                N.sub_pos(xn, xp, N.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1))))))
+                NH.sub_pos(xn, xp, NH.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1))))))
         case LT{}:
-          %N.cmp_lt_sub_add(yp, yn, Equal.sym(Cmp, LT{}, Nat.cmp(yp, yn), e2)) : {Nat.add(xp, _) == Nat.add(yp, xn) : Nat}
+          %NH.cmp_lt_sub_add(yp, yn, Equal.sym(Cmp, LT{}, Nat.cmp(yp, yn), e2)) : {Nat.add(xp, _) == Nat.add(yp, xn) : Nat}
           %IH.Int.eq.neg(0n, Nat.sub(xn, xp), 0n, Nat.sub(yn, yp), e) : {Nat.add(xp, Nat.add(_, yp)) == Nat.add(yp, xn) : Nat}
-          %Equal.sym(Nat, Nat.add(xp, Nat.add(Nat.sub(xn, xp), yp)), Nat.add(Nat.add(xp, Nat.sub(xn, xp)), yp), N.add_assoc_rev(xp, Nat.sub(xn, xp), yp)) : {_ == Nat.add(yp, xn) : Nat}
+          %Equal.sym(Nat, Nat.add(xp, Nat.add(Nat.sub(xn, xp), yp)), Nat.add(Nat.add(xp, Nat.sub(xn, xp)), yp), NH.add_assoc_rev(xp, Nat.sub(xn, xp), yp)) : {_ == Nat.add(yp, xn) : Nat}
           %Equal.sym(Nat, Nat.add(xp, Nat.sub(xn, xp)), Nat.add(Nat.sub(xn, xp), xp), N.add_comm(xp, Nat.sub(xn, xp))) : {Nat.add(_, yp) == Nat.add(yp, xn) : Nat}
-          %Equal.sym(Nat, Nat.add(Nat.sub(xn, xp), xp), xn, N.cmp_lt_sub_add(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1))) : {Nat.add(_, yp) == Nat.add(yp, xn) : Nat}
+          %Equal.sym(Nat, Nat.add(Nat.sub(xn, xp), xp), xn, NH.cmp_lt_sub_add(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1))) : {Nat.add(_, yp) == Nat.add(yp, xn) : Nat}
           %Equal.sym(Nat, Nat.add(xn, yp), Nat.add(yp, xn), N.add_comm(xn, yp)) : {_ == Nat.add(yp, xn) : Nat}
           {==}
 
@@ -482,39 +483,39 @@ def I.Int.canon.eqv.bwd(c1, xp, xn, c2, yp, yn, e1, e2, e):
         case GT{}:
           Equal.cong(Nat, I.Int, u => I.Int{u, 0n},
             Nat.sub(xp, xn), Nat.sub(yp, yn),
-            N.cross_gt_gt(xp, xn, yp, yn,
+            NH.cross_gt_gt(xp, xn, yp, yn,
               Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e1),
               Equal.sym(Cmp, GT{}, Nat.cmp(yp, yn), e2), e))
         case EQ{}:
           Empty.absurd({I.Int{Nat.sub(xp, xn), 0n} == I.Int{0n, 0n} : I.Int},
-            N.gt_ne_eq(N.cross_cmp(GT{}, xp, xn, EQ{}, yp, yn, e1, e2, e)))
+            NH.gt_ne_eq(NH.cross_cmp(GT{}, xp, xn, EQ{}, yp, yn, e1, e2, e)))
         case LT{}:
           Empty.absurd({I.Int{Nat.sub(xp, xn), 0n} == I.Int{0n, Nat.sub(yn, yp)} : I.Int},
-            N.gt_ne_lt(N.cross_cmp(GT{}, xp, xn, LT{}, yp, yn, e1, e2, e)))
+            NH.gt_ne_lt(NH.cross_cmp(GT{}, xp, xn, LT{}, yp, yn, e1, e2, e)))
     case EQ{}:
       match c2:
         case GT{}:
           Empty.absurd({I.Int{0n, 0n} == I.Int{Nat.sub(yp, yn), 0n} : I.Int},
-            N.eq_ne_gt(N.cross_cmp(EQ{}, xp, xn, GT{}, yp, yn, e1, e2, e)))
+            NH.eq_ne_gt(NH.cross_cmp(EQ{}, xp, xn, GT{}, yp, yn, e1, e2, e)))
         case EQ{}:
           {==}
         case LT{}:
           Empty.absurd({I.Int{0n, 0n} == I.Int{0n, Nat.sub(yn, yp)} : I.Int},
-            N.eq_ne_lt(N.cross_cmp(EQ{}, xp, xn, LT{}, yp, yn, e1, e2, e)))
+            NH.eq_ne_lt(NH.cross_cmp(EQ{}, xp, xn, LT{}, yp, yn, e1, e2, e)))
     case LT{}:
       match c2:
         case GT{}:
           Empty.absurd({I.Int{0n, Nat.sub(xn, xp)} == I.Int{Nat.sub(yp, yn), 0n} : I.Int},
-            N.lt_ne_gt(N.cross_cmp(LT{}, xp, xn, GT{}, yp, yn, e1, e2, e)))
+            NH.lt_ne_gt(NH.cross_cmp(LT{}, xp, xn, GT{}, yp, yn, e1, e2, e)))
         case EQ{}:
           Empty.absurd({I.Int{0n, Nat.sub(xn, xp)} == I.Int{0n, 0n} : I.Int},
-            N.lt_ne_eq(N.cross_cmp(LT{}, xp, xn, EQ{}, yp, yn, e1, e2, e)))
+            NH.lt_ne_eq(NH.cross_cmp(LT{}, xp, xn, EQ{}, yp, yn, e1, e2, e)))
         case LT{}:
           Equal.cong(Nat, I.Int, u => I.Int{0n, u},
             Nat.sub(xn, xp), Nat.sub(yn, yp),
-            N.cross_gt_gt(xn, xp, yn, yp,
-              N.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1)),
-              N.cmp_gt_of_lt(yp, yn, Equal.sym(Cmp, LT{}, Nat.cmp(yp, yn), e2)),
+            NH.cross_gt_gt(xn, xp, yn, yp,
+              NH.cmp_gt_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e1)),
+              NH.cmp_gt_of_lt(yp, yn, Equal.sym(Cmp, LT{}, Nat.cmp(yp, yn), e2)),
               Equal.trans(Nat, Nat.add(xn, yp), Nat.add(yp, xn), Nat.add(yn, xp),
                 N.add_comm(xn, yp),
                 Equal.trans(Nat, Nat.add(yp, xn), Nat.add(xp, yn), Nat.add(yn, xp),

@@ -5,6 +5,7 @@ import ./int.bend as I
 import ./int_helpers.bend as IH
 import ./int_proofs.bend as IP
 import ./nat.bend as N
+import ./nat_helpers.bend as NH
 import ./nat_proofs.bend as NP
 
 # Rat proofs
@@ -95,7 +96,7 @@ def R.Rat.mk.fixed(c, np, nn, dp, e, g1):
   %Equal.sym(Nat,
     Nat.sub(Nat.sub(np, nn), Nat.sub(nn, np)),
     Nat.sub(np, nn),
-    N.sub_diag(c, np, nn, e))
+    NH.sub_diag(c, np, nn, e))
     : {R.Rat{I.Int{Nat.div(_, N.Nat.gcd(Nat.add(_, Nat.sub(Nat.sub(nn, np), Nat.sub(np, nn))), 1n+dp)),
                    Nat.div(Nat.sub(Nat.sub(nn, np), Nat.sub(np, nn)),
                      N.Nat.gcd(Nat.add(_, Nat.sub(Nat.sub(nn, np), Nat.sub(np, nn))), 1n+dp))},
@@ -104,12 +105,12 @@ def R.Rat.mk.fixed(c, np, nn, dp, e, g1):
   %Equal.sym(Nat,
     Nat.sub(Nat.sub(nn, np), Nat.sub(np, nn)),
     Nat.sub(nn, np),
-    N.sub_diag(N.Cmp.flip(c), nn, np,
+    NH.sub_diag(N.Cmp.flip(c), nn, np,
       Equal.trans(Cmp, N.Cmp.flip(c), N.Cmp.flip(Nat.cmp(np, nn)), Nat.cmp(nn, np),
         Equal.cong(Cmp, Cmp, N.Cmp.flip, c, Nat.cmp(np, nn), e),
         Equal.trans(Cmp, N.Cmp.flip(Nat.cmp(np, nn)), N.Cmp.flip(N.Cmp.flip(Nat.cmp(nn, np))), Nat.cmp(nn, np),
           Equal.cong(Cmp, Cmp, N.Cmp.flip, Nat.cmp(np, nn), N.Cmp.flip(Nat.cmp(nn, np)), N.cmp_antisym(np, nn)),
-          N.flip_flip(Nat.cmp(nn, np))))))
+          NH.flip_flip(Nat.cmp(nn, np))))))
     : {R.Rat{I.Int{Nat.div(Nat.sub(np, nn), N.Nat.gcd(Nat.add(Nat.sub(np, nn), _), 1n+dp)),
                    Nat.div(_, N.Nat.gcd(Nat.add(Nat.sub(np, nn), _), 1n+dp))},
               Nat.div(1n+dp, N.Nat.gcd(Nat.add(Nat.sub(np, nn), _), 1n+dp))}
@@ -188,16 +189,16 @@ def RH.Rat.mk.scale.num(c, np, nn, dp, kp, e):
     case GT{}:
       %Equal.sym(Nat,
         Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)), 0n,
-        N.sub_of_lt(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp),
+        NH.sub_of_lt(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp),
           Equal.trans(Cmp,
             Nat.cmp(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)), Nat.cmp(nn, np), LT{},
             N.cmp_mul_right(nn, np, kp),
-            N.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)))))
+            NH.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)))))
         : {Nat.div(Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)),
                    N.Nat.gcd(Nat.add(Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), _),
                      Nat.mul(1n+dp, 1n+kp)))
             == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
-      %N.mul_sub_right(np, nn, 1n+kp, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))
+      %NH.mul_sub_right(np, nn, 1n+kp, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))
         : {Nat.div(_, N.Nat.gcd(Nat.add(_, 0n), Nat.mul(1n+dp, 1n+kp)))
             == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
       %Equal.sym(Nat,
@@ -224,16 +225,16 @@ def RH.Rat.mk.scale.num(c, np, nn, dp, kp, e):
             Nat.sub(np, nn),
             Equal.cong(Nat, Nat, u => Nat.add(Nat.sub(np, nn), u),
               Nat.sub(nn, np), 0n,
-              N.sub_of_lt(nn, np, N.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)))),
+              NH.sub_of_lt(nn, np, NH.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)))),
             N.add_zero(Nat.sub(np, nn)))))
         : {Nat.div(Nat.mul(Nat.sub(np, nn), 1n+kp),
                    Nat.mul(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+kp))
             == Nat.div(Nat.sub(np, nn), _) : Nat}
-      N.div_scale(Nat.sub(np, nn), N.Nat.gcd(Nat.sub(np, nn), 1n+dp), kp,
+      NH.div_scale(Nat.sub(np, nn), N.Nat.gcd(Nat.sub(np, nn), 1n+dp), kp,
         Pair.fst(N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn)),
           N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+dp),
           N.gcd_divides(Nat.sub(np, nn), 1n+dp)),
-        N.divides_pos_wit(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn),
+        NH.divides_pos_wit(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn),
           Pair.fst(N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn)),
             N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+dp),
             N.gcd_divides(Nat.sub(np, nn), 1n+dp)),
@@ -243,7 +244,7 @@ def RH.Rat.mk.scale.num(c, np, nn, dp, kp, e):
             LT{},
             Equal.cong(Nat, Cmp, u => Nat.cmp(0n, u),
               Nat.sub(np, nn), 1n+Nat.sub(np, 1n+nn),
-              N.sub_pos(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))),
+              NH.sub_pos(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))),
             {==})))
     case EQ{}:
       %Equal.sym(Nat,
@@ -291,14 +292,14 @@ def RH.Rat.mk.scale.num(c, np, nn, dp, kp, e):
     case LT{}:
       %Equal.sym(Nat,
         Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), 0n,
-        N.sub_of_lt(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp),
+        NH.sub_of_lt(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp),
           Equal.trans(Cmp,
             Nat.cmp(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), Nat.cmp(np, nn), LT{},
             N.cmp_mul_right(np, nn, kp),
             Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e))))
         : {Nat.div(_, N.Nat.gcd(Nat.add(_, Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp))), Nat.mul(1n+dp, 1n+kp)))
             == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
-      %N.mul_sub_right(nn, np, 1n+kp, N.cmp_gt_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))
+      %NH.mul_sub_right(nn, np, 1n+kp, NH.cmp_gt_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))
         : {Nat.div(0n, N.Nat.gcd(Nat.add(0n, _), Nat.mul(1n+dp, 1n+kp)))
             == Nat.div(Nat.sub(np, nn), R.Rat.g(np, nn, 1n+dp)) : Nat}
       %Equal.sym(Nat,
@@ -317,12 +318,12 @@ def RH.Rat.mk.scale.num(c, np, nn, dp, kp, e):
             Nat.sub(nn, np),
             Equal.cong(Nat, Nat, u => Nat.add(u, Nat.sub(nn, np)),
               Nat.sub(np, nn), 0n,
-              N.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e))),
+              NH.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e))),
             {==})))
         : {Nat.div(0n, Nat.mul(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+kp))
             == Nat.div(Nat.sub(np, nn), _) : Nat}
       %Equal.sym(Nat, Nat.sub(np, nn), 0n,
-        N.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))
+        NH.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))
         : {Nat.div(0n, Nat.mul(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+kp))
             == Nat.div(_, N.Nat.gcd(Nat.sub(nn, np), 1n+dp)) : Nat}
       %Equal.sym(Nat, Nat.div(0n, N.Nat.gcd(Nat.sub(nn, np), 1n+dp)), 0n,
@@ -361,7 +362,7 @@ def RH.Rat.mk.scale.neg(c, np, nn, dp, kp, e):
       Equal.cong(Cmp, Cmp, N.Cmp.flip, c, Nat.cmp(np, nn), e),
       Equal.trans(Cmp, N.Cmp.flip(Nat.cmp(np, nn)), N.Cmp.flip(N.Cmp.flip(Nat.cmp(nn, np))), Nat.cmp(nn, np),
         Equal.cong(Cmp, Cmp, N.Cmp.flip, Nat.cmp(np, nn), N.Cmp.flip(Nat.cmp(nn, np)), N.cmp_antisym(np, nn)),
-        N.flip_flip(Nat.cmp(nn, np)))))
+        NH.flip_flip(Nat.cmp(nn, np)))))
 
 # Rat.mk.scale.den: the same three rewrites at the denominator, then div_scale
 # with the *other* half of the divisibility witness -- and with gravity
@@ -372,16 +373,16 @@ def RH.Rat.mk.scale.den(c, np, nn, dp, kp, e):
     case GT{}:
       %Equal.sym(Nat,
         Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)), 0n,
-        N.sub_of_lt(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp),
+        NH.sub_of_lt(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp),
           Equal.trans(Cmp,
             Nat.cmp(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp)), Nat.cmp(nn, np), LT{},
             N.cmp_mul_right(nn, np, kp),
-            N.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)))))
+            NH.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)))))
         : {Nat.div(Nat.mul(1n+dp, 1n+kp),
                    N.Nat.gcd(Nat.add(Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), _),
                      Nat.mul(1n+dp, 1n+kp)))
             == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
-      %N.mul_sub_right(np, nn, 1n+kp, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))
+      %NH.mul_sub_right(np, nn, 1n+kp, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))
         : {Nat.div(Nat.mul(1n+dp, 1n+kp),
                    N.Nat.gcd(Nat.add(_, 0n), Nat.mul(1n+dp, 1n+kp)))
             == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
@@ -409,16 +410,16 @@ def RH.Rat.mk.scale.den(c, np, nn, dp, kp, e):
             Nat.sub(np, nn),
             Equal.cong(Nat, Nat, u => Nat.add(Nat.sub(np, nn), u),
               Nat.sub(nn, np), 0n,
-              N.sub_of_lt(nn, np, N.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)))),
+              NH.sub_of_lt(nn, np, NH.cmp_lt_of_gt(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)))),
             N.add_zero(Nat.sub(np, nn)))))
         : {Nat.div(Nat.mul(1n+dp, 1n+kp),
                    Nat.mul(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+kp))
             == Nat.div(1n+dp, _) : Nat}
-      N.div_scale(1n+dp, N.Nat.gcd(Nat.sub(np, nn), 1n+dp), kp,
+      NH.div_scale(1n+dp, N.Nat.gcd(Nat.sub(np, nn), 1n+dp), kp,
         Pair.snd(N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn)),
           N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+dp),
           N.gcd_divides(Nat.sub(np, nn), 1n+dp)),
-        N.divides_pos_wit(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn),
+        NH.divides_pos_wit(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn),
           Pair.fst(N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), Nat.sub(np, nn)),
             N.Nat.divides(N.Nat.gcd(Nat.sub(np, nn), 1n+dp), 1n+dp),
             N.gcd_divides(Nat.sub(np, nn), 1n+dp)),
@@ -428,7 +429,7 @@ def RH.Rat.mk.scale.den(c, np, nn, dp, kp, e):
             LT{},
             Equal.cong(Nat, Cmp, u => Nat.cmp(0n, u),
               Nat.sub(np, nn), 1n+Nat.sub(np, 1n+nn),
-              N.sub_pos(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))),
+              NH.sub_pos(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))),
             {==})))
     case EQ{}:
       %Equal.sym(Nat,
@@ -487,7 +488,7 @@ def RH.Rat.mk.scale.den(c, np, nn, dp, kp, e):
     case LT{}:
       %Equal.sym(Nat,
         Nat.sub(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), 0n,
-        N.sub_of_lt(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp),
+        NH.sub_of_lt(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp),
           Equal.trans(Cmp,
             Nat.cmp(Nat.mul(np, 1n+kp), Nat.mul(nn, 1n+kp)), Nat.cmp(np, nn), LT{},
             N.cmp_mul_right(np, nn, kp),
@@ -496,7 +497,7 @@ def RH.Rat.mk.scale.den(c, np, nn, dp, kp, e):
                    N.Nat.gcd(Nat.add(_, Nat.sub(Nat.mul(nn, 1n+kp), Nat.mul(np, 1n+kp))),
                      Nat.mul(1n+dp, 1n+kp)))
             == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
-      %N.mul_sub_right(nn, np, 1n+kp, N.cmp_gt_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))
+      %NH.mul_sub_right(nn, np, 1n+kp, NH.cmp_gt_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))
         : {Nat.div(Nat.mul(1n+dp, 1n+kp), N.Nat.gcd(Nat.add(0n, _), Nat.mul(1n+dp, 1n+kp)))
             == Nat.div(1n+dp, R.Rat.g(np, nn, 1n+dp)) : Nat}
       %Equal.sym(Nat,
@@ -516,15 +517,15 @@ def RH.Rat.mk.scale.den(c, np, nn, dp, kp, e):
             Nat.sub(nn, np),
             Equal.cong(Nat, Nat, u => Nat.add(u, Nat.sub(nn, np)),
               Nat.sub(np, nn), 0n,
-              N.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e))),
+              NH.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e))),
             {==})))
         : {Nat.div(Nat.mul(1n+dp, 1n+kp), Nat.mul(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+kp))
             == Nat.div(1n+dp, _) : Nat}
-      N.div_scale(1n+dp, N.Nat.gcd(Nat.sub(nn, np), 1n+dp), kp,
+      NH.div_scale(1n+dp, N.Nat.gcd(Nat.sub(nn, np), 1n+dp), kp,
         Pair.snd(N.Nat.divides(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), Nat.sub(nn, np)),
           N.Nat.divides(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+dp),
           N.gcd_divides(Nat.sub(nn, np), 1n+dp)),
-        N.divides_pos_wit(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), Nat.sub(nn, np),
+        NH.divides_pos_wit(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), Nat.sub(nn, np),
           Pair.fst(N.Nat.divides(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), Nat.sub(nn, np)),
             N.Nat.divides(N.Nat.gcd(Nat.sub(nn, np), 1n+dp), 1n+dp),
             N.gcd_divides(Nat.sub(nn, np), 1n+dp)),
@@ -534,7 +535,7 @@ def RH.Rat.mk.scale.den(c, np, nn, dp, kp, e):
             LT{},
             Equal.cong(Nat, Cmp, u => Nat.cmp(0n, u),
               Nat.sub(nn, np), 1n+Nat.sub(nn, 1n+np),
-              N.sub_pos(nn, np, N.cmp_gt_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))),
+              NH.sub_pos(nn, np, NH.cmp_gt_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))),
             {==})))
 
 # Rat.mk.scale.go: one rewrite per coordinate, each the matching Nat half.
@@ -648,7 +649,7 @@ def RH.Rat.mk.eqv.raw(n1, d1, n2, d2, p1, p2, e):
     R.Rat.mk(n1, d1),
     R.Rat.mk(n1, 1n+a1),
     R.Rat.mk(n2, d2),
-    Equal.cong(Nat, R.Rat, w => R.Rat.mk(n1, w), d1, 1n+a1, N.pos_witness(d1, p1)),
+    Equal.cong(Nat, R.Rat, w => R.Rat.mk(n1, w), d1, 1n+a1, NH.pos_witness(d1, p1)),
     Equal.trans(R.Rat,
       R.Rat.mk(n1, 1n+a1),
       R.Rat.mk(n2, 1n+a2),
@@ -660,22 +661,22 @@ def RH.Rat.mk.eqv.raw(n1, d1, n2, d2, p1, p2, e):
           I.Int.mul(n2, I.Int{1n+a1, 0n}),
           Equal.cong(I.Int, I.Int, w => I.Int.mul(n1, w), I.Int{1n+a2, 0n}, I.Int{d2, 0n},
             Equal.cong(Nat, I.Int, w => I.Int{w, 0n}, 1n+a2, d2,
-              Equal.sym(Nat, d2, 1n+a2, N.pos_witness(d2, p2)))),
+              Equal.sym(Nat, d2, 1n+a2, NH.pos_witness(d2, p2)))),
           Equal.trans(I.Int,
             I.Int.mul(n1, I.Int{d2, 0n}),
             I.Int.mul(n2, I.Int{d1, 0n}),
             I.Int.mul(n2, I.Int{1n+a1, 0n}),
             e,
             Equal.cong(I.Int, I.Int, w => I.Int.mul(n2, w), I.Int{d1, 0n}, I.Int{1n+a1, 0n},
-              Equal.cong(Nat, I.Int, w => I.Int{w, 0n}, d1, 1n+a1, N.pos_witness(d1, p1)))))),
+              Equal.cong(Nat, I.Int, w => I.Int{w, 0n}, d1, 1n+a1, NH.pos_witness(d1, p1)))))),
       Equal.cong(Nat, R.Rat, w => R.Rat.mk(n2, w), 1n+a2, d2,
-        Equal.sym(Nat, d2, 1n+a2, N.pos_witness(d2, p2)))))
+        Equal.sym(Nat, d2, 1n+a2, NH.pos_witness(d2, p2)))))
 
 # Rat.mk.den.pos: one call of div_pos_wit at the second half of the
 # divisibility witness gcd_divides returns for (mag, 1+dp) -- Pair.snd takes it
 # out of the pair.
 def R.Rat.mk.den.pos(np, nn, dp):
-  N.div_pos_wit(R.Rat.g(np, nn, 1n+dp), dp,
+  NH.div_pos_wit(R.Rat.g(np, nn, 1n+dp), dp,
     Pair.snd(N.Nat.divides(R.Rat.g(np, nn, 1n+dp), R.Rat.mag(np, nn)),
       N.Nat.divides(R.Rat.g(np, nn, 1n+dp), 1n+dp),
       N.gcd_divides(R.Rat.mag(np, nn), 1n+dp)))
@@ -714,9 +715,9 @@ def RH.Rat.mk.value.go(c, np, nn, d, e, pd, wm, wd):
       +B = Nat.div(Q, G)
       +Rr = Nat.div(d, G)
       +M = R.Rat.mag(np, nn)
-      +pg = N.divides_pos_wit(G, d, N.Div{dr, dwe}, pd)
+      +pg = NH.divides_pos_wit(G, d, N.Div{dr, dwe}, pd)
       +gte = Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e)
-      +qe = N.sub_of_lt(nn, np, N.cmp_lt_of_gt(np, nn, gte))
+      +qe = NH.sub_of_lt(nn, np, NH.cmp_lt_of_gt(np, nn, gte))
       +mm = Equal.trans(Nat, M, Nat.add(P, 0n), P,
         Equal.cong(Nat, Nat, u => Nat.add(P, u), Q, 0n, qe), N.add_zero(P))
       +e1 = Equal.trans(Nat, P, M, Nat.mul(G, mq), Equal.sym(Nat, M, P, mm), mwe)
@@ -727,9 +728,9 @@ def RH.Rat.mk.value.go(c, np, nn, d, e, pd, wm, wd):
         I.Int{Nat.mul(P, Rr), Nat.mul(B, d)},
         I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
         Equal.cong(Nat, I.Int, u => I.Int{u, Nat.mul(B, d)}, Nat.mul(A, d), Nat.mul(P, Rr),
-          N.div_cross(P, G, mq, d, dr, pg, e1, dwe)),
+          NH.div_cross(P, G, mq, d, dr, pg, e1, dwe)),
         Equal.cong(Nat, I.Int, u => I.Int{Nat.mul(P, Rr), u}, Nat.mul(B, d), Nat.mul(Q, Rr),
-          N.div_cross(Q, G, 0n, d, dr, pg, e1z, dwe)))
+          NH.div_cross(Q, G, 0n, d, dr, pg, e1z, dwe)))
     case LT{}:
       N.Div{mq, mwe} = wm
       N.Div{dr, dwe} = wd
@@ -740,9 +741,9 @@ def RH.Rat.mk.value.go(c, np, nn, d, e, pd, wm, wd):
       +B = Nat.div(Q, G)
       +Rr = Nat.div(d, G)
       +M = R.Rat.mag(np, nn)
-      +pg = N.divides_pos_wit(G, d, N.Div{dr, dwe}, pd)
+      +pg = NH.divides_pos_wit(G, d, N.Div{dr, dwe}, pd)
       +lte = Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)
-      +pe = N.sub_of_lt(np, nn, lte)
+      +pe = NH.sub_of_lt(np, nn, lte)
       +mm = Equal.cong(Nat, Nat, u => Nat.add(u, Q), P, 0n, pe)
       +e1 = Equal.trans(Nat, Q, M, Nat.mul(G, mq), Equal.sym(Nat, M, Q, mm), mwe)
       +e1z = Equal.trans(Nat, P, 0n, Nat.mul(G, 0n), pe,
@@ -752,9 +753,9 @@ def RH.Rat.mk.value.go(c, np, nn, d, e, pd, wm, wd):
         I.Int{Nat.mul(P, Rr), Nat.mul(B, d)},
         I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
         Equal.cong(Nat, I.Int, u => I.Int{u, Nat.mul(B, d)}, Nat.mul(A, d), Nat.mul(P, Rr),
-          N.div_cross(P, G, 0n, d, dr, pg, e1z, dwe)),
+          NH.div_cross(P, G, 0n, d, dr, pg, e1z, dwe)),
         Equal.cong(Nat, I.Int, u => I.Int{Nat.mul(P, Rr), u}, Nat.mul(B, d), Nat.mul(Q, Rr),
-          N.div_cross(Q, G, mq, d, dr, pg, e1, dwe)))
+          NH.div_cross(Q, G, mq, d, dr, pg, e1, dwe)))
     case EQ{}:
       N.Div{dr, dwe} = wd
       +G = R.Rat.g(np, nn, d)
@@ -763,7 +764,7 @@ def RH.Rat.mk.value.go(c, np, nn, d, e, pd, wm, wd):
       +A = Nat.div(P, G)
       +B = Nat.div(Q, G)
       +Rr = Nat.div(d, G)
-      +pg = N.divides_pos_wit(G, d, N.Div{dr, dwe}, pd)
+      +pg = NH.divides_pos_wit(G, d, N.Div{dr, dwe}, pd)
       +eqe = Equal.sym(Cmp, EQ{}, Nat.cmp(np, nn), e)
       +pe = Equal.trans(Nat, P, Nat.sub(np, np), 0n,
         Equal.cong(Nat, Nat, u => Nat.sub(np, u), nn, np,
@@ -781,9 +782,9 @@ def RH.Rat.mk.value.go(c, np, nn, d, e, pd, wm, wd):
         I.Int{Nat.mul(P, Rr), Nat.mul(B, d)},
         I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
         Equal.cong(Nat, I.Int, u => I.Int{u, Nat.mul(B, d)}, Nat.mul(A, d), Nat.mul(P, Rr),
-          N.div_cross(P, G, 0n, d, dr, pg, e1, dwe)),
+          NH.div_cross(P, G, 0n, d, dr, pg, e1, dwe)),
         Equal.cong(Nat, I.Int, u => I.Int{Nat.mul(P, Rr), u}, Nat.mul(B, d), Nat.mul(Q, Rr),
-          N.div_cross(Q, G, 0n, d, dr, pg, e1z, dwe)))
+          NH.div_cross(Q, G, 0n, d, dr, pg, e1z, dwe)))
 
 # Rat.mk.value: the two raw products are Int.mul of a numerator with the scaled
 # unit (d, 0) -- which is how Rat.add/Rat.mul write a Nat scale -- so
@@ -844,17 +845,17 @@ def RH.Rat.mk_idem.raw(c, np, nn, d, e, pd, pq):
     I.Int{Nat.sub(np, nn), Nat.sub(Q, P)},
     R.Rat.num(np, nn),
     Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(Q, P)},
-      Nat.sub(P, Q), Nat.sub(np, nn), N.sub_diag(c, np, nn, e)),
+      Nat.sub(P, Q), Nat.sub(np, nn), NH.sub_diag(c, np, nn, e)),
     Equal.cong(Nat, I.Int, u => I.Int{Nat.sub(np, nn), u},
       Nat.sub(Q, P), Nat.sub(nn, np),
-      N.sub_diag(N.Cmp.flip(c), nn, np,
+      NH.sub_diag(N.Cmp.flip(c), nn, np,
         Equal.trans(Cmp, N.Cmp.flip(c), N.Cmp.flip(Nat.cmp(np, nn)), Nat.cmp(nn, np),
           Equal.cong(Cmp, Cmp, N.Cmp.flip, c, Nat.cmp(np, nn), e),
           Equal.trans(Cmp, N.Cmp.flip(Nat.cmp(np, nn)),
             N.Cmp.flip(N.Cmp.flip(Nat.cmp(nn, np))), Nat.cmp(nn, np),
             Equal.cong(Cmp, Cmp, N.Cmp.flip, Nat.cmp(np, nn),
               N.Cmp.flip(Nat.cmp(nn, np)), N.cmp_antisym(np, nn)),
-            N.flip_flip(Nat.cmp(nn, np)))))))
+            NH.flip_flip(Nat.cmp(nn, np)))))))
   RH.Rat.mk.eqv.raw(R.Rat.numof(M), k, R.Rat.num(np, nn), d, pq, pd,
     Equal.trans(I.Int,
       I.Int.mul(R.Rat.numof(M), I.Int{d, 0n}),
@@ -877,7 +878,7 @@ def RH.Rat.mk_idem(c, np, nn, dp, e):
   +Q = Nat.sub(nn, np)
   +G = R.Rat.g(P, Q, 1n+dp)
   RH.Rat.mk_idem.raw(c, np, nn, 1n+dp, e, {==},
-    N.div_pos_wit(G, dp,
+    NH.div_pos_wit(G, dp,
       Pair.snd(N.Nat.divides(G, R.Rat.mag(P, Q)), N.Nat.divides(G, 1n+dp),
         N.gcd_divides(R.Rat.mag(P, Q), 1n+dp))))
 
@@ -918,8 +919,8 @@ def RH.Rat.mk.rep(U, V, d):
   +A2 = Nat.div(P, G2)
   +B2 = Nat.div(Q, G2)
   +Rr2 = Nat.div(d, G2)
-  +ePQ = N.sub_diag(Nat.cmp(U, V), U, V, {==})
-  +eQP = N.sub_diag(Nat.cmp(V, U), V, U, {==})
+  +ePQ = NH.sub_diag(Nat.cmp(U, V), U, V, {==})
+  +eQP = NH.sub_diag(Nat.cmp(V, U), V, U, {==})
   +eg = Equal.cong(Nat, Nat, u => N.Nat.gcd(u, d),
     Nat.add(Nat.sub(P, Q), Nat.sub(Q, P)),
     Nat.add(P, Q),
@@ -975,11 +976,11 @@ def RH.Rat.mk.trunc(U, V, d):
   +B2 = Nat.div(Nat.sub(Nat.sub(Q, P), Nat.sub(P, Q)), G2)
   +R2 = Nat.div(d, G2)
   +eP = Equal.trans(Nat, Nat.sub(Nat.sub(P, Q), Nat.sub(Q, P)), Nat.sub(P, Q), P,
-    N.sub_diag(Nat.cmp(P, Q), P, Q, {==}),
-    N.sub_diag(Nat.cmp(U, V), U, V, {==}))
+    NH.sub_diag(Nat.cmp(P, Q), P, Q, {==}),
+    NH.sub_diag(Nat.cmp(U, V), U, V, {==}))
   +eQ = Equal.trans(Nat, Nat.sub(Nat.sub(Q, P), Nat.sub(P, Q)), Nat.sub(Q, P), Q,
-    N.sub_diag(Nat.cmp(Q, P), Q, P, {==}),
-    N.sub_diag(Nat.cmp(V, U), V, U, {==}))
+    NH.sub_diag(Nat.cmp(Q, P), Q, P, {==}),
+    NH.sub_diag(Nat.cmp(V, U), V, U, {==}))
   +eg0 = Equal.trans(Nat,
     Nat.add(Nat.sub(Nat.sub(P, Q), Nat.sub(Q, P)), Nat.sub(Nat.sub(Q, P), Nat.sub(P, Q))),
     Nat.add(P, Nat.sub(Nat.sub(Q, P), Nat.sub(P, Q))),
@@ -1057,7 +1058,7 @@ def RH.Rat.mk.canon.go(c, xp, xn, d, e):
           RH.Rat.mk.rep(xp, xn, d)),
         Equal.cong(I.Int, R.Rat, u => R.Rat.mk(u, d), R.Rat.num(xp, xn), I.Int{Nat.sub(xp, xn), 0n},
           Equal.cong(Nat, I.Int, u => I.Int{Nat.sub(xp, xn), u}, Nat.sub(xn, xp), 0n,
-            N.sub_of_lt(xn, xp, N.cmp_lt_of_gt(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e))))))
+            NH.sub_of_lt(xn, xp, NH.cmp_lt_of_gt(xp, xn, Equal.sym(Cmp, GT{}, Nat.cmp(xp, xn), e))))))
     case LT{}:
       Equal.trans(R.Rat,
         R.Rat.mk(I.Int{xp, xn}, d),
@@ -1067,7 +1068,7 @@ def RH.Rat.mk.canon.go(c, xp, xn, d, e):
           RH.Rat.mk.rep(xp, xn, d)),
         Equal.cong(I.Int, R.Rat, u => R.Rat.mk(u, d), R.Rat.num(xp, xn), I.Int{0n, Nat.sub(xn, xp)},
           Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(xn, xp)}, Nat.sub(xp, xn), 0n,
-            N.sub_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e)))))
+            NH.sub_of_lt(xp, xn, Equal.sym(Cmp, LT{}, Nat.cmp(xp, xn), e)))))
 
 # Rat.mk.eqv.val: two forward chains, one per side, meeting at the canonical
 # forms. The left one runs
@@ -1116,11 +1117,11 @@ def RH.Rat.mk.eqv.val(xp, xn, d1, p1, yp, yn, d2, p2, e):
   +mR = Nat.add(Nat.mul(yp, da), Nat.mul(xn, d2))
   +mR2 = Nat.add(Nat.mul(yp, da), Nat.mul(xn, db))
   +sL = Equal.trans(Nat, eL, mL, mL2,
-    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(xp, u), Nat.mul(yn, d1)), d2, db, N.pos_witness(d2, p2)),
-    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(xp, db), Nat.mul(yn, u)), d1, da, N.pos_witness(d1, p1)))
+    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(xp, u), Nat.mul(yn, d1)), d2, db, NH.pos_witness(d2, p2)),
+    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(xp, db), Nat.mul(yn, u)), d1, da, NH.pos_witness(d1, p1)))
   +sR = Equal.trans(Nat, eR, mR, mR2,
-    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(yp, u), Nat.mul(xn, d2)), d1, da, N.pos_witness(d1, p1)),
-    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(yp, da), Nat.mul(xn, u)), d2, db, N.pos_witness(d2, p2)))
+    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(yp, u), Nat.mul(xn, d2)), d1, da, NH.pos_witness(d1, p1)),
+    Equal.cong(Nat, Nat, u => Nat.add(Nat.mul(yp, da), Nat.mul(xn, u)), d2, db, NH.pos_witness(d2, p2)))
   +ecross = Equal.trans(Nat, mL2, eL, mR2,
     Equal.sym(Nat, eL, mL2, sL),
     Equal.trans(Nat, eL, eR, mR2, e, sR))
@@ -1130,7 +1131,7 @@ def RH.Rat.mk.eqv.val(xp, xn, d1, p1, yp, yn, d2, p2, e):
     R.Rat.mk(I.Int{xp, xn}, d1),
     R.Rat.mk(I.Int{xp, xn}, da),
     R.Rat.mk(I.Int.canon.go(cx, Nat.mul(xp, db), Nat.mul(xn, db)), D),
-    Equal.cong(Nat, R.Rat, u => R.Rat.mk(I.Int{xp, xn}, u), d1, da, N.pos_witness(d1, p1)),
+    Equal.cong(Nat, R.Rat, u => R.Rat.mk(I.Int{xp, xn}, u), d1, da, NH.pos_witness(d1, p1)),
     Equal.trans(R.Rat,
       R.Rat.mk(I.Int{xp, xn}, da),
       R.Rat.mk(I.Int.mul(I.Int{xp, xn}, I.Int.unit(db)), D),
@@ -1149,7 +1150,7 @@ def RH.Rat.mk.eqv.val(xp, xn, d1, p1, yp, yn, d2, p2, e):
     R.Rat.mk(I.Int{yp, yn}, d2),
     R.Rat.mk(I.Int{yp, yn}, db),
     R.Rat.mk(I.Int.canon.go(cy, Nat.mul(yp, da), Nat.mul(yn, da)), D),
-    Equal.cong(Nat, R.Rat, u => R.Rat.mk(I.Int{yp, yn}, u), d2, db, N.pos_witness(d2, p2)),
+    Equal.cong(Nat, R.Rat, u => R.Rat.mk(I.Int{yp, yn}, u), d2, db, NH.pos_witness(d2, p2)),
     Equal.trans(R.Rat,
       R.Rat.mk(I.Int{yp, yn}, db),
       R.Rat.mk(I.Int.mul(I.Int{yp, yn}, I.Int.unit(da)), D2),
@@ -1209,12 +1210,12 @@ def RH.Rat.mk.eqv.val(xp, xn, d1, p1, yp, yn, d2, p2, e):
 def RH.Rat.dp.eq.right(U, V, z):
   %Equal.sym(Nat, V, 0n, z) : {I.Int{U, _} == R.Rat.num(U, _) : I.Int}
   %Equal.sym(Nat, Nat.sub(U, 0n), U, N.sub_zero(U)) : {I.Int{U, 0n} == I.Int{_, Nat.sub(0n, U)} : I.Int}
-  %Equal.sym(Nat, Nat.sub(0n, U), 0n, N.sub_zero_left(U)) : {I.Int{U, 0n} == I.Int{U, _} : I.Int}
+  %Equal.sym(Nat, Nat.sub(0n, U), 0n, NH.sub_zero_left(U)) : {I.Int{U, 0n} == I.Int{U, _} : I.Int}
   {==}
 
 def RH.Rat.dp.eq.left(U, V, z):
   %Equal.sym(Nat, U, 0n, z) : {I.Int{_, V} == R.Rat.num(_, V) : I.Int}
-  %Equal.sym(Nat, Nat.sub(0n, V), 0n, N.sub_zero_left(V)) : {I.Int{0n, V} == I.Int{_, Nat.sub(V, 0n)} : I.Int}
+  %Equal.sym(Nat, Nat.sub(0n, V), 0n, NH.sub_zero_left(V)) : {I.Int{0n, V} == I.Int{_, Nat.sub(V, 0n)} : I.Int}
   %Equal.sym(Nat, Nat.sub(V, 0n), V, N.sub_zero(V)) : {I.Int{0n, V} == I.Int{0n, _} : I.Int}
   {==}
 
@@ -1229,10 +1230,10 @@ def RH.Rat.num.mul(c1, np1, nn1, e1, c2, np2, nn2, e2):
           +Q2 = Nat.sub(nn2, np2)
           +U = Nat.add(Nat.mul(P1, P2), Nat.mul(Q1, Q2))
           +V = Nat.add(Nat.mul(P1, Q2), Nat.mul(Q1, P2))
-          +z1 = N.sub_of_lt(nn1, np1,
-            N.cmp_lt_of_gt(np1, nn1, Equal.sym(Cmp, GT{}, Nat.cmp(np1, nn1), e1)))
-          +z2 = N.sub_of_lt(nn2, np2,
-            N.cmp_lt_of_gt(np2, nn2, Equal.sym(Cmp, GT{}, Nat.cmp(np2, nn2), e2)))
+          +z1 = NH.sub_of_lt(nn1, np1,
+            NH.cmp_lt_of_gt(np1, nn1, Equal.sym(Cmp, GT{}, Nat.cmp(np1, nn1), e1)))
+          +z2 = NH.sub_of_lt(nn2, np2,
+            NH.cmp_lt_of_gt(np2, nn2, Equal.sym(Cmp, GT{}, Nat.cmp(np2, nn2), e2)))
           RH.Rat.dp.eq.right(U, V,
             Equal.trans(Nat, V, Nat.add(Nat.mul(P1, 0n), Nat.mul(Q1, P2)), 0n,
               Equal.cong(Nat, Nat, w => Nat.add(Nat.mul(P1, w), Nat.mul(Q1, P2)),
@@ -1280,9 +1281,9 @@ def RH.Rat.num.mul(c1, np1, nn1, e1, c2, np2, nn2, e2):
           +Q2 = Nat.sub(nn2, np2)
           +U = Nat.add(Nat.mul(P1, P2), Nat.mul(Q1, Q2))
           +V = Nat.add(Nat.mul(P1, Q2), Nat.mul(Q1, P2))
-          +z1 = N.sub_of_lt(nn1, np1,
-            N.cmp_lt_of_gt(np1, nn1, Equal.sym(Cmp, GT{}, Nat.cmp(np1, nn1), e1)))
-          +z2 = N.sub_of_lt(np2, nn2, Equal.sym(Cmp, LT{}, Nat.cmp(np2, nn2), e2))
+          +z1 = NH.sub_of_lt(nn1, np1,
+            NH.cmp_lt_of_gt(np1, nn1, Equal.sym(Cmp, GT{}, Nat.cmp(np1, nn1), e1)))
+          +z2 = NH.sub_of_lt(np2, nn2, Equal.sym(Cmp, LT{}, Nat.cmp(np2, nn2), e2))
           RH.Rat.dp.eq.left(U, V,
             Equal.trans(Nat, U, Nat.add(Nat.mul(P1, 0n), Nat.mul(Q1, Q2)), 0n,
               Equal.cong(Nat, Nat, w => Nat.add(Nat.mul(P1, w), Nat.mul(Q1, Q2)),
@@ -1356,9 +1357,9 @@ def RH.Rat.num.mul(c1, np1, nn1, e1, c2, np2, nn2, e2):
           +Q2 = Nat.sub(nn2, np2)
           +U = Nat.add(Nat.mul(P1, P2), Nat.mul(Q1, Q2))
           +V = Nat.add(Nat.mul(P1, Q2), Nat.mul(Q1, P2))
-          +z1 = N.sub_of_lt(np1, nn1, Equal.sym(Cmp, LT{}, Nat.cmp(np1, nn1), e1))
-          +z2 = N.sub_of_lt(nn2, np2,
-            N.cmp_lt_of_gt(np2, nn2, Equal.sym(Cmp, GT{}, Nat.cmp(np2, nn2), e2)))
+          +z1 = NH.sub_of_lt(np1, nn1, Equal.sym(Cmp, LT{}, Nat.cmp(np1, nn1), e1))
+          +z2 = NH.sub_of_lt(nn2, np2,
+            NH.cmp_lt_of_gt(np2, nn2, Equal.sym(Cmp, GT{}, Nat.cmp(np2, nn2), e2)))
           RH.Rat.dp.eq.left(U, V,
             Equal.trans(Nat, U, Nat.add(Nat.mul(0n, P2), Nat.mul(Q1, Q2)), 0n,
               Equal.cong(Nat, Nat, w => Nat.add(Nat.mul(w, P2), Nat.mul(Q1, Q2)),
@@ -1406,8 +1407,8 @@ def RH.Rat.num.mul(c1, np1, nn1, e1, c2, np2, nn2, e2):
           +Q2 = Nat.sub(nn2, np2)
           +U = Nat.add(Nat.mul(P1, P2), Nat.mul(Q1, Q2))
           +V = Nat.add(Nat.mul(P1, Q2), Nat.mul(Q1, P2))
-          +z1 = N.sub_of_lt(np1, nn1, Equal.sym(Cmp, LT{}, Nat.cmp(np1, nn1), e1))
-          +z2 = N.sub_of_lt(np2, nn2, Equal.sym(Cmp, LT{}, Nat.cmp(np2, nn2), e2))
+          +z1 = NH.sub_of_lt(np1, nn1, Equal.sym(Cmp, LT{}, Nat.cmp(np1, nn1), e1))
+          +z2 = NH.sub_of_lt(np2, nn2, Equal.sym(Cmp, LT{}, Nat.cmp(np2, nn2), e2))
           RH.Rat.dp.eq.right(U, V,
             Equal.trans(Nat, V, Nat.add(Nat.mul(0n, Q2), Nat.mul(Q1, P2)), 0n,
               Equal.cong(Nat, Nat, w => Nat.add(Nat.mul(w, Q2), Nat.mul(Q1, P2)),
@@ -1465,10 +1466,10 @@ def R.Rat.mul_assoc(c1, np1, nn1, e1, dp1, c2, np2, nn2, e2, dp2, c3, np3, nn3, 
   +b = R.Rat.denof(M2)
   +R1 = R.Rat.num(U1, V1)
   +R2 = R.Rat.num(U2, V2)
-  +pa1 = N.div_pos_wit(g1, Nat.add(dp2, Nat.mul(dp1, Nat.add(1n, dp2))),
+  +pa1 = NH.div_pos_wit(g1, Nat.add(dp2, Nat.mul(dp1, Nat.add(1n, dp2))),
     Pair.snd(N.Nat.divides(g1, R.Rat.mag(U1, V1)), N.Nat.divides(g1, d1),
       N.gcd_divides(R.Rat.mag(U1, V1), d1)))
-  +pa2 = N.div_pos_wit(g2, Nat.add(dp3, Nat.mul(dp2, Nat.add(1n, dp3))),
+  +pa2 = NH.div_pos_wit(g2, Nat.add(dp3, Nat.mul(dp2, Nat.add(1n, dp3))),
     Pair.snd(N.Nat.divides(g2, R.Rat.mag(U2, V2)), N.Nat.divides(g2, d2),
       N.gcd_divides(R.Rat.mag(U2, V2), d2)))
   +p1 = N.mul_pos(a, zd, pa1, {==})
@@ -1666,17 +1667,17 @@ def R.Rat.add.value(np1, nn1, dp1, np2, nn2, dp2):
   +v2 = RH.Rat.mk.value(Nat.cmp(a2, b2), a2, b2, yd, {==}, {==})
   +s1 = Equal.trans(I.Int, R.Rat.num(a1, b1), I.Int{a1, Nat.sub(b1, a1)}, I.Int{a1, b1},
     Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(b1, a1)}, Nat.sub(a1, b1), a1,
-      N.sub_diag(Nat.cmp(np1, nn1), np1, nn1, {==})),
+      NH.sub_diag(Nat.cmp(np1, nn1), np1, nn1, {==})),
     Equal.cong(Nat, I.Int, u => I.Int{a1, u}, Nat.sub(b1, a1), b1,
-      N.sub_diag(Nat.cmp(nn1, np1), nn1, np1, {==})))
+      NH.sub_diag(Nat.cmp(nn1, np1), nn1, np1, {==})))
   +s2 = Equal.trans(I.Int, R.Rat.num(a2, b2), I.Int{a2, Nat.sub(b2, a2)}, I.Int{a2, b2},
     Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(b2, a2)}, Nat.sub(a2, b2), a2,
-      N.sub_diag(Nat.cmp(np2, nn2), np2, nn2, {==})),
+      NH.sub_diag(Nat.cmp(np2, nn2), np2, nn2, {==})),
     Equal.cong(Nat, I.Int, u => I.Int{a2, u}, Nat.sub(b2, a2), b2,
-      N.sub_diag(Nat.cmp(nn2, np2), nn2, np2, {==})))
-  +pk1 = N.div_pos_wit(G1, dp1,
+      NH.sub_diag(Nat.cmp(nn2, np2), nn2, np2, {==})))
+  +pk1 = NH.div_pos_wit(G1, dp1,
     Pair.snd(N.Nat.divides(G1, R.Rat.mag(a1, b1)), N.Nat.divides(G1, xd), N.gcd_divides(R.Rat.mag(a1, b1), xd)))
-  +pk2 = N.div_pos_wit(G2, dp2,
+  +pk2 = NH.div_pos_wit(G2, dp2,
     Pair.snd(N.Nat.divides(G2, R.Rat.mag(a2, b2)), N.Nat.divides(G2, yd), N.gcd_divides(R.Rat.mag(a2, b2), yd)))
   RH.Rat.mk.eqv.raw(nR, kR, T, d,
     N.mul_pos(k1, k2, pk1, pk2),
@@ -1861,14 +1862,14 @@ def RH.Rat.add.value.mixed(np1, nn1, d, pd, pq, Zp, Zn, D, pD):
     I.Int{P1, Nat.sub(Q1, P1)},
     I.Int{P1, Q1},
     Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(Q1, P1)}, Nat.sub(P1, Q1), P1,
-      N.sub_diag(Nat.cmp(np1, nn1), np1, nn1, {==})),
+      NH.sub_diag(Nat.cmp(np1, nn1), np1, nn1, {==})),
     Equal.cong(Nat, I.Int, u => I.Int{P1, u}, Nat.sub(Q1, P1), Q1,
-      N.sub_diag(N.Cmp.flip(Nat.cmp(np1, nn1)), nn1, np1,
+      NH.sub_diag(N.Cmp.flip(Nat.cmp(np1, nn1)), nn1, np1,
         Equal.trans(Cmp, N.Cmp.flip(Nat.cmp(np1, nn1)),
           N.Cmp.flip(N.Cmp.flip(Nat.cmp(nn1, np1))), Nat.cmp(nn1, np1),
           Equal.cong(Cmp, Cmp, N.Cmp.flip, Nat.cmp(np1, nn1), N.Cmp.flip(Nat.cmp(nn1, np1)),
             N.cmp_antisym(np1, nn1)),
-          N.flip_flip(Nat.cmp(nn1, np1))))))
+          NH.flip_flip(Nat.cmp(nn1, np1))))))
   +v = Equal.trans(I.Int,
     I.Int.mul(A, I.Int.unit(d)),
     I.Int.mul(R.Rat.num(P1, Q1), I.Int.unit(k1)),
@@ -1958,7 +1959,7 @@ def R.Rat.neg_add(np1, nn1, dp1, np2, nn2, dp2):
         I.Int.mul(R.Rat.num(Sp, Sn), I.Int.unit(dL)), v),
       I.Int.neg_mul(R.Rat.num(Sp, Sn), I.Int.unit(dL))))
   +eqv = RH.Rat.mk.eqv.raw(nL, dL, R.Rat.num(Sn, Sp), d,
-    N.div_pos_wit(G, Nat.add(dp2, Nat.mul(dp1, Nat.add(1n, dp2))),
+    NH.div_pos_wit(G, Nat.add(dp2, Nat.mul(dp1, Nat.add(1n, dp2))),
       Pair.snd(N.Nat.divides(G, R.Rat.mag(Sp, Sn)), N.Nat.divides(G, d), N.gcd_divides(R.Rat.mag(Sp, Sn), d))),
     N.mul_pos(xd, yd, {==}, {==}),
     nv)
@@ -2034,11 +2035,11 @@ def Rat.nat.exch4(+x1: Nat, +x2: Nat, +x3: Nat, +x4: Nat)
       N.add_assoc(x1, x3, Nat.add(x2, x4)))
     : {_ == Nat.add(Nat.add(x1, x4), Nat.add(x2, x3)) : Nat}
   %Equal.sym(Nat, Nat.add(x3, Nat.add(x2, x4)), Nat.add(x2, Nat.add(x3, x4)),
-      N.add_exchange(x3, x2, x4))
+      NH.add_exchange(x3, x2, x4))
     : {Nat.add(x1, _) == Nat.add(Nat.add(x1, x4), Nat.add(x2, x3)) : Nat}
   %Equal.sym(Nat, Nat.add(x3, x4), Nat.add(x4, x3), N.add_comm(x3, x4))
     : {Nat.add(x1, Nat.add(x2, _)) == Nat.add(Nat.add(x1, x4), Nat.add(x2, x3)) : Nat}
-  %N.add_exchange(x4, x2, x3)
+  %NH.add_exchange(x4, x2, x3)
     : {Nat.add(x1, _) == Nat.add(Nat.add(x1, x4), Nat.add(x2, x3)) : Nat}
   %N.add_assoc(x1, x4, Nat.add(x2, x3))
     : {_ == Nat.add(Nat.add(x1, x4), Nat.add(x2, x3)) : Nat}
@@ -2188,7 +2189,7 @@ def Rat.nat.cross4(+P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat,
     s1, Tb, Ta, e1, Rat.nat.pad(b2, Xd, Zd, D), Rat.nat.pad(a2, Xd, Zd, D))
   +h2 = Rat.nat.split(P2, Q2, Nat.mul(b3, Yd), Nat.mul(b2, Zd), Nat.mul(a3, Yd), Nat.mul(a2, Zd),
     s2, Tb, Ta, e2f, {==}, {==})
-  +c = N.cross_add(A, A2, B, B2, Tb, Ta, h1, h2)
+  +c = NH.cross_add(A, A2, B, B2, Tb, Ta, h1, h2)
   +x1 = Nat.mul(P1, s1)
   +x2 = Nat.mul(Q2, s2)
   +x3 = Nat.mul(Nat.mul(b1, Yd), s1)
@@ -2283,9 +2284,9 @@ def Rat.nat.cross4(+P1: Nat, +Q1: Nat, +P2: Nat, +Q2: Nat,
 def Rat.div.pos(+g: Nat, +d: Nat, w: N.Nat.divides(g, d), +pd: {Nat.cmp(0n, d) == LT{} : Cmp})
   -> {Nat.cmp(0n, Nat.div(d, g)) == LT{} : Cmp}:
   +ap = Nat.sub(d, 1n)
-  +ew = N.pos_witness(d, pd)
+  +ew = NH.pos_witness(d, pd)
   %Equal.sym(Nat, d, 1n+ap, ew) : {Nat.cmp(0n, Nat.div(_, g)) == LT{} : Cmp};
-    N.div_pos_wit(g, ap, %ew : N.Nat.divides(g, _); w)
+    NH.div_pos_wit(g, ap, %ew : N.Nat.divides(g, _); w)
 
 def Rat.add.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int, +Xd: Nat, +Yd: Nat, +Zd: Nat,
                        +px: {Nat.cmp(0n, Xd) == LT{} : Cmp},
@@ -2377,9 +2378,9 @@ def Rat.add.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int, +Xd: Nat, +Yd: Nat, +
         I.Int{P1, Nat.sub(Q1, P1)},
         I.Int{P1, Q1},
         Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(Q1, P1)}, Nat.sub(P1, Q1), P1,
-          N.sub_diag(Nat.cmp(U1, V1), U1, V1, {==})),
+          NH.sub_diag(Nat.cmp(U1, V1), U1, V1, {==})),
         Equal.cong(Nat, I.Int, u => I.Int{P1, u}, Nat.sub(Q1, P1), Q1,
-          N.sub_diag(Nat.cmp(V1, U1), V1, U1, {==})))
+          NH.sub_diag(Nat.cmp(V1, U1), V1, U1, {==})))
       +L4i = Equal.trans(I.Int,
         rawL,
         I.Int.add(I.Int.mul(I.Int{P1, Q1}, I.Int.unit(Zd)),
@@ -2427,9 +2428,9 @@ def Rat.add.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int, +Xd: Nat, +Yd: Nat, +
         I.Int{P2, Nat.sub(Q2, P2)},
         I.Int{P2, Q2},
         Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(Q2, P2)}, Nat.sub(P2, Q2), P2,
-          N.sub_diag(Nat.cmp(U2, V2), U2, V2, {==})),
+          NH.sub_diag(Nat.cmp(U2, V2), U2, V2, {==})),
         Equal.cong(Nat, I.Int, u => I.Int{P2, u}, Nat.sub(Q2, P2), Q2,
-          N.sub_diag(Nat.cmp(V2, U2), V2, U2, {==})))
+          NH.sub_diag(Nat.cmp(V2, U2), V2, U2, {==})))
       +R4i = Equal.trans(I.Int,
         rawR,
         I.Int.add(I.Int.mul(I.Int{P2, Q2}, I.Int.unit(Xd)),
@@ -2472,8 +2473,8 @@ def Rat.add.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int, +Xd: Nat, +Yd: Nat, +
             R2,
             Equal.trans(R.Rat, R.Rat.add(N2, R.Rat{xn, Xd}), R.Rat.mk(rawR, Nat.mul(d2, Xd)),
               R.Rat.mk(I.Int{TRp, TRn}, D), R3, R4))))
-      +ee1 = N.sub_cross(Nat.cmp(U1, V1), U1, V1, {==})
-      +ee2 = N.sub_cross(Nat.cmp(U2, V2), U2, V2, {==})
+      +ee1 = NH.sub_cross(Nat.cmp(U1, V1), U1, V1, {==})
+      +ee2 = NH.sub_cross(Nat.cmp(U2, V2), U2, V2, {==})
       +Hn = Rat.nat.cross4(P1, Q1, P2, Q2, a1, b1, a2, b2, a3, b3, Xd, Yd, Zd, ee1, ee2)
       +pD = N.mul_pos(Xd, Nat.mul(Yd, Zd), px, N.mul_pos(Yd, Zd, py, pz))
       +val = RH.Rat.mk.eqv.val(TLp, TLn, D, pD, TRp, TRn, D, pD, Hn)
@@ -2893,7 +2894,7 @@ def Rat.nat.distrib(+U1: Nat, +V1: Nat, +U2: Nat, +V2: Nat, +U3: Nat, +V3: Nat,
   +h2 = Rat.nat.add2(Nat.mul(P1, Zd), Nat.mul(V1, Zd), Nat.mul(Q1, Zd), Nat.mul(U1, Zd),
                Nat.mul(P3, Yd), Nat.mul(V3, Yd), Nat.mul(Q3, Yd), Nat.mul(U3, Yd),
                Rat.nat.scale.eq.r(Zd, P1, V1, Q1, U1, e1), Rat.nat.scale.eq.r(Yd, P3, V3, Q3, U3, e3))
-  +c = N.cross_add(X, XA, YB, YW, VW, UW, h1, h2)
+  +c = NH.cross_add(X, XA, YB, YW, VW, UW, h1, h2)
   %Equal.sym(Nat, Nat.add(Nat.add(X, Nat.mul(Q1, Zd)), Nat.mul(Q3, Yd)), Nat.add(X, YW),
       N.add_assoc(X, Nat.mul(Q1, Zd), Nat.mul(Q3, Yd)))
     : {_ == Nat.add(Nat.add(YB, Nat.mul(a1, Q2)), Nat.mul(b1, P2)) : Nat}
@@ -3362,15 +3363,15 @@ def R.Rat.mul_distrib(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
   +e2p = Rat.value.scaled.pos(q2p, q2n, P2, Q2, d2, m2, Xd, v2)
   +e2n = Rat.value.scaled.neg(q2p, q2n, P2, Q2, d2, m2, Xd, v2)
   +cross1f = Rat.nat.cross1(a1, b1, q2p, q2n, P2, Q2, m2, Xd, d2, e2p, e2n)
-  +pq2 = N.div_pos_wit(G2, Nat.add(dp3, Nat.mul(dp2, Nat.add(1n, dp3))),
+  +pq2 = NH.div_pos_wit(G2, Nat.add(dp3, Nat.mul(dp2, Nat.add(1n, dp3))),
     Pair.snd(N.Nat.divides(G2, R.Rat.mag(U2, V2)), N.Nat.divides(G2, d2),
              N.gcd_divides(R.Rat.mag(U2, V2), d2)))
   +posL = N.mul_pos(Xd, m2, {==}, pq2)
   +posLu = N.mul_pos(d2, Xd, pd2, {==})
   +val1 = RH.Rat.mk.eqv.val(TLp, TLn, Nat.mul(Xd, m2), posL, ULp, ULn, dLu, posLu, cross1f)
-  +ee1 = N.sub_cross(Nat.cmp(U1, V1), U1, V1, {==})
-  +ee2 = N.sub_cross(Nat.cmp(U2, V2), U2, V2, {==})
-  +ee3 = N.sub_cross(Nat.cmp(U3, V3), U3, V3, {==})
+  +ee1 = NH.sub_cross(Nat.cmp(U1, V1), U1, V1, {==})
+  +ee2 = NH.sub_cross(Nat.cmp(U2, V2), U2, V2, {==})
+  +ee3 = NH.sub_cross(Nat.cmp(U3, V3), U3, V3, {==})
   +ea = Rat.nat.gather(a1, b1, a2, a3, b2, b3, Zd, Yd)
   +eb = Rat.nat.gather(a1, b1, b2, b3, a2, a3, Zd, Yd)
   +T = Rat.nat.distrib(U1, V1, U2, V2, U3, V3, P1, Q1, P2, Q2, P3, Q3, a1, b1, Zd, Yd,
@@ -3382,20 +3383,20 @@ def R.Rat.mul_distrib(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
   +val2 = RH.Rat.mk.eqv.val(ULp, ULn, dLu, posLu, URp, URn, dRu, posRu, cross2f)
   +ds1 = Nat.add(1n, Nat.sub(d1, 1n))
   +ds3 = Nat.add(1n, Nat.sub(d3, 1n))
-  +e1s = Equal.sym(Nat, d1, ds1, N.pos_witness(d1, pd1))
-  +e3s = Equal.sym(Nat, d3, ds3, N.pos_witness(d3, pd3))
+  +e1s = Equal.sym(Nat, d1, ds1, NH.pos_witness(d1, pd1))
+  +e3s = Equal.sym(Nat, d3, ds3, NH.pos_witness(d3, pd3))
   +hM1 = Equal.trans(R.Rat,
     M1,
     R.Rat.mk(R.Rat.num(U1, V1), d1),
     R.Rat.mk(R.Rat.num(U1, V1), ds1),
     Equal.sym(R.Rat, R.Rat.mk(R.Rat.num(U1, V1), d1), M1, RH.Rat.mk.rep(U1, V1, d1)),
-    Equal.cong(Nat, R.Rat, u => R.Rat.mk(R.Rat.num(U1, V1), u), d1, ds1, N.pos_witness(d1, pd1)))
+    Equal.cong(Nat, R.Rat, u => R.Rat.mk(R.Rat.num(U1, V1), u), d1, ds1, NH.pos_witness(d1, pd1)))
   +hM3 = Equal.trans(R.Rat,
     M3,
     R.Rat.mk(R.Rat.num(U3, V3), d3),
     R.Rat.mk(R.Rat.num(U3, V3), ds3),
     Equal.sym(R.Rat, R.Rat.mk(R.Rat.num(U3, V3), d3), M3, RH.Rat.mk.rep(U3, V3, d3)),
-    Equal.cong(Nat, R.Rat, u => R.Rat.mk(R.Rat.num(U3, V3), u), d3, ds3, N.pos_witness(d3, pd3)))
+    Equal.cong(Nat, R.Rat, u => R.Rat.mk(R.Rat.num(U3, V3), u), d3, ds3, NH.pos_witness(d3, pd3)))
   +r1 = Equal.trans(R.Rat,
     R.Rat.add(M1, M3),
     R.Rat.add(R.Rat.mk(R.Rat.num(U1, V1), ds1), M3),
@@ -3635,14 +3636,14 @@ def RH.Rat.mul.value.mixed(np1, nn1, d, pd, pq, Zp, Zn, D, pD):
     I.Int{P1, Nat.sub(Q1, P1)},
     I.Int{P1, Q1},
     Equal.cong(Nat, I.Int, u => I.Int{u, Nat.sub(Q1, P1)}, Nat.sub(P1, Q1), P1,
-      N.sub_diag(Nat.cmp(np1, nn1), np1, nn1, {==})),
+      NH.sub_diag(Nat.cmp(np1, nn1), np1, nn1, {==})),
     Equal.cong(Nat, I.Int, u => I.Int{P1, u}, Nat.sub(Q1, P1), Q1,
-      N.sub_diag(N.Cmp.flip(Nat.cmp(np1, nn1)), nn1, np1,
+      NH.sub_diag(N.Cmp.flip(Nat.cmp(np1, nn1)), nn1, np1,
         Equal.trans(Cmp, N.Cmp.flip(Nat.cmp(np1, nn1)),
           N.Cmp.flip(N.Cmp.flip(Nat.cmp(nn1, np1))), Nat.cmp(nn1, np1),
           Equal.cong(Cmp, Cmp, N.Cmp.flip, Nat.cmp(np1, nn1), N.Cmp.flip(Nat.cmp(nn1, np1)),
             N.cmp_antisym(np1, nn1)),
-          N.flip_flip(Nat.cmp(nn1, np1))))))
+          NH.flip_flip(Nat.cmp(nn1, np1))))))
   +v = Equal.trans(I.Int,
     I.Int.mul(A, I.Int.unit(d)),
     I.Int.mul(R.Rat.num(P1, Q1), I.Int.unit(k1)),
@@ -3952,9 +3953,9 @@ def Rat.mul.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int, +Xd: Nat, +Yd: Nat, +
               Equal.cong(Nat, R.Rat, u => R.Rat.mk(I.Int{TRp, TRn}, u), Nat.mul(d2, Xd), D,
                 N.mul_comm(Nat.mul(Yd, Zd), Xd))))))
       +h1 = Rat.nat.mulpad(P1, Q1, U1, V1, a3, b3,
-        N.sub_cross(Nat.cmp(U1, V1), U1, V1, {==}))
+        NH.sub_cross(Nat.cmp(U1, V1), U1, V1, {==}))
       +h2 = Rat.nat.mulpad(P2, Q2, U2, V2, b1, a1,
-        N.sub_cross(Nat.cmp(U2, V2), U2, V2, {==}))
+        NH.sub_cross(Nat.cmp(U2, V2), U2, V2, {==}))
       +h3 = Rat.nat.mul3(a1, b1, a2, b2, a3, b3)
       +ass = Equal.trans(Nat,
         Nat.add(Nat.add(TLp, TRn), Nat.add(W1, W2)),
@@ -3974,7 +3975,7 @@ def Rat.mul.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int, +Xd: Nat, +Yd: Nat, +
             Equal.cong(Nat, Nat, u => Nat.add(Nat.add(W1f, TLn), u),
               Nat.add(TRn, W2), Nat.add(W2f, TRp), h2)),
           Rat.nat.swap(W1f, TLn, W2f, TRp)))
-      +Hn = N.add_cancel(Nat.add(TLp, TRn), Nat.add(TRp, TLn), Nat.add(W1, W2),
+      +Hn = NH.add_cancel(Nat.add(TLp, TRn), Nat.add(TRp, TLn), Nat.add(W1, W2),
         Equal.trans(Nat,
           Nat.add(Nat.add(TLp, TRn), Nat.add(W1, W2)),
           Nat.add(Nat.add(W1f, W2f), Nat.add(TLn, TRp)),
@@ -4179,20 +4180,20 @@ def Rat.mul_distrib.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int,
       +pd3 = N.mul_pos(Xd, Zd, px, pz)
       +ds1 = Nat.add(1n, Nat.sub(d1, 1n))
       +ds3 = Nat.add(1n, Nat.sub(d3, 1n))
-      +e1s = Equal.sym(Nat, d1, ds1, N.pos_witness(d1, pd1))
-      +e3s = Equal.sym(Nat, d3, ds3, N.pos_witness(d3, pd3))
+      +e1s = Equal.sym(Nat, d1, ds1, NH.pos_witness(d1, pd1))
+      +e3s = Equal.sym(Nat, d3, ds3, NH.pos_witness(d3, pd3))
       +hM1 = Equal.trans(R.Rat,
         M1,
         R.Rat.mk(R.Rat.num(U1, V1), d1),
         R.Rat.mk(R.Rat.num(U1, V1), ds1),
         Equal.sym(R.Rat, R.Rat.mk(R.Rat.num(U1, V1), d1), M1, RH.Rat.mk.rep(U1, V1, d1)),
-        Equal.cong(Nat, R.Rat, u => R.Rat.mk(R.Rat.num(U1, V1), u), d1, ds1, N.pos_witness(d1, pd1)))
+        Equal.cong(Nat, R.Rat, u => R.Rat.mk(R.Rat.num(U1, V1), u), d1, ds1, NH.pos_witness(d1, pd1)))
       +hM3 = Equal.trans(R.Rat,
         M3,
         R.Rat.mk(R.Rat.num(U3, V3), d3),
         R.Rat.mk(R.Rat.num(U3, V3), ds3),
         Equal.sym(R.Rat, R.Rat.mk(R.Rat.num(U3, V3), d3), M3, RH.Rat.mk.rep(U3, V3, d3)),
-        Equal.cong(Nat, R.Rat, u => R.Rat.mk(R.Rat.num(U3, V3), u), d3, ds3, N.pos_witness(d3, pd3)))
+        Equal.cong(Nat, R.Rat, u => R.Rat.mk(R.Rat.num(U3, V3), u), d3, ds3, NH.pos_witness(d3, pd3)))
       +r1 = Equal.trans(R.Rat,
         R.Rat.add(M1, M3),
         R.Rat.add(R.Rat.mk(R.Rat.num(U1, V1), ds1), M3),
@@ -4252,9 +4253,9 @@ def Rat.mul_distrib.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int,
           R.Rat.mk(argA0, Nat.mul(ds1, ds3)),
           UR,
           r2, r3))
-      +ee1 = N.sub_cross(Nat.cmp(U1, V1), U1, V1, {==})
-      +ee2 = N.sub_cross(Nat.cmp(U2, V2), U2, V2, {==})
-      +ee3 = N.sub_cross(Nat.cmp(U3, V3), U3, V3, {==})
+      +ee1 = NH.sub_cross(Nat.cmp(U1, V1), U1, V1, {==})
+      +ee2 = NH.sub_cross(Nat.cmp(U2, V2), U2, V2, {==})
+      +ee3 = NH.sub_cross(Nat.cmp(U3, V3), U3, V3, {==})
       +ea = Rat.nat.gather(a1, b1, a2, a3, b2, b3, Zd, Yd)
       +eb = Rat.nat.gather(a1, b1, b2, b3, a2, a3, Zd, Yd)
       +T = Rat.nat.distrib(U1, V1, U2, V2, U3, V3, P1, Q1, P2, Q2, P3, Q3, a1, b1, Zd, Yd,
@@ -4465,7 +4466,7 @@ def RH.Rat.mk.diag(T, d, pd):
   +den = Equal.trans(Nat, Nat.div(d, G), Nat.div(d, d), 1n,
     Equal.cong(Nat, Nat, v => Nat.div(d, v), G, d, Gd),
     Equal.trans(Nat, Nat.div(d, d), Nat.div(1n+ap, 1n+ap), 1n,
-      Equal.cong(Nat, Nat, v => Nat.div(v, v), d, 1n+ap, N.pos_witness(d, pd)),
+      Equal.cong(Nat, Nat, v => Nat.div(v, v), d, 1n+ap, NH.pos_witness(d, pd)),
       N.div_self(ap)))
   # mk unfolds to Rat{Int{div(u,G), div(u,G)}, div(d,G)} at Int{T,T}, and the
   # two coordinates above turn that constructor into Rat.zero() itself
@@ -4748,7 +4749,7 @@ def Rat.add_neg.coords(+xp: Nat, +xnn: Nat, +xd: Nat,
           {==},
           N.mul_add_left(Sa, xnn, xd)))))
   +eM = Equal.cong(Nat, Nat, v => Nat.mul(v, xd),
-    Nat.add(Sb, xp), Nat.add(Sa, xnn), N.sub_cross(Nat.cmp(xnn, xp), xnn, xp, {==}))
+    Nat.add(Sb, xp), Nat.add(Sa, xnn), NH.sub_cross(Nat.cmp(xnn, xp), xnn, xp, {==}))
   +eC2C1 = Equal.trans(Nat, C2, M2, C1,
     eC2,
     Equal.trans(Nat, M2, M, C1,
@@ -4848,7 +4849,7 @@ def R.Rat.add_neg(x, px):
 # T = d'*p is a successor, which is the spelling div_self wants
 def Rat.mul_inv.pw(+T: Nat, +pT: {Nat.cmp(0n, T) == LT{} : Cmp})
   -> {T == 1n+Nat.sub(T, 1n) : Nat}:
-  N.pos_witness(T, pT)
+  NH.pos_witness(T, pT)
 
 # div(T, T) = 1 for the opaque dividend the goal has: pos_witness rewrites the
 # dividend to 1+ap, one cong carries the same fact to the divisor, and what is
@@ -4968,7 +4969,7 @@ def Rat.mul_inv.gt.coordB(+np: Nat, +nn: Nat, +dp: Nat,
       Equal.cong(Nat, Nat, u => Nat.add(0n, u), Nat.mul(Nat.sub(nn, np), 1n+dp),
         Nat.mul(0n, 1n+dp),
         Equal.cong(Nat, Nat, u => Nat.mul(u, 1n+dp), Nat.sub(nn, np), 0n,
-          N.sub_of_lt(nn, np, N.cmp_lt_of_gt(np, nn,
+          NH.sub_of_lt(nn, np, NH.cmp_lt_of_gt(np, nn,
             Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))))),
       {==}))
 
@@ -5017,7 +5018,7 @@ def Rat.mul_inv.gt.subBA(+np: Nat, +nn: Nat, +dp: Nat,
                               Nat.mul(Nat.sub(nn, np), 0n))),
       Nat.add(Nat.mul(Nat.sub(np, nn), 0n), Nat.mul(Nat.sub(nn, np), 1n+dp)), 0n,
       Rat.mul_inv.gt.coordB(np, nn, dp, e)),
-    N.sub_zero_left(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp),
+    NH.sub_zero_left(Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp),
                             Nat.mul(Nat.sub(nn, np), 0n))))
 
 # magT: the product's magnitude coordinate, in the spelling gcd_scale's second
@@ -5114,7 +5115,7 @@ def Rat.mul_inv.gt.pb(+np: Nat, +nn: Nat,
     Nat.cmp(0n, 1n+Nat.sub(np, 1n+nn)), LT{},
     Equal.cong(Nat, Cmp, u => Nat.cmp(0n, u), Nat.sub(np, nn),
       1n+Nat.sub(np, 1n+nn),
-      N.sub_pos(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))),
+      NH.sub_pos(np, nn, Equal.sym(Cmp, GT{}, Nat.cmp(np, nn), e))),
     {==})
 
 # chain: the product's clean coordinates are one. div(T, T) = 1 twice -- once in
@@ -5208,7 +5209,7 @@ def Rat.mul_inv.lt.pb(+np: Nat, +nn: Nat,
     Nat.cmp(0n, 1n+Nat.sub(nn, 1n+np)), LT{},
     Equal.cong(Nat, Cmp, u => Nat.cmp(0n, u), Nat.sub(nn, np),
       1n+Nat.sub(nn, 1n+np),
-      N.sub_pos(nn, np, N.cmp_gt_of_lt(np, nn,
+      NH.sub_pos(nn, np, NH.cmp_gt_of_lt(np, nn,
         Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))),
     {==})
 
@@ -5250,7 +5251,7 @@ def Rat.mul_inv.lt.coordB(+np: Nat, +nn: Nat, +dp: Nat,
       Equal.cong(Nat, Nat, u => Nat.add(u, 0n), Nat.mul(Nat.sub(np, nn), 1n+dp),
         Nat.mul(0n, 1n+dp),
         Equal.cong(Nat, Nat, u => Nat.mul(u, 1n+dp), Nat.sub(np, nn), 0n,
-          N.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))),
+          NH.sub_of_lt(np, nn, Equal.sym(Cmp, LT{}, Nat.cmp(np, nn), e)))),
       {==}))
 
 # subAB: the first numerator is T once the zero coordinate is truncated away
@@ -5297,7 +5298,7 @@ def Rat.mul_inv.lt.subBA(+np: Nat, +nn: Nat, +dp: Nat,
                               Nat.mul(Nat.sub(nn, np), 1n+dp))),
       Nat.add(Nat.mul(Nat.sub(np, nn), 1n+dp), Nat.mul(Nat.sub(nn, np), 0n)), 0n,
       Rat.mul_inv.lt.coordB(np, nn, dp, e)),
-    N.sub_zero_left(Nat.add(Nat.mul(Nat.sub(np, nn), 0n),
+    NH.sub_zero_left(Nat.add(Nat.mul(Nat.sub(np, nn), 0n),
                             Nat.mul(Nat.sub(nn, np), 1n+dp))))
 
 # magT: the product's magnitude coordinate, in the spelling gcd_scale's second

@@ -4,6 +4,7 @@ import ./tower_helpers.bend as TH
 # succ_inj (successor cancellation) and succ_add_ne (k = (1+b)+k is impossible)
 # are the two nat facts the safety proofs run on
 import ./nat.bend as N
+import ./nat_helpers.bend as NH
 import ./nat_proofs.bend as NN
 # not named in this file, but it is what fills rat.bend's laws, so the tower
 # proofs file reports a complete closure rather than 229 outstanding ones
@@ -93,15 +94,15 @@ def T.Tower.add.depth(x, y, h):
           N.succ_inj(T.Tower.depth(rx), T.Tower.depth(ry), h)))
     case T.Ext{rx, ix, dx} T.Base{b}:
       Empty.absurd({0n == Nat.add(1n, T.Tower.depth(rx)) : Nat},
-        N.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
+        NH.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
           Nat.add(1n, T.Tower.depth(rx)), 0n, h)))
     case T.Ext{rx, ix, dx} T.Bad{}:
       Empty.absurd({0n == Nat.add(1n, T.Tower.depth(rx)) : Nat},
-        N.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
+        NH.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
           Nat.add(1n, T.Tower.depth(rx)), 0n, h)))
     case T.Ext{rx, ix, dx} T.Fuel{}:
       Empty.absurd({0n == Nat.add(1n, T.Tower.depth(rx)) : Nat},
-        N.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
+        NH.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
           Nat.add(1n, T.Tower.depth(rx)), 0n, h)))
     case T.Base{a} T.Ext{ry, iy, dy}:
       {==}
@@ -153,11 +154,11 @@ def T.Tower.add.clean(x, y, hx, hy, h):
           T.Tower.depth(rx), T.Tower.depth(dx), dr, hxrd)}
     case T.Base{a} T.Ext{ry, iy, dy}:
       Empty.absurd(Empty,
-        N.eq_ne_gt(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
+        NH.eq_ne_gt(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
           0n, Nat.add(1n, T.Tower.depth(ry)), h)))
     case T.Ext{rx, ix, dx} T.Base{b}:
       Empty.absurd(Empty,
-        N.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
+        NH.gt_ne_eq(Equal.cong(Nat, Cmp, u => Nat.cmp(u, 0n),
           Nat.add(1n, T.Tower.depth(rx)), 0n, h)))
     case T.Bad{} _:
       Empty.absurd(T.Tower.clean(T.Tower.add(T.Bad{}, y)), hx)

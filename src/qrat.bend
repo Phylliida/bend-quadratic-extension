@@ -1,5 +1,6 @@
 import Base
 import ./nat.bend as N
+import ./nat_helpers.bend as NH
 import ./rat.bend as R
 import ./rat_helpers.bend as RH
 

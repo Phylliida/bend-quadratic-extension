@@ -1,5 +1,6 @@
 import Base
 import ./src/nat.bend as N
+import ./src/nat_helpers.bend as NH
 import ./src/nat_proofs.bend as NP
 import ./src/int.bend as I
 import ./src/int_proofs.bend as IP
