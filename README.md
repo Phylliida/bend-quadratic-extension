@@ -83,13 +83,14 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 23 / 8, qrat 36 / none, qext 2 / none -- 166 readable
-  laws, 141 helpers, 307 in total (the split itself landed 282; the product's pair
+  13, rat 40 / 28, tower 24 / 8, qrat 36 / none, qext 2 / none -- 167 readable
+  laws, 141 helpers, 308 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
   `mul.fuel.ext` to the helper tier, round forty-eight; the negation pair added
   `mul_neg`/`neg_mul` and `neg_pair`, round sixty-three; round sixty-four added
-  `Tower.add_zero` and with it the second carrier type, `Tower.Canon`).
+  `Tower.add_zero` and with it the second carrier type, `Tower.Canon`; round
+  sixty-five added its mirror `Tower.zero_add`).
 
 - `src/int.bend` — `Int` type, the ops (`Int.zero`, `Int.one`, `Int.add`,
   `Int.neg`, `Int.sub`, `Int.mul`), `Int.canon` (the canonical
@@ -263,7 +264,8 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   form, because at a non-canonical value the equation is false -- and the family
   cannot destructure its own index, so its leaf carries the two things a fill cannot
   get otherwise: the equation that the value *is* its projection spelling, and `fx`
-  at that spelling. `Tower.add_zero` is the first law built on it.
+  at that spelling. `Tower.add_zero` and `Tower.zero_add` are the laws built on it
+  so far.
 - `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law.
   `depth.zero`, `add.depth`, `add.clean`, `mul.safe` and `mul.above` are structural
   inductions in the fill: the match refines the law at each branch, and each arm
@@ -282,7 +284,11 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   fill whose Base arm has to *rewrite* before calling its Rat law: the goal there is
   `Base{Rat.add(a, Rat.zero())} = Base{a}`, the left side is `Mk`'s output, and the
   Rat law is stated at `Rat{n, d}` -- so two `%` steps rewrite `a` to its projection
-  spelling and the canon witness's `fx` is handed over (round sixty-four).
+  spelling and the canon witness's `fx` is handed over (round sixty-four). That
+  rewrite has two jobs, which rounds sixty-four and sixty-five separated: the Rat law
+  is stated at the spelled value, and `Rat.add`/`Rat.mul` destructure *both* operands,
+  so a goal like `Rat.add(a, zero)` is stuck at a variable and only unfolds once every
+  operand is spelled.
 - `probe.bend` — consumer check for the ten division laws.
 - `probe.payoff.bend` — consumer check for the payoff and the operations: the
   two conversions the design rests on (positive and negative divisor spelling),

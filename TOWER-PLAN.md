@@ -2417,6 +2417,15 @@ endpoint), then hands `Equal.trans(cfx, ce)` to `Rat.add_zero` under one congrue
 `u => T.Base{u}`. The Ext arm needs nothing new: two recursive calls, two
 congruences, and `dx` in the third slot on both sides.
 
-What remains for the block: `zero_add`, `mul_one`, `one_mul` (the same shape, one
-leaf each), `mul_zero` (stated at `Rat{n, 1n+dp}`, so it needs no canonicality at all)
-and `neg_neg` (which additionally wants `{c == cmp(np, nn)}` and the gcd evidence).
+`zero_add` is the mirror (`Rat.zero_add`, one leaf) and landed in round sixty-five
+with one extra finding: **the rewriting step is not only about the law's spelling**.
+`Rat.add` and `Rat.mul` destructure both operands, so `Rat.add(a, zero)` is stuck at a
+variable until `a` is spelled -- writing the value in its projection form is what
+unsticks the goal *and* what matches the Rat law's statement.
+
+What remains for the block: `mul_one`, `one_mul` (the same shape, one leaf each),
+`mul_zero` (stated at `Rat{n, 1n+dp}`, so it needs no canonicality at all -- but on the
+tower side it is a pair, since `mul`'s Ext/Ext first coordinate mixes a zero *first*
+operand with a zero *second* one) and `neg_neg` (which additionally wants
+`{c == cmp(np, nn)}` and the gcd evidence). The three ring laws still wait on route (a)
+of round sixty.

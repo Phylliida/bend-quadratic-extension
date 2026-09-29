@@ -7050,3 +7050,40 @@ tower.depth 2.39, mul.depth.arm 2.50, scratch 2.88 s, inversion triple
 `{c == cmp(np, nn)}` and the gcd evidence). The three ring laws still wait on route
 (a) of round sixty: the cross-level fact threaded through
 `add.clean`/`mul.clean`/`mul.safe`.
+
+## Round sixty-five -- zero_add, and what the rewriting step was actually for
+
+The mirror of round sixty-four, and one measurement the first fill had hidden.
+
+`zero_add` is `{Tower.add(Tower.zero(x), x) == x}` on the same `Tower.Canon` carrier.
+The Base arm is `Rat.zero_add` at the leaf, the Ext arm is two recursive calls with
+`dx` in the third slot on both sides (`zero(x)` carries `dx` as well, so `add`'s
+keep-the-first-operand rule is not even visible here), and the markers are
+definitional. It checked on the first run -- after one correction in the probe:
+
+    expected : {Base{Rat.add(Rat.zero(), a)} == Base{Rat{numof(a), denof(a)}}}
+    observed : {Base{Rat.mk(Int.add(Int{0n,0n}, Int.mul(numof(a), Int{1n,0n})),
+                                Nat.add(denof(a), 0n))} == ...}
+
+The goal's left side did not reduce. The reason is worth keeping: **`Rat.add`
+destructures both operands**, so `Rat.add(Rat.zero(), a)` is stuck at a variable `a`
+until `a` is spelled -- and the `%` step that rewrites `a` to `Rat{numof(a), denof(a)}`
+is what unsticks it. Round sixty-four's fill rewrote *both* occurrences of `a` for the
+Rat law's spelling; that step was doing two jobs, and unsticking the goal is the one
+that makes the congruence line up. So every fill on this carrier rewrites **every**
+occurrence of the value, including the ones inside the operation's own arguments:
+`add_zero` two, `zero_add` two.
+
+Counts: tower.bend 253 = rat.bend's 229 plus its own twenty-four; tower_helpers.bend
+270. README 167 readable / 141 helpers / 308 total. All eleven gates green -- nat
+0.47, int 0.41, rat 3.35, qrat 5.45, qext 0.48, tower 3.13, probe.bend 2.49, payoff
+6.55, tower.depth 2.91, mul.depth.arm 3.23, scratch 2.89 s; inversion triple
+`(Rat{Int{7n, 0n}, 2n}, Rat{Int{0n, 7n}, 2n}, Rat{Int{0n, 0n}, 0n})` unchanged.
+
+**Goal state.** The identity half now has `add_zero` and `zero_add` of its five Rat
+identities (`mul_one`, `one_mul`, `mul_zero` left, plus `neg_neg`). `mul_zero` is the
+interesting one: `mul`'s Ext/Ext first coordinate is
+`add(mul(g, rx, zero(rx)), mul(g, mul(g, ix, zero(ix)), dx))`, whose second term mixes
+a zero *first* operand with a zero *second* operand -- so the tower-side zero law looks
+like another pair, in the shape of `mul_neg`/`neg_mul` and of `mul.depth`/`mul.clean`.
+That is the next measurement.
