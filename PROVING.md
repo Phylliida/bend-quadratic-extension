@@ -6895,3 +6895,15 @@ Counts: tower.bend 249, tower_helpers.bend 265, README 163 readable / 140 helper
 303 total. All eleven gates green -- nat 0.43, int 0.37, rat 3.70, qrat 5.21, qext
 0.50, tower 2.77, probe 2.72, payoff 6.83, tower.depth 2.91, mul.depth.arm 2.85,
 scratch 2.41 s, inversion triple unchanged.
+
+**Scoping the rest of the block (read, not attempted).** `Rat.add_zero`,
+`Rat.zero_add`, `Rat.mul_one`, `Rat.one_mul` are all stated over the *spelled*
+`Rat{n, d}` with a canonicality hypothesis `fx : {Rat.mk(n, d) == Rat{n, d}}`; no
+`.arb` form can exist, because `add(x, 0) = x` is false at non-canonical `x` (add
+normalises) -- round thirty-eight's `x * 1 = x` measurement again. So the tower
+identity laws need a *canonicality* carrier distinct from the pos carrier, and
+their fills must destructure each leaf to `Rat{n, d}` to reach the spelled law.
+`mul_neg`/`neg_mul` need only `+px`/`+py`, and `Rat.mul_zero` is spelled with a
+successor denominator; `Rat.neg_neg` needs `{c == cmp(np, nn)}` and
+`{gcd(mag(np, nn), 1+dp) == 1}` -- reduced-form evidence too, the heaviest of the
+block.

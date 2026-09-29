@@ -2220,6 +2220,23 @@ Counts: tower.bend 249 = rat.bend's 229 plus its own twenty, tower_helpers.bend 
 249 plus its own sixteen; README 163 readable / 140 helpers / 303 total. All eleven
 gates green; `tower_proofs.bend` 2.77 s.
 
+**Scoped by reading the Rat side: the identity half of the block needs a third
+carrier.** The four identity laws are stated at *spelled* coordinates with a
+canonicality hypothesis -- `Rat.add_zero`, `Rat.zero_add`, `Rat.mul_one`,
+`Rat.one_mul` all read `for +n: I.Int, for +d: Nat, for +fx: {Rat.mk(n, d) ==
+Rat{n, d} : Rat}` over `Rat{n, d}`. No `.arb` version can exist: `add(x, 0) = x` is
+false at a non-canonical `x` (`add` normalises, so the two sides differ in spelling
+exactly when `x` is not in mk form), the same measurement as round thirty-eight's
+`x * 1 = x`. So a tower identity law needs evidence that each Rat leaf is in mk
+form -- a *canonicality* carrier, not the positivity one -- and its fill must
+destructure each leaf to `Rat{n, d}` to reach the spelled law. The two
+positivity-only laws that remain in the block are `mul_neg`/`neg_mul`
+(`Rat.mul_neg`/`Rat.neg_mul`: `+px`, `+py`, no canonicality), and `Rat.mul_zero`
+is spelled on `Rat{n, 1n+dp}` (successor denominator, no canonicality). `neg_neg`
+is the heaviest of the block: `Rat.neg_neg` wants `{c == Nat.cmp(np, nn)}` and
+`{Nat.gcd(Rat.mag(np, nn), 1n+dp) == 1n}` -- reduced-form evidence as well.
+
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a
