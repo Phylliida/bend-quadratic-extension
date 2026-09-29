@@ -7087,3 +7087,76 @@ interesting one: `mul`'s Ext/Ext first coordinate is
 a zero *first* operand with a zero *second* operand -- so the tower-side zero law looks
 like another pair, in the shape of `mul_neg`/`neg_mul` and of `mul.depth`/`mul.clean`.
 That is the next measurement.
+
+## Round sixty-six -- what the zero laws actually rest on: a counterexample with one field in it
+
+`mul_zero` looked like the third landing of the identity block. It is not a landing; it
+is a carrier question, and three probes settle which one.
+
+**The zero laws are pure structure -- no arithmetic.** At spelled depth-2 values, with
+and without fuel corrections, `{==}` closes all three of:
+
+    x * zero(x) = zero(x)                     (Probe.mulzero,   probe.mulzero.bend)
+    zero(x) * y = zero(x)                     (Probe.zeromul,   probe.mulzero2.bend)
+    zero(x) + zero(x) = zero(x)               (Probe.zeroadd,   probe.mulzero2.bend)
+
+No `Rat` law is involved anywhere: the leaves are `Rat.mul(zero, v)`, `Rat.add(zero,
+zero)`, whose results are already the normal form `Rat{Int{0,0}, 1n}`. That is a real
+difference from `add_zero`/`zero_add`, whose leaves needed `Rat.add_zero`/`Rat.zero_add`
+with the canonicality witness. And the fuel lesson holds as before: depth 2 needs
+`3n = 1n + depth`, at `2n` the sub-products come back `Fuel{}`.
+
+**What it rests on instead is a radicand agreement.** The same claim at a value whose
+level-1 parts carry *different* radicands fails, and the failure is one field wide:
+
+    expected : Ext{Ext{0,0,Base{2n}}, Ext{0,0,Base{2n}}, Ext{Base{13n},Base{17n},Base{5n}}}
+    observed : Ext{Ext{0,0,Base{2n}}, Ext{0,0,Base{3n}}, Ext{Base{13n},Base{17n},Base{5n}}}
+
+Only the second coordinate's third field differs: `mul`'s second coordinate is
+`add(mul(g, rx, zero(iy)), mul(g, ix, zero(ry)))`, and `add` keeps its *first* operand's
+radicand, so the result carries `rx`'s radicand -- while the target `zero(x)` there
+carries `ix`'s. With `rad(rx) == rad(ix)` the two agree and everything is definitional;
+without it, the law is false. The same requirement appears in the first coordinate, as
+`add(zero(rx), zero(ix)) = zero(rx)`, and in the term
+`mul(g, mul(g, ix, zero(ix)), dx)`, which needs `zero(ix) * dx = zero(ix)` and therefore
+`rad(ix) == rad(dx)`.
+
+**Which relation that is, exactly.** Radicand agreement at every level, between values
+of the same depth, *is* `Tower.Level`: its `ld` field is `{dx == dy}` and its `lre`/`lim`
+recurse. So the missing hypotheses are `Level(re, im)` and `Level(re, d)` -- facts
+*inside* one value, not across two operands. This is the third carrier question of the
+block and it is narrower than round sixty's: round sixty needed a fact relating `rx` to
+`iy` (across operands) which a per-value witness provably cannot carry; here the fact is
+between siblings of the same value, which a per-value witness can carry as two more
+fields.
+
+**The work the block implies**, in dependency order:
+
+1. `Tower.zero.level`: `{Level(u, v)} -> {zero(u) == zero(v)}`. Not obvious but true:
+   `zero` reads only the radicand skeleton (re and im are replaced by zeros recursively,
+   `d` is kept), and a level relation pins exactly that skeleton.
+2. `Tower.add.zero`: `{Level(u, v)} -> {add(zero(u), zero(v)) == zero(u)}`. Induction;
+   leaves are `Rat.add(zero, zero) = zero`, definitional. This is the step
+   `mul(f, x, zero(x))`'s first coordinate comes back needing.
+3. `Tower.zero.mul`: `{Level(u, v)} -> {mul(f, zero(u), v) == zero(u)}`. Needs 2 and,
+   in its second coordinate, `Level(iu, du)` -- the second sibling fact.
+4. `Tower.mul_zero`: `mul(f, x, zero(x)) == zero(x)` on a carrier that now carries
+   `Level(re(x), im(x))` and `Level(re(x), d(x))`.
+
+Step 4 is where the design decision sits: `Level` fields have to live *somewhere* the
+caller already hands over. `Tower.Clean`/`CleanExt` is the natural host -- it is already
+the per-value hypothesis the operations' laws (`add.clean`, `mul.clean`, `mul.safe`)
+produce -- but extending it means those laws must *produce* the stronger witness, and
+the blast radius is the one round sixty counted (three construction sites, six
+destructuring sites) plus an argument per producing law that it preserves the level
+facts (`level.add` already exists for the binary case; for `mul` the same proof has to
+be done on the product's coordinates). A separate carrier would keep `CleanExt` as it
+is but leaves the same question for whoever constructs the witness.
+
+Not forced, recorded. `mul_one`/`one_mul` sit behind the same three lemmas (their
+Ext/Ext coordinates are `add(mul(g, rx, one(ry)), mul(g, mul(g, ix, one(iy)), dx))`,
+whose second term is a product with `zero(iy)` in it), and `neg_neg` sits behind a
+different extension of the same kind (per-coefficient `{c == cmp(np, nn)}` and the gcd
+evidence for `Rat.neg_neg`). The ring laws remain behind round sixty's cross-operand
+fact. Nothing landed this round; the count is unchanged (tower.bend 253,
+tower_helpers.bend 270), and all eleven gates are green as of round sixty-five.
