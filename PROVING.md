@@ -6090,3 +6090,61 @@ untouched: nat 46/83, int 19/13, rat 40/28, qrat 36, qext 2.
 end to end, which is over the one-second rule and is now the slowest of the six;
 the arm's four recursive calls written twice are the reason, and the backlogged
 fast-path item covers it.
+
+## Round forty-six -- The ring laws need a level invariant, measured before it was written
+
+Step 2's five ring laws are the next unit, and the first probe says they do not go
+through as stated. Both halves of that are measurements.
+
+**The closed one.** `Tower.add`'s Ext/Ext arm returns the *first* operand's
+radicand. Two depth-1 values with radicands 2 and 3, added one way and then the
+other, are equal in both coordinates and differ in the third field:
+
+    - expected : src/tower.Ext{..., src/tower.Base{src/rat.Rat{src/int.Int{3n, 0n}, 2n}}}
+    - observed : src/tower.Ext{..., src/tower.Base{src/rat.Rat{src/int.Int{2n, 0n}, 2n}}}
+
+So a same-level swap is not an identity of the representation unless the operands
+agree on their radicand, and the agreement the law needs at the top is only the
+first of the agreements the *induction* needs.
+
+**The open one.** Stating the law with the agreement it obviously needs -- clean
+operands, equal depth, `{rad(x) == rad(y)}` -- gives a true statement that cannot
+take an induction step:
+
+    - expected : Probe.Rad(rx)
+    - observed : Probe.Rad(ry)
+
+That is the recursive call's sixth argument, at the Ext/Ext arm, where the
+re-coordinate obligation is this same law at the coordinates. The context lists
+everything in scope: `clean(rx)`, `clean(ix)`, `clean(dx)` and the same for `y`,
+`{1n+depth(rx) == 1n+depth(ry)}`, `{dx == dy}`. Each hypothesis relates *one*
+operand to its own shape, or relates the two at the top level only; nothing relates
+their parts. `Tower.Clean` is per-value evidence, and a pairwise, co-recursive fact
+is not something per-value evidence can carry.
+
+**Why this is not a surprise in hindsight.** Round twenty-two's own paragraph on the
+explicit radicand parameter says the parameter "keeps the laws free of
+shape-agreement hypotheses", because `add(d, x, y)` and `add(d, y, x)` mention one
+radicand. Round thirty-nine retired the parameter for good reasons -- the intrinsic
+radicand removed a side condition and let `mul` and `add` share one evidence type --
+and the obligation moved into the laws, where it is unstatable. The plan's Step 2 now
+records the fork (a unary `Tower.At<x, c>` level-membership evidence; a pairwise
+`Tower.Same<x, y>` bisimulation; or restoring the parameter), each needing the
+projection defs `re`, `im`, `rad` that round thirty-nine retired as unnecessary for
+the operations and which are needed again to *state* an evidence type over operands'
+parts.
+
+**Also measured, and a doc fix rather than a proof.** `mul`'s comment says an
+exhausted fuel "says the caller's fuel was too small, not that the operands disagreed
+about their level", but the definition compares shapes, not radicands: disagreement
+is neither `Bad` nor `Fuel`, it is a silently different value. Evidence closes it at
+the law level -- a caller who cannot state the operation never builds the value --
+and that is the argument for route 1.
+
+**Not blocked.** The identity and negation block and `mul.fuel.ext` are unary
+statements: `neg(neg(x)) = x`, `neg(add(x, y)) = add(neg(x), neg(y))` and
+`mul(f, x, one(x)) = x` pick the first operand's radicand on both sides, so their
+inductions never need a fact about a pair. Those go next.
+
+The measurement lives in `probe.addcomm.bend` (untracked, repo root), which is the
+source of both transcripts above.

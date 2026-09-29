@@ -1467,6 +1467,69 @@ The shape the rest of Step 2 will use is settled too: state the pair, prove it a
 whose fuel is a parameter, expose the halves as projections. The same left-to-right rule will show
 up in the ring laws' fills, where every recursion descends into coordinates.
 
+### The ring laws need a level invariant, and that is a design fork (round forty-six)
+
+Step 2's five ring laws do not go through as stated, and the reason is a property of the
+representation rather than of any particular proof.
+
+`Tower.add`'s Ext/Ext arm returns `Ext{..., dx}` -- the *first* operand's radicand -- and `mul` does
+the same. Two operands at the same level with different radicands are therefore not interchangeable
+under a swap, and the closed measurement is blunt: `add` of the depth-1 values with radicands 2 and
+3, written one way and then the other, differs *only* in its third field (the checker's normal
+forms differ in that field alone, coordinates identical). Nothing about depths is involved; both
+values are at depth 1.
+
+That is not a defect by itself: operands from different levels are not values of the same theory,
+and the plan's rule is that the caller keeps the level discipline. What is a defect is that the
+*evidence* cannot express the discipline. Stating the law with the agreement it obviously needs --
+clean operands, equal depth, and `{rad(x) == rad(y)}` -- makes a true statement, but its induction
+cannot take a step. The Ext/Ext arm's re-coordinate obligation *is* the law at the coordinates, and
+that instance needs `{rad(re(x)) == rad(re(y))}`, a relation between the two operands' parts. The
+checker's refusal is exact:
+
+    - expected : Probe.Rad(rx)
+    - observed : Probe.Rad(ry)
+
+with the context listing what is in scope: `clean(rx)`, `clean(ix)`, `clean(dx)`, the same for `y`,
+`{1n+depth(rx) == 1n+depth(ry)}`, and `{dx == dy}`. Every hypothesis relates *one* operand to its
+own shape, or the two operands at the top level only. The per-value evidence type `Tower.Clean`
+cannot carry a pairwise, co-recursive fact, so the law has nothing to hand its own recursion.
+
+Round twenty-two's paragraph on the explicit radicand parameter says why this was not visible then:
+that design "keeps the laws free of shape-agreement hypotheses" because `add(d, x, y)` and
+`add(d, y, x)` mention one radicand. Retiring the parameter (round thirty-nine) moved that
+obligation into the laws, where it is now unstatable.
+
+**One more thing the measurement showed.** `mul`'s comment says running out of fuel "says the
+caller's fuel was too small, not that the operands disagreed about their level", but the definition
+checks shape, not radicands: disagreement is neither `Bad` nor `Fuel`, it is a silently different
+value. Evidence, not a marker, is what closes this -- a caller who cannot *state* an operation on
+two different chains never builds one.
+
+**Three routes, none chosen yet** (they change the design, so they are the user's call):
+
+1. **A unary level-membership evidence, `Tower.At<x, c>`** -- "x is an element of the level whose
+   radicand chain is c": recursive fields at `re(x)` and `im(x)` with index `rad(c)`, plus
+   `{rad(x) == rad(c)}`. The ring laws then take `At<x, c>` and `At<y, c>`, and the pairwise
+   agreement at every level is *structural* in the evidence, which is exactly what the induction
+   step needs. It also composes: whatever the level's own operations build carries `At` again, so
+   a chain can hold one witness per value instead of one per pair.
+2. **A pairwise bisimulation, `Tower.Same<x, y>`** -- `SameExt{Same<re(x),re(y)>, Same<im(x),im(y)>,
+   {rad(x) == rad(y)}}`. A simpler type, and the induction reads directly off it, but the evidence
+   is per pair, so a chain rebuilds it for every operand pair it combines.
+3. **Restore the explicit radicand parameter** (`add(d, x, y)`, `mul(f, d, x, y)`), which undoes
+   rounds thirty-seven through thirty-nine (`hrd` in the evidence, the intrinsic radicand, the
+   side-condition retirement) and brings back the side condition the caller must check.
+
+Routes 1 and 2 both need projection defs (`re`, `im`, `rad`) -- retired in round thirty-nine as
+unnecessary *for the operations*, and needed again to *state* an evidence type whose fields live in
+the operands' parts.
+
+**What is not blocked.** The identity and negation block, and `mul.fuel.ext`, are unary statements:
+`neg(neg(x)) = x`, `neg(add(x, y)) = add(neg(x), neg(y))`, `mul(f, x, one(x)) = x` pick the first
+operand's radicand on *both* sides, so their inductions never need a fact about a pair. Those are
+next; the ring laws wait on the fork above.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a
