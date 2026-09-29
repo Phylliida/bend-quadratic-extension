@@ -4,6 +4,7 @@ import ./src/nat_proofs.bend as NP
 import ./src/int.bend as I
 import ./src/int_proofs.bend as IP
 import ./src/rat.bend as R
+import ./src/rat_helpers.bend as RH
 import ./src/rat_proofs.bend as RP
 
 # Consumer check for the division laws. Every def here is written the way a

@@ -2,6 +2,7 @@ import Base
 import ./src/nat.bend as N
 import ./src/int.bend as I
 import ./src/rat.bend as R
+import ./src/rat_helpers.bend as RH
 import ./src/qrat.bend as Q
 import ./src/nat_proofs.bend as NP
 import ./src/int_proofs.bend as IP

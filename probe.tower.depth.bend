@@ -3,6 +3,7 @@ import ./src/tower.bend as T
 import ./src/tower_helpers.bend as TH
 import ./src/tower_proofs.bend as TP
 import ./src/rat.bend as R
+import ./src/rat_helpers.bend as RH
 
 # The depth-2 radicand-threading gate.
 #

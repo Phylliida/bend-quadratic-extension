@@ -1,6 +1,7 @@
 import Base
 import ./nat.bend as N
 import ./rat.bend as R
+import ./rat_helpers.bend as RH
 
 # QExt over Rat: the quadratic extension Q(sqrt d) with rational coefficients
 # ==========================================================================

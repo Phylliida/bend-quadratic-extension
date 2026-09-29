@@ -1,5 +1,6 @@
 import Base
 import ./rat.bend as R
+import ./rat_helpers.bend as RH
 import ./tower.bend as T
 
 # Helper laws for Tower
