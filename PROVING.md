@@ -7160,3 +7160,53 @@ different extension of the same kind (per-coefficient `{c == cmp(np, nn)}` and t
 evidence for `Rat.neg_neg`). The ring laws remain behind round sixty's cross-operand
 fact. Nothing landed this round; the count is unchanged (tower.bend 253,
 tower_helpers.bend 270), and all eleven gates are green as of round sixty-five.
+
+## Round sixty-seven -- the sibling facts go into Canon, and the zero block's three lemmas
+
+Round sixty-six left the multiplication by zero laws resting on facts that do not exist
+yet: `mul`'s second coordinate comes back as `add(mul(g, rx, zero(iy)), mul(g, ix,
+zero(ry)))`, and since `add` keeps its *first* operand's radicand, the result carries
+`rx`'s while the target `zero(x)` carries `ix`'s. The counterexample in round sixty-six
+is that mismatch, exactly one field wide. Two level relations about a single value
+close it: `level(re, im)` and `level(re, d)`.
+
+The question was where they belong. The user's call was to extend `Tower.Clean`, and the
+first thing checked was whether it can hold them. It cannot, and the reason is already
+on record: `Clean` is a carrier that other laws *produce* -- `add.clean` (`tower.bend`
+370), `mul.clean` (400) and `mul.safe` (`tower_helpers.bend` 73) must hand back a
+witness for their result. A product's radicand field would be the obligation
+`level(mul(f, ix, iy), dx)` of round sixty's wall (TOWER-PLAN, "`level.mul` cannot be
+stated in `level.add`'s shape"), which those two values do not inhabit. Adding a field
+no producer can fill makes three filled laws unprovable, so the fields went into
+`Tower.Canon` instead: the same *one carrier* the caller already hands in, produced by
+nobody, exactly like `Tower.Pos`. `CanonExt` now carries `lri: level(re, im)` and
+`lrd: level(re, d)` beside its three recursive canon fields, and the mutual recursion
+is what hands a fill the same facts for the sub-values -- which is what the zero block's
+recursive instances need.
+
+Three lemmas landed, each green on the first checker run, which is the probe-first
+discipline paying for itself (the round's design questions were settled by reading and
+by round sixty's measurement rather than by a checker round trip):
+
+- `Tower.level.depth` (`tower_helpers.bend`) -- `{level(u, v)}` entails
+  `{depth(u) == depth(v)}`. Sixteen arms; the Ext arm is one recursive instance under
+  `Equal.cong(Nat, Nat, w => Nat.add(1n, w), ...)`. It exists because the zero block's
+  recursive instances run one level down and each needs its own fuel equation, which a
+  level witness gives only through this law.
+- `Tower.zero.level` -- level-related values have equal zeros. Two recursive calls in
+  the Ext arm plus three congruences and a nested `trans`. The zero block needs it at a
+  pair *inside* one value: `zero(ru) == zero(iu)`, the last field of the coordinate
+  that `mul`'s second slot produces.
+- `Tower.add.zero` -- `add(zero(u), zero(v)) == zero(u)` at `level(u, v)`. Its Ext arm
+  is two recursive calls and one `trans`; its radicand is the first operand's on both
+  sides, so no third leg. The Base arm is definitional -- the spelled zero of zero,
+  which Rat's own normalization decides, confirming round sixty-six's reading that the
+  zero block needs no Rat law and no canonicality.
+
+Counts: `tower_helpers.bend` 273 (270 + the three laws), `tower.bend` 253 unchanged,
+README 167 readable / 144 helpers / 311 in total. Gates: all eleven green -- nat 0.35,
+int 0.51, rat 3.29, qrat 5.95, qext 0.39, tower 3.63, probe.bend 3.27, payoff 7.08,
+tower.depth 2.93, mul.depth.arm 2.67, scratch 2.20 s; the inversion triple unchanged.
+Next: `Tower.zero.mul` and `Tower.mul_zero` on this carrier -- five recursive instances
+in the Ext/Ext arm, whose level combinations come from the witness's own fields through
+`sym`/`trans`.

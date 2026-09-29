@@ -559,8 +559,23 @@ type Tower.Canon.Base<-a: R.Rat> is Data:
   CanonBase{ce: {a == R.Rat{R.Rat.numof(a), R.Rat.denof(a)} : R.Rat},
             cfx: {R.Rat.mk(R.Rat.numof(a), R.Rat.denof(a)) == a : R.Rat}}
 
+# The Ext variant carries two more things: the level relation between the value's two
+# coordinates, and the one between its first coordinate and the radicand. Those are the
+# sibling facts the zero laws need -- `mul`'s second coordinate comes back as
+# add(mul(g, rx, zero(iy)), mul(g, ix, zero(ry))) and add keeps its *first* operand's
+# radicand, so the result carries rx's while the target zero(x) carries ix's. With
+# level(rx, ix) the two agree. Round sixty-six measured the failure without it: the two
+# sides differ in exactly one field.
+#
+# They live here rather than in Tower.Clean because Clean is *produced* -- add.clean,
+# mul.clean and mul.safe must hand back a witness for a product -- and a product's
+# radicand-slot obligation, level(mul(f, ix, iy), dx), is the wall round sixty measured.
+# A carrier that no producer can fill is worse than a hypothesis the caller already has
+# in hand. Canon is produced by nobody: it is handed in, like Pos.
 type Tower.Canon.Ext<-re: Tower, -im: Tower, -d: Tower> is Data:
-  CanonExt{cre: Tower.canon(re), cim: Tower.canon(im), cd: Tower.canon(d)}
+  CanonExt{cre: Tower.canon(re), cim: Tower.canon(im), cd: Tower.canon(d),
+           lri: Tower.level(re, im),
+           lrd: Tower.level(re, d)}
 
 def Tower.canon(t: Tower) -> Data:
   match t:

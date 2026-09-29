@@ -2469,3 +2469,41 @@ obligation to whoever constructs the witness.
 extension of the same kind (per-coefficient `{c == cmp(np, nn)}` plus the gcd evidence);
 the ring laws behind round sixty's cross-operand fact. Nothing landed in round
 sixty-six -- tower.bend 253, tower_helpers.bend 270, unchanged.
+
+### The sibling facts go into Canon, and the zero block's first three lemmas (round sixty-seven)
+
+Round sixty-six's counterexample named the missing hypothesis: `Level(rx, ix)` (and
+`Level(rx, dx)` beside it) -- facts about a *single* value. The carrier question came
+down to feasibility, not taste:
+
+- `Tower.Clean` cannot carry them. It is produced by `add.clean` (tower.bend 370),
+  `mul.clean` (400) and `mul.safe` (tower_helpers.bend 73); a product's radicand field
+  is exactly round sixty's `level(mul(f, ix, iy), dx)` obligation, which those values do
+  not inhabit. A field no producer can fill would make three filled laws unprovable.
+- `Tower.Canon` can, and already had the shape: it is handed in, produced by nobody, and
+  its Ext variant is mutually recursive over `re`/`im`/`d`, which is what hands a fill
+  the sub-values' own sibling facts. It gains `lri: level(re, im)` and
+  `lrd: level(re, d)`; the two existing fills (`add_zero`, `zero_add`) only needed their
+  destructuring patterns extended.
+
+Dependency order, all three landed and green first run:
+
+1. `Tower.level.depth` -- `{level(u, v)} -> {depth(u) == depth(v)}`. The missing link
+   between a level witness and the fuel equations the recursion needs one level down.
+2. `Tower.zero.level` -- `{level(u, v)} -> {zero(u) == zero(v)}`. Consumed at a pair
+   inside one value (`zero(ru) == zero(iu)`), not across operands.
+3. `Tower.add.zero` -- `{level(u, v)} -> {add(zero(u), zero(v)) == zero(u)}`. Base arm
+   definitional; Ext arm two recursive calls, one `trans`, no radicand leg.
+
+Then the two that consume them:
+
+4. `Tower.zero.mul` -- `mul(f, zero(u), v) == zero(u)` at `level(u, v)`, with `canon`,
+   `pos` and the fuel equation. Its Ext/Ext arm needs five recursive instances
+   (`ru,rv`), (`iu,iv`), (`iu,du`), (`ru,iv`), (`iu,rv`) -- the last two are cross pairs
+   assembled with `level.sym`/`level.trans`, and (`iu,du`) comes from the canonical
+   witness's own two fields.
+5. `Tower.mul_zero` -- `mul(f, x, zero(x)) == zero(x)`, the same law at `level(x, x)`
+   (`level.refl`); its coordinates consume (4) twice and `add.zero` twice.
+
+State: `tower.bend` 253, `tower_helpers.bend` 273, all eleven gates green, `main`
+untouched at `5dd79dc`.

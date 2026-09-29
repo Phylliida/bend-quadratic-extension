@@ -83,8 +83,8 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 24 / 8, qrat 36 / none, qext 2 / none -- 167 readable
-  laws, 141 helpers, 308 in total (the split itself landed 282; the product's pair
+  13, rat 40 / 28, tower 24 / 11, qrat 36 / none, qext 2 / none -- 167 readable
+  laws, 144 helpers, 311 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
   `mul.fuel.ext` to the helper tier, round forty-eight; the negation pair added
@@ -190,7 +190,7 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   evidence family with its two transport defs, and Step 2's level arithmetic:
   `Tower.add(x, y)`, `Tower.neg(x)`, `Tower.mul(+f, x, y)` and `Tower.one(t)`,
   with the radicand read off the first operand's own third field (intrinsic,
-  round thirty-nine) and `mul` descending on a `Nat` fuel. Twenty laws: the
+  round thirty-nine) and `mul` descending on a `Nat` fuel. Twenty-four laws: the
   level arithmetic (`add.depth`, `add.clean`, `mul.depth`, `mul.clean`),
   `zero.base`, `depth.zero`, `depth.lift`, `lift.zero`, `add.base`, `add.ext`,
   `neg.ext`, `sub_eq_add_neg`, `mul.base`, `mul.ext` (the
@@ -265,7 +265,13 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   cannot destructure its own index, so its leaf carries the two things a fill cannot
   get otherwise: the equation that the value *is* its projection spelling, and `fx`
   at that spelling. `Tower.add_zero` and `Tower.zero_add` are the laws built on it
-  so far.
+  so far. Round sixty-seven gave the family two sibling fields -- the level relation
+  between a value's own coordinates and the one between its first coordinate and the
+  radicand -- and added the zero block's three lemmas: `Tower.zero.level`,
+  `Tower.add.zero` and `Tower.level.depth`, the last of which turns a level witness
+  into a fuel equation. The siblings live in `Canon` and not in `Tower.Clean` because
+  `Clean` is *produced* by `add.clean`/`mul.clean`/`mul.safe`, and the radicand field a
+  product would have to hand back is the wall round sixty measured.
 - `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law.
   `depth.zero`, `add.depth`, `add.clean`, `mul.safe` and `mul.above` are structural
   inductions in the fill: the match refines the law at each branch, and each arm

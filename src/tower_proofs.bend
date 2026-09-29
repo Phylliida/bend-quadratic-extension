@@ -2097,7 +2097,7 @@ def T.Tower.add_zero(x, cx):
                 R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, cfx, ce)))
     case T.Ext{rx, ix, dx}:
       match cx:
-        case T.CanonExt{+cre, +cim, +cd}:
+        case T.CanonExt{+cre, +cim, +cd, +lri, +lrd}:
           +e1 = T.Tower.add_zero(rx, cre)
           +e2 = T.Tower.add_zero(ix, cim)
           +c1 = Equal.cong(T.Tower, T.Tower,
@@ -2135,7 +2135,7 @@ def T.Tower.zero_add(x, cx):
                 R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, cfx, ce)))
     case T.Ext{rx, ix, dx}:
       match cx:
-        case T.CanonExt{+cre, +cim, +cd}:
+        case T.CanonExt{+cre, +cim, +cd, +lri, +lrd}:
           +e1 = T.Tower.zero_add(rx, cre)
           +e2 = T.Tower.zero_add(ix, cim)
           +c1 = Equal.cong(T.Tower, T.Tower,
@@ -2153,3 +2153,148 @@ def T.Tower.zero_add(x, cx):
       {==}
     case T.Fuel{}:
       {==}
+
+# zero.level is a shape induction with nothing to compute: the two sides reduce as soon
+# as both shapes are spelled, and the Ext arm rebuilds from the witness's own fields.
+def TH.Tower.zero.level(u, v, h):
+  match u v:
+    case T.Base{a} T.Base{b}:
+      {==}
+    case T.Ext{ru, iu, du} T.Ext{rv, iv, dv}:
+      match h:
+        case T.LevelExt{+lre, +lim, +ld}:
+          +e1 = TH.Tower.zero.level(ru, rv, lre)
+          +e2 = TH.Tower.zero.level(iu, iv, lim)
+          +eA = Equal.cong(T.Tower, T.Tower, w => T.Ext{w, T.Tower.zero(iu), du},
+            T.Tower.zero(ru), T.Tower.zero(rv), e1)
+          +eB = Equal.cong(T.Tower, T.Tower, w => T.Ext{T.Tower.zero(rv), w, du},
+            T.Tower.zero(iu), T.Tower.zero(iv), e2)
+          +eC = Equal.cong(T.Tower, T.Tower,
+            w => T.Ext{T.Tower.zero(rv), T.Tower.zero(iv), w}, du, dv, ld)
+          Equal.trans(T.Tower,
+            T.Ext{T.Tower.zero(ru), T.Tower.zero(iu), du},
+            T.Ext{T.Tower.zero(rv), T.Tower.zero(iu), du},
+            T.Ext{T.Tower.zero(rv), T.Tower.zero(iv), dv},
+            eA,
+            Equal.trans(T.Tower,
+              T.Ext{T.Tower.zero(rv), T.Tower.zero(iu), du},
+              T.Ext{T.Tower.zero(rv), T.Tower.zero(iv), du},
+              T.Ext{T.Tower.zero(rv), T.Tower.zero(iv), dv},
+              eB, eC))
+    case T.Bad{} T.Bad{}:
+      {==}
+    case T.Fuel{} T.Fuel{}:
+      {==}
+    case T.Base{a} T.Ext{rv, iv, dv}:
+      Empty.absurd({T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}, h)
+    case T.Base{a} T.Bad{}:
+      Empty.absurd({T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}, h)
+    case T.Base{a} T.Fuel{}:
+      Empty.absurd({T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}, h)
+    case T.Ext{ru, iu, du} T.Base{b}:
+      Empty.absurd({T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}, h)
+    case T.Ext{ru, iu, du} T.Bad{}:
+      Empty.absurd({T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}, h)
+    case T.Ext{ru, iu, du} T.Fuel{}:
+      Empty.absurd({T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}, h)
+    case T.Bad{} T.Base{b}:
+      Empty.absurd({T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}, h)
+    case T.Bad{} T.Ext{rv, iv, dv}:
+      Empty.absurd({T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}, h)
+    case T.Bad{} T.Fuel{}:
+      Empty.absurd({T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}, h)
+    case T.Fuel{} T.Base{b}:
+      Empty.absurd({T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}, h)
+    case T.Fuel{} T.Ext{rv, iv, dv}:
+      Empty.absurd({T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}, h)
+    case T.Fuel{} T.Bad{}:
+      Empty.absurd({T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}, h)
+
+def TH.Tower.add.zero(u, v, h):
+  match u v:
+    case T.Base{a} T.Base{b}:
+      {==}
+    case T.Ext{ru, iu, du} T.Ext{rv, iv, dv}:
+      match h:
+        case T.LevelExt{+lre, +lim, +ld}:
+          +e1 = TH.Tower.add.zero(ru, rv, lre)
+          +e2 = TH.Tower.add.zero(iu, iv, lim)
+          +eA = Equal.cong(T.Tower, T.Tower, w => T.Ext{w, T.Tower.add(T.Tower.zero(iu), T.Tower.zero(iv)), du},
+            T.Tower.add(T.Tower.zero(ru), T.Tower.zero(rv)),
+            T.Tower.zero(ru), e1)
+          +eB = Equal.cong(T.Tower, T.Tower, w => T.Ext{T.Tower.zero(ru), w, du},
+            T.Tower.add(T.Tower.zero(iu), T.Tower.zero(iv)),
+            T.Tower.zero(iu), e2)
+          Equal.trans(T.Tower,
+            T.Ext{T.Tower.add(T.Tower.zero(ru), T.Tower.zero(rv)),
+                  T.Tower.add(T.Tower.zero(iu), T.Tower.zero(iv)), du},
+            T.Ext{T.Tower.zero(ru), T.Tower.add(T.Tower.zero(iu), T.Tower.zero(iv)), du},
+            T.Ext{T.Tower.zero(ru), T.Tower.zero(iu), du},
+            eA, eB)
+    case T.Bad{} T.Bad{}:
+      {==}
+    case T.Fuel{} T.Fuel{}:
+      {==}
+    case T.Base{a} T.Ext{rv, iv, dv}:
+      Empty.absurd({T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+    case T.Base{a} T.Bad{}:
+      Empty.absurd({T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+    case T.Base{a} T.Fuel{}:
+      Empty.absurd({T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+    case T.Ext{ru, iu, du} T.Base{b}:
+      Empty.absurd({T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+    case T.Ext{ru, iu, du} T.Bad{}:
+      Empty.absurd({T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+    case T.Ext{ru, iu, du} T.Fuel{}:
+      Empty.absurd({T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+    case T.Bad{} T.Base{b}:
+      Empty.absurd({T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+    case T.Bad{} T.Ext{rv, iv, dv}:
+      Empty.absurd({T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+    case T.Bad{} T.Fuel{}:
+      Empty.absurd({T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+    case T.Fuel{} T.Base{b}:
+      Empty.absurd({T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+    case T.Fuel{} T.Ext{rv, iv, dv}:
+      Empty.absurd({T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+    case T.Fuel{} T.Bad{}:
+      Empty.absurd({T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+
+def TH.Tower.level.depth(u, v, h):
+  match u v:
+    case T.Base{a} T.Base{b}:
+      {==}
+    case T.Ext{ru, iu, du} T.Ext{rv, iv, dv}:
+      match h:
+        case T.LevelExt{+lre, +lim, +ld}:
+          Equal.cong(Nat, Nat, w => Nat.add(1n, w),
+            T.Tower.depth(ru), T.Tower.depth(rv),
+            TH.Tower.level.depth(ru, rv, lre))
+    case T.Bad{} T.Bad{}:
+      {==}
+    case T.Fuel{} T.Fuel{}:
+      {==}
+    case T.Base{a} T.Ext{rv, iv, dv}:
+      Empty.absurd({T.Tower.depth(u) == T.Tower.depth(v) : Nat}, h)
+    case T.Base{a} T.Bad{}:
+      Empty.absurd({T.Tower.depth(u) == T.Tower.depth(v) : Nat}, h)
+    case T.Base{a} T.Fuel{}:
+      Empty.absurd({T.Tower.depth(u) == T.Tower.depth(v) : Nat}, h)
+    case T.Ext{ru, iu, du} T.Base{b}:
+      Empty.absurd({T.Tower.depth(u) == T.Tower.depth(v) : Nat}, h)
+    case T.Ext{ru, iu, du} T.Bad{}:
+      Empty.absurd({T.Tower.depth(u) == T.Tower.depth(v) : Nat}, h)
+    case T.Ext{ru, iu, du} T.Fuel{}:
+      Empty.absurd({T.Tower.depth(u) == T.Tower.depth(v) : Nat}, h)
+    case T.Bad{} T.Base{b}:
+      Empty.absurd({T.Tower.depth(u) == T.Tower.depth(v) : Nat}, h)
+    case T.Bad{} T.Ext{rv, iv, dv}:
+      Empty.absurd({T.Tower.depth(u) == T.Tower.depth(v) : Nat}, h)
+    case T.Bad{} T.Fuel{}:
+      Empty.absurd({T.Tower.depth(u) == T.Tower.depth(v) : Nat}, h)
+    case T.Fuel{} T.Base{b}:
+      Empty.absurd({T.Tower.depth(u) == T.Tower.depth(v) : Nat}, h)
+    case T.Fuel{} T.Ext{rv, iv, dv}:
+      Empty.absurd({T.Tower.depth(u) == T.Tower.depth(v) : Nat}, h)
+    case T.Fuel{} T.Bad{}:
+      Empty.absurd({T.Tower.depth(u) == T.Tower.depth(v) : Nat}, h)

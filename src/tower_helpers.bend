@@ -342,3 +342,35 @@ law Tower.level.add:
   for hxu: T.Tower.level(x, u)
   for hyv: T.Tower.level(y, v)
   T.Tower.level(T.Tower.add(x, y), T.Tower.add(u, v))
+
+# Zero preserves level: two values at one level have equal zeros. The zero operation
+# keeps each value's own radicand and recurses coordinatewise, so this is a shape
+# induction whose Ext arm makes two recursive calls and rebuilds from the witness's
+# fields. The zero block needs it at a pair inside one value -- mul's second coordinate
+# carries rx's radicand while zero(x) carries ix's -- which is why it is stated at an
+# arbitrary level pair rather than at (x, x).
+law Tower.zero.level:
+  for +u: T.Tower
+  for +v: T.Tower
+  for h: T.Tower.level(u, v)
+  {T.Tower.zero(u) == T.Tower.zero(v) : T.Tower}
+
+# The same induction one step further out: zero+zero collapses to zero when the two
+# zeros sit at one level. The Ext arm's two coordinates recurse and its radicand is
+# the first operand's on both sides, so nothing else is needed. The Base arm is the
+# spelled zero of zero, which Rat's own normalization decides outright.
+law Tower.add.zero:
+  for +u: T.Tower
+  for +v: T.Tower
+  for h: T.Tower.level(u, v)
+  {T.Tower.add(T.Tower.zero(u), T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}
+
+# Two values at one level are equally deep, and that is what turns a level witness into
+# a fuel equation: the zero block's recursive instances run one level down, so each needs
+# its own hf. depth reads only the re slot, so the Ext arm is one recursive instance under
+# 1n + _, and the markers are all depth 0n.
+law Tower.level.depth:
+  for +u: T.Tower
+  for +v: T.Tower
+  for h: T.Tower.level(u, v)
+  {T.Tower.depth(u) == T.Tower.depth(v) : Nat}
