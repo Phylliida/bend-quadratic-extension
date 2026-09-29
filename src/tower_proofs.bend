@@ -932,3 +932,223 @@ def TH.Tower.same.add(x, y, u, v, hx, hu):
       Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
     case T.Fuel{} T.Bad{}:
       Empty.absurd(T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v)), hx)
+
+# same.of_eq: the equation rewrites the goal's y into x, and the shape induction runs
+# in the rewritten goal. The ascription is the goal with the replaced occurrence as a
+# hole -- here a type, not an equation, so it is spelled as the type.
+def TH.Tower.same.of_eq(x, y, h):
+  match x:
+    case T.Base{a}:
+      %h : T.Tower.same(T.Base{a}, _)
+      T.SameBase{}
+    case T.Ext{rx, ix, dx}:
+      %h : T.Tower.same(T.Ext{rx, ix, dx}, _)
+      T.SameExt{TH.Tower.same.of_eq(rx, rx, {==}), TH.Tower.same.of_eq(ix, ix, {==}),
+        {==}}
+    case T.Bad{}:
+      %h : T.Tower.same(T.Bad{}, _)
+      T.SameBase{}
+    case T.Fuel{}:
+      %h : T.Tower.same(T.Fuel{}, _)
+      T.SameBase{}
+
+# same.mul: the fuel case split sits in front of the shape induction. At 0n both sides
+# are Fuel{} whatever the operands are, so the witness is trivial.
+#
+# At 1n+g the one arm with work is Ext/Ext/Ext/Ext, and it is where the law earns its
+# keep. mul's Ext/Ext coordinates are
+#   add(mul(g, rx, ru), mul(g, mul(g, ix, iu), dx))   and   add(mul(g, rx, iu), mul(g, ix, ru))
+# so each coordinate is an add of two products, and the witness for an add of two pairs
+# is same.add, with same.mul supplying the pair witnesses at the smaller fuel. One of
+# those pairs is not a pair of operands but a pair of *products*: mul's third recursive
+# call takes mul(g, ix, iu) as its first argument, so the instance needed is the law at
+# (mul(g, ix, ui), mul(g, iy, vi)) paired with (dx, dy), whose first hypothesis is the
+# recursive instance at (ix, iy) and whose second is the outer radicand equation --
+# read through same.of_eq, because SameExt's third field is an equation and this law
+# needs a witness. That is the whole reason this law exists rather than being folded
+# into mul_comm.
+#
+# The marker arms follow mul's own precedence: a Fuel operand makes the product Fuel
+# whichever side it is on, anything else mixed makes it Bad, and since both sides see
+# the same shapes the two results are the same constructor -- so the witness is trivial
+# there too, which is the marker arms of Tower.same doing their job.
+def TH.Tower.same.mul(f, x, y, u, v, hx, hu):
+  match f:
+    case 0n:
+      T.SameBase{}
+    case 1n+g:
+      match x y:
+        case T.Base{a} T.Base{b}:
+          match u v:
+            case T.Base{c} T.Base{d}:
+              T.SameBase{}
+            case T.Ext{ur, ui, du} T.Ext{vr, vi, dv}:
+              T.SameBase{}
+            case T.Bad{} T.Bad{}:
+              T.SameBase{}
+            case T.Fuel{} T.Fuel{}:
+              T.SameBase{}
+            case T.Base{c} T.Ext{vr, vi, dv}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Base{c} T.Bad{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Base{c} T.Fuel{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Ext{ur, ui, du} T.Base{d}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Ext{ur, ui, du} T.Bad{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Ext{ur, ui, du} T.Fuel{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Bad{} T.Base{d}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Bad{} T.Ext{vr, vi, dv}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Bad{} T.Fuel{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Fuel{} T.Base{d}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Fuel{} T.Ext{vr, vi, dv}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Fuel{} T.Bad{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+        case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+          match u v:
+            case T.Base{c} T.Base{d}:
+              T.SameBase{}
+            case T.Ext{ur, ui, du} T.Ext{vr, vi, dv}:
+              match hx hu:
+                case T.SameExt{+sre, +sim, +sd} T.SameExt{+ure, +uim, +ud}:
+                  +e1 = TH.Tower.same.mul(g, rx, ry, ur, vr, sre, ure)
+                  +e2 = TH.Tower.same.mul(g, ix, iy, ui, vi, sim, uim)
+                  +e3 = TH.Tower.same.mul(g, T.Tower.mul(g, ix, ui),
+                    T.Tower.mul(g, iy, vi), dx, dy, e2, TH.Tower.same.of_eq(dx, dy, sd))
+                  +e4 = TH.Tower.same.mul(g, rx, ry, ui, vi, sre, uim)
+                  +e5 = TH.Tower.same.mul(g, ix, iy, ur, vr, sim, ure)
+                  T.SameExt{
+                    TH.Tower.same.add(T.Tower.mul(g, rx, ur), T.Tower.mul(g, ry, vr),
+                      T.Tower.mul(g, T.Tower.mul(g, ix, ui), dx),
+                      T.Tower.mul(g, T.Tower.mul(g, iy, vi), dy), e1, e3),
+                    TH.Tower.same.add(T.Tower.mul(g, rx, ui), T.Tower.mul(g, ry, vi),
+                      T.Tower.mul(g, ix, ur), T.Tower.mul(g, iy, vr), e4, e5),
+                    sd}
+            case T.Bad{} T.Bad{}:
+              T.SameBase{}
+            case T.Fuel{} T.Fuel{}:
+              T.SameBase{}
+            case T.Base{c} T.Ext{vr, vi, dv}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Base{c} T.Bad{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Base{c} T.Fuel{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Ext{ur, ui, du} T.Base{d}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Ext{ur, ui, du} T.Bad{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Ext{ur, ui, du} T.Fuel{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Bad{} T.Base{d}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Bad{} T.Ext{vr, vi, dv}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Bad{} T.Fuel{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Fuel{} T.Base{d}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Fuel{} T.Ext{vr, vi, dv}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Fuel{} T.Bad{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+        case T.Bad{} T.Bad{}:
+          match u v:
+            case T.Base{c} T.Base{d}:
+              T.SameBase{}
+            case T.Ext{ur, ui, du} T.Ext{vr, vi, dv}:
+              T.SameBase{}
+            case T.Bad{} T.Bad{}:
+              T.SameBase{}
+            case T.Fuel{} T.Fuel{}:
+              T.SameBase{}
+            case T.Base{c} T.Ext{vr, vi, dv}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Base{c} T.Bad{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Base{c} T.Fuel{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Ext{ur, ui, du} T.Base{d}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Ext{ur, ui, du} T.Bad{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Ext{ur, ui, du} T.Fuel{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Bad{} T.Base{d}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Bad{} T.Ext{vr, vi, dv}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Bad{} T.Fuel{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Fuel{} T.Base{d}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Fuel{} T.Ext{vr, vi, dv}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Fuel{} T.Bad{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+        case T.Fuel{} T.Fuel{}:
+          match u v:
+            case T.Base{c} T.Base{d}:
+              T.SameBase{}
+            case T.Ext{ur, ui, du} T.Ext{vr, vi, dv}:
+              T.SameBase{}
+            case T.Bad{} T.Bad{}:
+              T.SameBase{}
+            case T.Fuel{} T.Fuel{}:
+              T.SameBase{}
+            case T.Base{c} T.Ext{vr, vi, dv}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Base{c} T.Bad{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Base{c} T.Fuel{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Ext{ur, ui, du} T.Base{d}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Ext{ur, ui, du} T.Bad{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Ext{ur, ui, du} T.Fuel{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Bad{} T.Base{d}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Bad{} T.Ext{vr, vi, dv}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Bad{} T.Fuel{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Fuel{} T.Base{d}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Fuel{} T.Ext{vr, vi, dv}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+            case T.Fuel{} T.Bad{}:
+              Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hu)
+        case T.Base{a} T.Ext{ry, iy, dy}:
+          Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
+        case T.Base{a} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
+        case T.Base{a} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
+        case T.Ext{rx, ix, dx} T.Base{b}:
+          Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
+        case T.Ext{rx, ix, dx} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
+        case T.Ext{rx, ix, dx} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
+        case T.Bad{} T.Base{b}:
+          Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
+        case T.Bad{} T.Ext{ry, iy, dy}:
+          Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
+        case T.Bad{} T.Fuel{}:
+          Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
+        case T.Fuel{} T.Base{b}:
+          Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
+        case T.Fuel{} T.Ext{ry, iy, dy}:
+          Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)
+        case T.Fuel{} T.Bad{}:
+          Empty.absurd(T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v)), hx)

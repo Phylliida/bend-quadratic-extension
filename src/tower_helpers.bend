@@ -196,3 +196,27 @@ law Tower.same.add:
   for hx: T.Tower.same(x, y)
   for hu: T.Tower.same(u, v)
   T.Tower.same(T.Tower.add(x, u), T.Tower.add(y, v))
+
+# ... and closed under mul, which is where the fuel comes in. The fuel is the first
+# parameter so that the induction can shrink it -- the recursive instances are at
+# `g`, and every later argument is free once the fuel has shrunk, which is what the
+# first coordinates' rule requires (round forty-five).
+law Tower.same.mul:
+  for +f: Nat
+  for +x: T.Tower
+  for +y: T.Tower
+  for +u: T.Tower
+  for +v: T.Tower
+  for hx: T.Tower.same(x, y)
+  for hu: T.Tower.same(u, v)
+  T.Tower.same(T.Tower.mul(f, x, u), T.Tower.mul(f, y, v))
+
+# An equation between two tower values gives the witness. SameExt's third field is an
+# *equation* between the radicands rather than a witness -- that is what makes add_comm
+# true, since the result's third field is literally the first operand's -- so a law
+# that needs a witness for a pair it only knows to be equal reads it through this.
+law Tower.same.of_eq:
+  for +x: T.Tower
+  for +y: T.Tower
+  for h: {x == y : T.Tower}
+  T.Tower.same(x, y)
