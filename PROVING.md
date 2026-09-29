@@ -6289,3 +6289,50 @@ against the one-second rule (the slowest of the six fills, and the reason the fa
 item stays on the backlog). All ten gates green; `scratch.bend` still prints the `Rat.inv`
 triple. The ring laws still wait on round forty-six's level-invariant fork and the identity
 block on round forty-seven's coefficient decision.
+
+## Round forty-nine -- Route 2 of the level fork is measured green
+
+Round forty-six recorded three routes out of the level fork and round forty-seven
+recorded a second, coefficient-shaped face of the same problem. This round
+measured the pairwise route, in `probe.ring.bend` (untracked, root) -- and the
+probe checks end to end.
+
+The first spelling was the obvious one: a single declared type `Probe.Same<x, y>`
+with a constructor per shape and fields reading the operands' parts through
+projections. It died at the consume site: `a declared constructor (unknown:
+Probe.SameExt)`. The lesson is not the qualification -- it is that a hypothesis
+of a *declared* multi-constructor type cannot be destructured usefully: the
+consumer needs the constructor known, and the arms that do not match the
+operands' shapes have neither a witness nor a contradiction.
+
+The spelling that works is `Tower.clean`'s: a *computed family*. `def
+Probe.same(x: Tower, y: Tower) -> Data` returns `Probe.Same.Base` at a Base pair,
+`Probe.Same.Ext<rx, ix, dx, ry, iy, dy>` at an Ext pair, and `Empty` otherwise.
+Each returned type has exactly one constructor. So:
+
+- at an Ext/Ext call site the hypothesis reduces to `Same.Ext<...>` and the
+  consume site is a one-arm match whose fields -- `sre: Probe.same(rx, ry)`,
+  `sim: Probe.same(ix, iy)`, `sd: {dx == dy}` -- are already indexed by the
+  operands' parts. **No projection defs are needed**, revising round forty-six's
+  guess that routes 1 and 2 both need `re`/`im`/`rad`: the family is applied to
+  the parts directly, exactly as `CleanExt`'s `cre: Tower.clean(re)` is.
+- the disagreeing arms carry `Empty` and close with `Empty.absurd(goal-type, hs)`
+  -- the idiom the `mul.above` fill already uses for the marker arms. A wildcard
+  does not work: `case _ _` left the family stuck on a variable and the checker
+  asked for `Empty` while seeing `Probe.same(src/tower.Base{a}, y)`.
+- a caller can build one: `SameExt{SameBase{}, SameBase{}, {==}}` checks for a
+  depth-1 pair with a shared radicand. The Base witness is empty, which is all
+  the commutativity laws need, since `Rat.add_comm` and `Rat.mul_comm` are
+  unconditional.
+
+Probe.AddComm's Ext/Ext arm then fills from the witness: two recursive
+instances, three congruences (re, im, radicand) and a nested two-leg
+`Equal.trans`. The first attempt failed on the leg count -- `Equal.trans` takes
+exactly two legs, so the outer call's third term must be the final endpoint and
+not the inner chain's middle:
+
+    expected : {Ext{add(ry, rx), add(ix, iy), dx} == Ext{add(ry, rx), add(iy, ix), dx}}
+    observed : {Ext{add(ry, rx), add(ix, iy), dx} == Ext{add(ry, rx), add(iy, ix), dy}}
+
+Recorded in TOWER-PLAN's Step-2 section. The fork itself is still the user's
+call -- this round is the measurement that makes one of the three routes cheap.

@@ -1649,6 +1649,74 @@ Chain (1) of the goal is complete. The ring laws still wait on the level-invaria
 fork (round forty-six) and the identity block on the coefficient decision (round
 forty-seven).
 
+### Route 2 of the level fork is measured green: a computed family in Tower.clean's shape (round forty-nine)
+
+Round forty-six left three routes open (a unary `Tower.At`, a pairwise
+`Tower.Same`, or restoring the explicit radicand parameter) and guessed that the
+first two would need the proof-only projections `re`/`im`/`rad` restored to
+*state* the evidence over an operand's parts. The pairwise route has now been
+measured, and it needs no projections at all -- but it needs a different
+spelling than the obvious one.
+
+*What fails.* One declared type with a constructor per shape:
+
+    type Probe.Same<-x: T.Tower, -y: T.Tower> is Data:
+      SameBase{}
+      SameExt{sre: Probe.Same<T.Tower.re(x), T.Tower.re(y)>, ...}
+
+Consuming a hypothesis of that type means destructuring it, and bend refuses:
+`a declared constructor (unknown: Probe.SameExt)`. Even with the constructor
+spelled right, a *declared* multi-constructor type leaves the consumer with four
+arms it cannot close -- the three that do not match the operands' shapes have no
+witness to hand and no equation to contradict.
+
+*What works.* `Tower.clean`'s own shape: a **computed family**, one type per pair
+of shapes, each with a single constructor.
+
+    type Probe.Same.Base is Data:
+      SameBase{}
+
+    type Probe.Same.Ext<-rx: Tower, -ix: Tower, -dx: Tower,
+                         -ry: Tower, -iy: Tower, -dy: Tower> is Data:
+      SameExt{sre: Probe.same(rx, ry),
+              sim: Probe.same(ix, iy),
+              sd: {dx == dy : Tower}}
+
+    def Probe.same(x: Tower, y: Tower) -> Data:
+      match x y:
+        case Base{a} Base{b}: Probe.Same.Base
+        case Ext{rx, ix, dx} Ext{ry, iy, dy}: Probe.Same.Ext<rx, ix, dx, ry, iy, dy>
+        case _ _: Empty
+
+Three consequences, all measured in `probe.ring.bend` (untracked, root; the
+whole file checks):
+
+1. *Zoo of one constructor per shape.* At an Ext/Ext call site `same(x, y)`
+   reduces to `Same.Ext<...>`, so the consume site is `match hs: case
+   SameExt{sre, sim, sd}:` -- one arm, exhaustive, the fields already indexed by
+   the operands' parts. No projections, no `re(x)` stuck at a variable.
+2. *The disagreeing shapes are Empty, and a wildcard is not enough.* The mixed
+   arms carry `hs : same(Base{a}, Ext{...}) = Empty` and close with the idiom the
+   tower fills already use, `Empty.absurd({add(x, y) == add(y, x) : Tower}, hs)`.
+   A wildcard operand does not reduce the family: `case _ _` gave
+   `expected : Empty / observed : Probe.same(src/tower.Base{a}, y)`, so every
+   disagreeing arm spells both shapes out.
+3. *Callers can build one.* `SameExt{SameBase{}, SameBase{}, {==}}` checks as a
+   witness for a depth-1 pair with a shared radicand. The Base case carries
+   nothing, which is what the commutativity laws need: their Rat twins are
+   unconditional, so no equation is required at the leaves.
+
+With the witness in hand the Ext/Ext arm of `Probe.AddComm` fills: two recursive
+instances, three congruences over the coordinates and the radicand, and a
+two-leg-nested `Equal.trans` (`trans` takes exactly two legs, so the outer call's
+third term is the *final* endpoint, not the middle -- the leg-count slip this
+round's first attempt made).
+
+What this does not settle: which route to adopt is still the user's call, and the
+associativity and distributivity laws remain blocked on the coefficient decision
+of round forty-seven as well, since their Rat twins (`add_assoc.arb`,
+`mul_assoc.arb`, `mul_distrib.arb`) all carry a positivity hypothesis.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a
