@@ -2513,3 +2513,272 @@ def TH.Tower.mul_zero(f, u, v, cu, cv, pu, pv, h, hf):
           Empty.absurd({T.Tower.mul(f, u, T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
         case T.Fuel{} T.Bad{}:
           Empty.absurd({T.Tower.mul(f, u, T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}, h)
+
+def TH.Tower.one.level(u, v, h):
+  match u v:
+    case T.Base{a} T.Base{b}:
+      {==}
+    case T.Ext{ru, iu, du} T.Ext{rv, iv, dv}:
+      match h:
+        case T.LevelExt{+lre, +lim, +ld}:
+          +e1 = TH.Tower.one.level(ru, rv, lre)
+          +e2 = TH.Tower.zero.level(iu, iv, lim)
+          +eA = Equal.cong(T.Tower, T.Tower, w => T.Ext{w, T.Tower.zero(iu), du},
+            T.Tower.one(ru), T.Tower.one(rv), e1)
+          +eB = Equal.cong(T.Tower, T.Tower, w => T.Ext{T.Tower.one(rv), w, du},
+            T.Tower.zero(iu), T.Tower.zero(iv), e2)
+          +eC = Equal.cong(T.Tower, T.Tower,
+            w => T.Ext{T.Tower.one(rv), T.Tower.zero(iv), w}, du, dv, ld)
+          Equal.trans(T.Tower,
+            T.Ext{T.Tower.one(ru), T.Tower.zero(iu), du},
+            T.Ext{T.Tower.one(rv), T.Tower.zero(iu), du},
+            T.Ext{T.Tower.one(rv), T.Tower.zero(iv), dv},
+            eA,
+            Equal.trans(T.Tower,
+              T.Ext{T.Tower.one(rv), T.Tower.zero(iu), du},
+              T.Ext{T.Tower.one(rv), T.Tower.zero(iv), du},
+              T.Ext{T.Tower.one(rv), T.Tower.zero(iv), dv},
+              eB, eC))
+    case T.Bad{} T.Bad{}:
+      {==}
+    case T.Fuel{} T.Fuel{}:
+      {==}
+        case T.Base{a} T.Ext{rv, iv, dv}:
+          Empty.absurd({T.Tower.one(u) == T.Tower.one(v) : T.Tower}, h)
+        case T.Base{a} T.Bad{}:
+          Empty.absurd({T.Tower.one(u) == T.Tower.one(v) : T.Tower}, h)
+        case T.Base{a} T.Fuel{}:
+          Empty.absurd({T.Tower.one(u) == T.Tower.one(v) : T.Tower}, h)
+        case T.Ext{ru, iu, du} T.Base{b}:
+          Empty.absurd({T.Tower.one(u) == T.Tower.one(v) : T.Tower}, h)
+        case T.Ext{ru, iu, du} T.Bad{}:
+          Empty.absurd({T.Tower.one(u) == T.Tower.one(v) : T.Tower}, h)
+        case T.Ext{ru, iu, du} T.Fuel{}:
+          Empty.absurd({T.Tower.one(u) == T.Tower.one(v) : T.Tower}, h)
+        case T.Bad{} T.Base{b}:
+          Empty.absurd({T.Tower.one(u) == T.Tower.one(v) : T.Tower}, h)
+        case T.Bad{} T.Ext{rv, iv, dv}:
+          Empty.absurd({T.Tower.one(u) == T.Tower.one(v) : T.Tower}, h)
+        case T.Bad{} T.Fuel{}:
+          Empty.absurd({T.Tower.one(u) == T.Tower.one(v) : T.Tower}, h)
+        case T.Fuel{} T.Base{b}:
+          Empty.absurd({T.Tower.one(u) == T.Tower.one(v) : T.Tower}, h)
+        case T.Fuel{} T.Ext{rv, iv, dv}:
+          Empty.absurd({T.Tower.one(u) == T.Tower.one(v) : T.Tower}, h)
+        case T.Fuel{} T.Bad{}:
+          Empty.absurd({T.Tower.one(u) == T.Tower.one(v) : T.Tower}, h)
+
+def T.Tower.mul_one(f, u, cu, pu, hf):
+  match f:
+    case 0n:
+      Empty.absurd({T.Tower.mul(0n, u, T.Tower.one(u)) == u : T.Tower},
+        NH.gt_ne_eq(Equal.cong(Nat, Cmp, w => Nat.cmp(w, 0n),
+          Nat.add(1n, T.Tower.depth(u)), 0n,
+          Equal.sym(Nat, 0n, Nat.add(1n, T.Tower.depth(u)), hf))))
+    case 1n+g:
+      match u:
+        case T.Base{a}:
+          match cu:
+            case T.CanonBase{+ce, +cfx}:
+              %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.mul(_, R.Rat.one())} == T.Base{a} : T.Tower}
+              %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.mul(R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, R.Rat.one())} == T.Base{_} : T.Tower}
+              Equal.cong(R.Rat, T.Tower, w => T.Base{w},
+                R.Rat.mul(R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, R.Rat.one()),
+                R.Rat{R.Rat.numof(a), R.Rat.denof(a)},
+                R.Rat.mul_one(R.Rat.numof(a), R.Rat.denof(a),
+                  Equal.trans(R.Rat, R.Rat.mk(R.Rat.numof(a), R.Rat.denof(a)), a,
+                    R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, cfx, ce)))
+        case T.Ext{ru, iu, du}:
+          T.CanonExt{+cre, +cim, +cd, +lri, +lrd} = cu
+          T.PosExt{+pre, +pim, +prad} = pu
+          +hfg = N.succ_inj(g, Nat.add(1n, T.Tower.depth(ru)), hf)
+          +hfg2 = hfg
+          +hfi = Equal.trans(Nat, g, Nat.add(1n, T.Tower.depth(ru)),
+            Nat.add(1n, T.Tower.depth(iu)), hfg,
+            Equal.cong(Nat, Nat, w => Nat.add(1n, w),
+              T.Tower.depth(ru), T.Tower.depth(iu),
+              TH.Tower.level.depth(ru, iu, lri)))
+          +hfi2 = hfi
+          +hlidu = TH.Tower.level.trans(iu, ru, du,
+            TH.Tower.level.sym(ru, iu, lri), lrd)
+          +i1 = T.Tower.mul_one(g, ru, cre, pre, hfg2)
+          +i2 = TH.Tower.mul_zero(g, iu, iu, cim, cim, pim, pim,
+            TH.Tower.level.refl(iu), hfi)
+          +ig = Equal.cong(T.Tower, T.Tower, w => T.Tower.mul(g, w, du),
+            T.Tower.mul(g, iu, T.Tower.zero(iu)), T.Tower.zero(iu), i2)
+          +i3 = TH.Tower.zero.mul(g, iu, du, cim, cd, pim, prad, hlidu, hfi2)
+          +zl1 = TH.Tower.zero.level(iu, ru, TH.Tower.level.sym(ru, iu, lri))
+          +inner = Equal.trans(T.Tower,
+            T.Tower.mul(g, T.Tower.mul(g, iu, T.Tower.zero(iu)), du),
+            T.Tower.mul(g, T.Tower.zero(iu), du), T.Tower.zero(ru), ig,
+            Equal.trans(T.Tower, T.Tower.mul(g, T.Tower.zero(iu), du),
+              T.Tower.zero(iu), T.Tower.zero(ru), i3, zl1))
+          +az1 = T.Tower.add_zero(ru, cre)
+          +c1a = Equal.cong(T.Tower, T.Tower,
+            w => T.Tower.add(w, T.Tower.mul(g, T.Tower.mul(g, iu, T.Tower.zero(iu)), du)),
+            T.Tower.mul(g, ru, T.Tower.one(ru)), ru, i1)
+          +c1b = Equal.cong(T.Tower, T.Tower, w => T.Tower.add(ru, w),
+            T.Tower.mul(g, T.Tower.mul(g, iu, T.Tower.zero(iu)), du),
+            T.Tower.zero(ru), inner)
+          +c1 = Equal.trans(T.Tower,
+            T.Tower.add(T.Tower.mul(g, ru, T.Tower.one(ru)),
+              T.Tower.mul(g, T.Tower.mul(g, iu, T.Tower.zero(iu)), du)),
+            T.Tower.add(ru, T.Tower.mul(g, T.Tower.mul(g, iu, T.Tower.zero(iu)), du)),
+            ru, c1a,
+            Equal.trans(T.Tower,
+              T.Tower.add(ru, T.Tower.mul(g, T.Tower.mul(g, iu, T.Tower.zero(iu)), du)),
+              T.Tower.add(ru, T.Tower.zero(ru)), ru, c1b, az1))
+          +i4 = TH.Tower.mul_zero(g, ru, iu, cre, cim, pre, pim, lri, hfg2)
+          +oc = TH.Tower.one.level(ru, iu, lri)
+          +i5a = Equal.cong(T.Tower, T.Tower, w => T.Tower.mul(g, iu, w),
+            T.Tower.one(ru), T.Tower.one(iu), oc)
+          +i5 = T.Tower.mul_one(g, iu, cim, pim, hfi2)
+          +i5c = Equal.trans(T.Tower, T.Tower.mul(g, iu, T.Tower.one(ru)),
+            T.Tower.mul(g, iu, T.Tower.one(iu)), iu, i5a, i5)
+          +zl2 = TH.Tower.zero.level(ru, iu, lri)
+          +c2a = Equal.cong(T.Tower, T.Tower,
+            w => T.Tower.add(w, T.Tower.mul(g, iu, T.Tower.one(ru))),
+            T.Tower.mul(g, ru, T.Tower.zero(iu)), T.Tower.zero(ru), i4)
+          +c2b = Equal.cong(T.Tower, T.Tower,
+            w => T.Tower.add(T.Tower.zero(ru), w),
+            T.Tower.mul(g, iu, T.Tower.one(ru)), iu, i5c)
+          +c2c = Equal.cong(T.Tower, T.Tower, w => T.Tower.add(w, iu),
+            T.Tower.zero(ru), T.Tower.zero(iu), zl2)
+          +az2 = T.Tower.zero_add(iu, cim)
+          +c2 = Equal.trans(T.Tower,
+            T.Tower.add(T.Tower.mul(g, ru, T.Tower.zero(iu)),
+              T.Tower.mul(g, iu, T.Tower.one(ru))),
+            T.Tower.add(T.Tower.zero(ru), T.Tower.mul(g, iu, T.Tower.one(ru))),
+            iu, c2a,
+            Equal.trans(T.Tower,
+              T.Tower.add(T.Tower.zero(ru), T.Tower.mul(g, iu, T.Tower.one(ru))),
+              T.Tower.add(T.Tower.zero(ru), iu), iu, c2b,
+              Equal.trans(T.Tower, T.Tower.add(T.Tower.zero(ru), iu),
+                T.Tower.add(T.Tower.zero(iu), iu), iu, c2c, az2)))
+          +eA = Equal.cong(T.Tower, T.Tower,
+            w => T.Ext{w, T.Tower.add(T.Tower.mul(g, ru, T.Tower.zero(iu)),
+              T.Tower.mul(g, iu, T.Tower.one(ru))), du},
+            T.Tower.add(T.Tower.mul(g, ru, T.Tower.one(ru)),
+              T.Tower.mul(g, T.Tower.mul(g, iu, T.Tower.zero(iu)), du)),
+            ru, c1)
+          +eB = Equal.cong(T.Tower, T.Tower, w => T.Ext{ru, w, du},
+            T.Tower.add(T.Tower.mul(g, ru, T.Tower.zero(iu)),
+              T.Tower.mul(g, iu, T.Tower.one(ru))),
+            iu, c2)
+          Equal.trans(T.Tower,
+            T.Ext{T.Tower.add(T.Tower.mul(g, ru, T.Tower.one(ru)),
+                T.Tower.mul(g, T.Tower.mul(g, iu, T.Tower.zero(iu)), du)),
+              T.Tower.add(T.Tower.mul(g, ru, T.Tower.zero(iu)),
+                T.Tower.mul(g, iu, T.Tower.one(ru))), du},
+            T.Ext{ru, T.Tower.add(T.Tower.mul(g, ru, T.Tower.zero(iu)),
+              T.Tower.mul(g, iu, T.Tower.one(ru))), du},
+            T.Ext{ru, iu, du}, eA, eB)
+        case T.Bad{}:
+          {==}
+        case T.Fuel{}:
+          {==}
+
+def T.Tower.one_mul(f, u, cu, pu, hf):
+  match f:
+    case 0n:
+      Empty.absurd({T.Tower.mul(0n, u, T.Tower.one(u)) == u : T.Tower},
+        NH.gt_ne_eq(Equal.cong(Nat, Cmp, w => Nat.cmp(w, 0n),
+          Nat.add(1n, T.Tower.depth(u)), 0n,
+          Equal.sym(Nat, 0n, Nat.add(1n, T.Tower.depth(u)), hf))))
+    case 1n+g:
+      match u:
+        case T.Base{a}:
+          match cu:
+            case T.CanonBase{+ce, +cfx}:
+              %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.mul(R.Rat.one(), _)} == T.Base{a} : T.Tower}
+              %Equal.sym(R.Rat, a, R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, ce) : {T.Base{R.Rat.mul(R.Rat.one(), R.Rat{R.Rat.numof(a), R.Rat.denof(a)})} == T.Base{_} : T.Tower}
+              Equal.cong(R.Rat, T.Tower, w => T.Base{w},
+                R.Rat.mul(R.Rat.one(), R.Rat{R.Rat.numof(a), R.Rat.denof(a)}),
+                R.Rat{R.Rat.numof(a), R.Rat.denof(a)},
+                R.Rat.one_mul(R.Rat.numof(a), R.Rat.denof(a),
+                  Equal.trans(R.Rat, R.Rat.mk(R.Rat.numof(a), R.Rat.denof(a)), a,
+                    R.Rat{R.Rat.numof(a), R.Rat.denof(a)}, cfx, ce)))
+        case T.Ext{ru, iu, du}:
+          T.CanonExt{+cre, +cim, +cd, +lri, +lrd} = cu
+          T.PosExt{+pre, +pim, +prad} = pu
+          +hfg = N.succ_inj(g, Nat.add(1n, T.Tower.depth(ru)), hf)
+          +hfg2 = hfg
+          +hfi = Equal.trans(Nat, g, Nat.add(1n, T.Tower.depth(ru)),
+            Nat.add(1n, T.Tower.depth(iu)), hfg,
+            Equal.cong(Nat, Nat, w => Nat.add(1n, w),
+              T.Tower.depth(ru), T.Tower.depth(iu),
+              TH.Tower.level.depth(ru, iu, lri)))
+          +hfi2 = hfi
+          +hlidu = TH.Tower.level.trans(iu, ru, du,
+            TH.Tower.level.sym(ru, iu, lri), lrd)
+          +i1 = T.Tower.one_mul(g, ru, cre, pre, hfg2)
+          +i2 = TH.Tower.zero.mul(g, iu, iu, cim, cim, pim, pim,
+            TH.Tower.level.refl(iu), hfi)
+          +ig = Equal.cong(T.Tower, T.Tower, w => T.Tower.mul(g, w, du),
+            T.Tower.mul(g, T.Tower.zero(iu), iu), T.Tower.zero(iu), i2)
+          +i3 = TH.Tower.zero.mul(g, iu, du, cim, cd, pim, prad, hlidu, hfi2)
+          +zl1 = TH.Tower.zero.level(iu, ru, TH.Tower.level.sym(ru, iu, lri))
+          +inner = Equal.trans(T.Tower,
+            T.Tower.mul(g, T.Tower.mul(g, T.Tower.zero(iu), iu), du),
+            T.Tower.mul(g, T.Tower.zero(iu), du), T.Tower.zero(ru), ig,
+            Equal.trans(T.Tower, T.Tower.mul(g, T.Tower.zero(iu), du),
+              T.Tower.zero(iu), T.Tower.zero(ru), i3, zl1))
+          +az1 = T.Tower.add_zero(ru, cre)
+          +c1a = Equal.cong(T.Tower, T.Tower,
+            w => T.Tower.add(w, T.Tower.mul(g, T.Tower.mul(g, T.Tower.zero(iu), iu), du)),
+            T.Tower.mul(g, T.Tower.one(ru), ru), ru, i1)
+          +c1b = Equal.cong(T.Tower, T.Tower, w => T.Tower.add(ru, w),
+            T.Tower.mul(g, T.Tower.mul(g, T.Tower.zero(iu), iu), du),
+            T.Tower.zero(ru), inner)
+          +c1 = Equal.trans(T.Tower,
+            T.Tower.add(T.Tower.mul(g, T.Tower.one(ru), ru),
+              T.Tower.mul(g, T.Tower.mul(g, T.Tower.zero(iu), iu), du)),
+            T.Tower.add(ru, T.Tower.mul(g, T.Tower.mul(g, T.Tower.zero(iu), iu), du)),
+            ru, c1a,
+            Equal.trans(T.Tower,
+              T.Tower.add(ru, T.Tower.mul(g, T.Tower.mul(g, T.Tower.zero(iu), iu), du)),
+              T.Tower.add(ru, T.Tower.zero(ru)), ru, c1b, az1))
+          +i4 = TH.Tower.zero.mul(g, iu, ru, cim, cre, pim, pre,
+            TH.Tower.level.sym(ru, iu, lri), hfi2)
+          +oc = TH.Tower.one.level(ru, iu, lri)
+          +i5a = Equal.cong(T.Tower, T.Tower, w => T.Tower.mul(g, w, iu),
+            T.Tower.one(ru), T.Tower.one(iu), oc)
+          +i5 = T.Tower.one_mul(g, iu, cim, pim, hfi2)
+          +i5c = Equal.trans(T.Tower, T.Tower.mul(g, T.Tower.one(ru), iu),
+            T.Tower.mul(g, T.Tower.one(iu), iu), iu, i5a, i5)
+          +az2 = T.Tower.add_zero(iu, cim)
+          +c2a = Equal.cong(T.Tower, T.Tower,
+            w => T.Tower.add(w, T.Tower.mul(g, T.Tower.zero(iu), ru)),
+            T.Tower.mul(g, T.Tower.one(ru), iu), iu, i5c)
+          +c2b = Equal.cong(T.Tower, T.Tower, w => T.Tower.add(iu, w),
+            T.Tower.mul(g, T.Tower.zero(iu), ru), T.Tower.zero(iu), i4)
+          +c2 = Equal.trans(T.Tower,
+            T.Tower.add(T.Tower.mul(g, T.Tower.one(ru), iu),
+              T.Tower.mul(g, T.Tower.zero(iu), ru)),
+            T.Tower.add(iu, T.Tower.mul(g, T.Tower.zero(iu), ru)),
+            iu, c2a,
+            Equal.trans(T.Tower,
+              T.Tower.add(iu, T.Tower.mul(g, T.Tower.zero(iu), ru)),
+              T.Tower.add(iu, T.Tower.zero(iu)), iu, c2b, az2))
+          +eA = Equal.cong(T.Tower, T.Tower,
+            w => T.Ext{w, T.Tower.add(T.Tower.mul(g, T.Tower.one(ru), iu),
+              T.Tower.mul(g, T.Tower.zero(iu), ru)), du},
+            T.Tower.add(T.Tower.mul(g, T.Tower.one(ru), ru),
+              T.Tower.mul(g, T.Tower.mul(g, T.Tower.zero(iu), iu), du)),
+            ru, c1)
+          +eB = Equal.cong(T.Tower, T.Tower, w => T.Ext{ru, w, du},
+            T.Tower.add(T.Tower.mul(g, T.Tower.one(ru), iu),
+              T.Tower.mul(g, T.Tower.zero(iu), ru)),
+            iu, c2)
+          Equal.trans(T.Tower,
+            T.Ext{T.Tower.add(T.Tower.mul(g, T.Tower.one(ru), ru),
+                T.Tower.mul(g, T.Tower.mul(g, T.Tower.zero(iu), iu), du)),
+              T.Tower.add(T.Tower.mul(g, T.Tower.one(ru), iu),
+                T.Tower.mul(g, T.Tower.zero(iu), ru)), du},
+            T.Ext{ru, T.Tower.add(T.Tower.mul(g, T.Tower.one(ru), iu),
+              T.Tower.mul(g, T.Tower.zero(iu), ru)), du},
+            T.Ext{ru, iu, du}, eA, eB)
+        case T.Bad{}:
+          {==}
+        case T.Fuel{}:
+          {==}

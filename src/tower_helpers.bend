@@ -420,3 +420,17 @@ law Tower.mul_zero:
   for +h: T.Tower.level(u, v)
   for +hf: {f == Nat.add(1n, T.Tower.depth(u)) : Nat}
   {T.Tower.mul(f, u, T.Tower.zero(v)) == T.Tower.zero(u) : T.Tower}
+
+# one.level: one(u) = one(v) when u and v sit at one level.
+#
+# The zero block needed zero.level; the identity block needs this one, because mul's
+# Ext/Ext arm multiplies coordinates *across* the operands -- ru against one(rv), iu
+# against one(rv) -- and a cross instance is only reachable after the spelling is moved.
+# The Ext arm recurses with one.level on the real parts and zero.level on the imaginary
+# parts (one replaces im by zero, so the imaginary parts never see one), then carries the
+# shared radicand with ld.
+law Tower.one.level:
+  for +u: T.Tower
+  for +v: T.Tower
+  for h: T.Tower.level(u, v)
+  {T.Tower.one(u) == T.Tower.one(v) : T.Tower}

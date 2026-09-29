@@ -707,3 +707,30 @@ law Tower.zero_add:
   for +x: Tower
   for cx: Tower.canon(x)
   {Tower.add(Tower.zero(x), x) == x : Tower}
+
+# mul_one: x * 1 = x at the value's own level, and one_mul for 1 * x.
+#
+# Both are self-stated -- mul(f, u, one(u)) == u and mul(f, one(u), u) == u -- so neither
+# needs a level hypothesis: every level fact the fills use is a sibling fact out of the
+# canon witness (lri for re against im, lrd for re against d), exactly as add_zero and
+# zero_add are stated. The pos witness is along because the fills reach the zero block,
+# whose laws take one. one(u) is one at u's level: Base takes Rat.one(), and Ext keeps its
+# real part's one, replaces im by zero, and keeps d -- so one(u) is canonical wherever u
+# is, which is what the Base leaf needs from Rat.mul_one/Rat.one_mul (both stated at a
+# spelled Rat{n, d} with mk(n, d) == Rat{n, d}, and the Canon carrier hands over exactly
+# that equation).
+law Tower.mul_one:
+  for +f: Nat
+  for +u: Tower
+  for cu: Tower.canon(u)
+  for pu: Tower.pos(u)
+  for hf: {f == Nat.add(1n, Tower.depth(u)) : Nat}
+  {Tower.mul(f, u, Tower.one(u)) == u : Tower}
+
+law Tower.one_mul:
+  for +f: Nat
+  for +u: Tower
+  for cu: Tower.canon(u)
+  for pu: Tower.pos(u)
+  for hf: {f == Nat.add(1n, Tower.depth(u)) : Nat}
+  {Tower.mul(f, Tower.one(u), u) == u : Tower}
