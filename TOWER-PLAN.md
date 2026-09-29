@@ -1850,8 +1850,11 @@ plus the radicand equation. By the same reading, a four-field family stays close
 part on both sides, which is exactly what `same.add` at the input fields gives. So the
 likely repair is two more fields in `SameExt` -- `same(rx, iy)` and `same(ix, ry)` --
 the four witness laws re-proved at the wider family, and then `mul_comm`. That is
-*analysis, not measurement*: the next round's first job is to state `mul_comm` and watch
-where its Ext/Ext arm actually stops.
+read off the coordinates and then *measured*: `probe.crosspair.bend` handed
+`same.mul`'s first hypothesis slot the aligned `same(ix, iy)` where the cross instance
+wants `same(rx, iy)`, and the checker refused with `expected : src/tower.Tower.same(rx,
+iy) / observed : src/tower.Tower.same(ix, iy)` -- the missing fact by name. The wider
+family is therefore the repair, and the next round starts there.
 
 ## 8. Deliberately out of scope for now
 

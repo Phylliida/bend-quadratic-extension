@@ -6466,6 +6466,19 @@ radicand equation. A four-field family stays closed under `add` on paper (the ex
 fields pair the left operand's real part with the right's imaginary part on both sides,
 exactly what `same.add` at the input fields gives), so the expected repair is
 `same(rx, iy)` and `same(ix, ry)` as two more fields of `SameExt`, the four witness laws
-re-proved at the wider family, and then `mul_comm`. That is analysis from the coordinates
-of `Tower.mul`, not yet a measurement; the next round should state `mul_comm` and read
-where its Ext/Ext arm stops.
+re-proved at the wider family, and then `mul_comm`.
+
+**Measured, not just read off the coordinates.** `probe.crosspair.bend` (untracked, now
+deleted) put the alignment question to the checker directly. `same.mul(f, x, y, u, v,
+hx, hu)` concludes `same(mul(f,x,u), mul(f,y,v))`, so the instance producing
+`mul(g,rx,iy)` against `mul(g,iy,rx)` is `x:=rx, u:=iy, y:=iy, v:=rx`, whose *first*
+hypothesis is `same(rx, iy)` -- a cross pair. The probe handed that slot the aligned
+`sim: same(ix, iy)` on purpose, and the refusal named the missing fact:
+
+    expected : src/tower.Tower.same(rx, iy)
+    observed : src/tower.Tower.same(ix, iy)
+
+So the wider family is confirmed rather than predicted. The probe also re-taught a
+standing rule: a probe calling a filled law must import that law's proofs file, or the
+law reads as `a filled definition (an unfilled law is a dead claim: live code cannot use
+it)` -- it was the first error this probe produced.
