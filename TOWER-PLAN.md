@@ -2154,6 +2154,39 @@ Recommended: (a), with `Tower.Safe` extended to carry the product's level facts
 beside `csafe`/`hdepth`, since that induction already has each sub-product's
 evidence in hand and is the only place the radicand-slot obligation can be met.
 
+### add_assoc lands: the bundle's first ring law, and where absurdity is not needed (round sixty-one)
+
+`Tower.add_assoc` is stated in `tower.bend` and filled in `tower_proofs.bend`: at
+`clean(x)`, `clean(y)`, `clean(z)`, `pos(x)`, `pos(y)`, `pos(z)` and the two
+operand-level depth equations it concludes `add(add(x, y), z) == add(x, add(y, z))`.
+No level hypothesis appears: `add` returns its *first* operand's radicand and x is
+first on both sides, so `dx` stands in the third field either way -- the boundary
+`add_comm` crossed (rounds forty-six and fifty) is not crossed here.
+
+Both carriers earn their place, and the fill shows where: the clean witnesses carry
+`hri: depth(re) == depth(im)`, which is how the induction gets `depth(ix) == depth(iy)`
+for the imaginary coordinates (chain: `depth(ix) = depth(rx)` by x's own witness,
+`= depth(ry)` by the operand-level equation after `succ_inj`, `= depth(iy)` by y's),
+and the pos witnesses carry the denominator positivity that `Rat.add_assoc.arb`
+asks for at the leaves. The Ext/Ext/Ext arm is two recursive instances, two
+`Equal.cong`s (one per coordinate, each with the untouched coordinate spelled) and
+one `Equal.trans` through the spelled middle.
+
+**A shape-table fill needs absurdity exactly when its hypotheses are empty.** Of the
+sixty-four arms, sixty-two are `{==}` -- including every Fuel arm, since `add`
+propagates the marker on both sides, and every other mix, where the catch-all gives
+`Bad{}` on both. `add_comm`'s fill needed twelve `Empty.absurd` arms for the same
+mixed shapes: its hypothesis is `Tower.same(x, y)`, which *is* `Empty` there. Clean
+and pos are inhabited in every arm (markers get `CleanOk{}` and `PosOk{}`), so
+nothing has to be refuted. The absurdity count is a property of the hypotheses, not
+of the conclusion.
+
+Landed first run. Counts: tower.bend 247 = rat.bend's 229 plus its own eighteen,
+tower_helpers.bend 263 = 247 plus its own sixteen; README at 161 readable / 140
+helpers / 301 total. All eleven gates green; `tower_proofs.bend` 3.21 s, still the
+slowest fill. Open: whether clean + pos + level fold into one family for the laws'
+sake (six hypotheses is a lot to spell) -- unchanged from round fifty-seven.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

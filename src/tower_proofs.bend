@@ -11,6 +11,7 @@ import ./nat_proofs.bend as NN
 import ./rat_proofs.bend as RP
 # the commutativity law reaches the Rat leaves, where Rat.add_comm is unconditional
 import ./rat.bend as R
+import ./rat_helpers.bend as RH
 
 # Tower proofs
 # ============
@@ -1549,3 +1550,169 @@ def TH.Tower.level.add(x, y, u, v, hxy, huv, hxu, hyv):
           Empty.absurd(T.Tower.level(T.Tower.add(x, y), T.Tower.add(u, v)), huv)
         case T.Fuel{} T.Fuel{}:
           T.LevelBase{}
+
+def T.Tower.add_assoc(x, y, z, hx, hy, hz, px, py, pz, hxy, hyz):
+  match x y z:
+    case T.Base{a} T.Base{b} T.Base{c}:
+      T.PosBase{+pa} = px
+      T.PosBase{+pb} = py
+      T.PosBase{+pc} = pz
+      Equal.cong(R.Rat, T.Tower, u => T.Base{u},
+        R.Rat.add(R.Rat.add(a, b), c), R.Rat.add(a, R.Rat.add(b, c)),
+        RH.Rat.add_assoc.arb(a, b, c, pa, pb, pc))
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy} T.Ext{rz, iz, dz}:
+      T.CleanExt{+hxr, +hxi, +hxd, +hxri, +hxrd} = hx
+      T.CleanExt{+hyr, +hyi, +hyd, +hyri, +hyrd} = hy
+      T.CleanExt{+hzr, +hzi, +hzd, +hzri, +hzrd} = hz
+      T.PosExt{+prer, +pimr, +pradr} = px
+      T.PosExt{+prey, +pimy, +prady} = py
+      T.PosExt{+prez, +pimz, +pradz} = pz
+      +er = N.succ_inj(T.Tower.depth(rx), T.Tower.depth(ry), hxy)
+      +eyz = N.succ_inj(T.Tower.depth(ry), T.Tower.depth(rz), hyz)
+      +ei = Equal.trans(Nat, T.Tower.depth(ix), T.Tower.depth(rx), T.Tower.depth(iy),
+              Equal.sym(Nat, T.Tower.depth(rx), T.Tower.depth(ix), hxri),
+              Equal.trans(Nat, T.Tower.depth(rx), T.Tower.depth(ry), T.Tower.depth(iy),
+                er, hyri))
+      +eiz = Equal.trans(Nat, T.Tower.depth(iy), T.Tower.depth(ry), T.Tower.depth(iz),
+               Equal.sym(Nat, T.Tower.depth(ry), T.Tower.depth(iy), hyri),
+               Equal.trans(Nat, T.Tower.depth(ry), T.Tower.depth(rz), T.Tower.depth(iz),
+                 eyz, hzri))
+      +e1 = T.Tower.add_assoc(rx, ry, rz, hxr, hyr, hzr, prer, prey, prez, er, eyz)
+      +e2 = T.Tower.add_assoc(ix, iy, iz, hxi, hyi, hzi, pimr, pimy, pimz, ei, eiz)
+      +c1 = Equal.cong(T.Tower, T.Tower,
+              u => T.Ext{u, T.Tower.add(T.Tower.add(ix, iy), iz), dx},
+              T.Tower.add(T.Tower.add(rx, ry), rz),
+              T.Tower.add(rx, T.Tower.add(ry, rz)), e1)
+      +c2 = Equal.cong(T.Tower, T.Tower,
+              u => T.Ext{T.Tower.add(rx, T.Tower.add(ry, rz)), u, dx},
+              T.Tower.add(T.Tower.add(ix, iy), iz),
+              T.Tower.add(ix, T.Tower.add(iy, iz)), e2)
+      Equal.trans(T.Tower,
+        T.Ext{T.Tower.add(T.Tower.add(rx, ry), rz), T.Tower.add(T.Tower.add(ix, iy), iz), dx},
+        T.Ext{T.Tower.add(rx, T.Tower.add(ry, rz)), T.Tower.add(T.Tower.add(ix, iy), iz), dx},
+        T.Ext{T.Tower.add(rx, T.Tower.add(ry, rz)), T.Tower.add(ix, T.Tower.add(iy, iz)), dx},
+        c1, c2)
+    case T.Base{a} T.Base{b} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Base{a} T.Base{b} T.Bad{}:
+      {==}
+    case T.Base{a} T.Base{b} T.Fuel{}:
+      {==}
+    case T.Base{a} T.Ext{ry, iy, dy} T.Base{c}:
+      {==}
+    case T.Base{a} T.Ext{ry, iy, dy} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Base{a} T.Ext{ry, iy, dy} T.Bad{}:
+      {==}
+    case T.Base{a} T.Ext{ry, iy, dy} T.Fuel{}:
+      {==}
+    case T.Base{a} T.Bad{} T.Base{c}:
+      {==}
+    case T.Base{a} T.Bad{} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Base{a} T.Bad{} T.Bad{}:
+      {==}
+    case T.Base{a} T.Bad{} T.Fuel{}:
+      {==}
+    case T.Base{a} T.Fuel{} T.Base{c}:
+      {==}
+    case T.Base{a} T.Fuel{} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Base{a} T.Fuel{} T.Bad{}:
+      {==}
+    case T.Base{a} T.Fuel{} T.Fuel{}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Base{b} T.Base{c}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Base{b} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Base{b} T.Bad{}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Base{b} T.Fuel{}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy} T.Base{c}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy} T.Bad{}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy} T.Fuel{}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Bad{} T.Base{c}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Bad{} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Bad{} T.Bad{}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Bad{} T.Fuel{}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Fuel{} T.Base{c}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Fuel{} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Fuel{} T.Bad{}:
+      {==}
+    case T.Ext{rx, ix, dx} T.Fuel{} T.Fuel{}:
+      {==}
+    case T.Bad{} T.Base{b} T.Base{c}:
+      {==}
+    case T.Bad{} T.Base{b} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Bad{} T.Base{b} T.Bad{}:
+      {==}
+    case T.Bad{} T.Base{b} T.Fuel{}:
+      {==}
+    case T.Bad{} T.Ext{ry, iy, dy} T.Base{c}:
+      {==}
+    case T.Bad{} T.Ext{ry, iy, dy} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Bad{} T.Ext{ry, iy, dy} T.Bad{}:
+      {==}
+    case T.Bad{} T.Ext{ry, iy, dy} T.Fuel{}:
+      {==}
+    case T.Bad{} T.Bad{} T.Base{c}:
+      {==}
+    case T.Bad{} T.Bad{} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Bad{} T.Bad{} T.Bad{}:
+      {==}
+    case T.Bad{} T.Bad{} T.Fuel{}:
+      {==}
+    case T.Bad{} T.Fuel{} T.Base{c}:
+      {==}
+    case T.Bad{} T.Fuel{} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Bad{} T.Fuel{} T.Bad{}:
+      {==}
+    case T.Bad{} T.Fuel{} T.Fuel{}:
+      {==}
+    case T.Fuel{} T.Base{b} T.Base{c}:
+      {==}
+    case T.Fuel{} T.Base{b} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Fuel{} T.Base{b} T.Bad{}:
+      {==}
+    case T.Fuel{} T.Base{b} T.Fuel{}:
+      {==}
+    case T.Fuel{} T.Ext{ry, iy, dy} T.Base{c}:
+      {==}
+    case T.Fuel{} T.Ext{ry, iy, dy} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Fuel{} T.Ext{ry, iy, dy} T.Bad{}:
+      {==}
+    case T.Fuel{} T.Ext{ry, iy, dy} T.Fuel{}:
+      {==}
+    case T.Fuel{} T.Bad{} T.Base{c}:
+      {==}
+    case T.Fuel{} T.Bad{} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Fuel{} T.Bad{} T.Bad{}:
+      {==}
+    case T.Fuel{} T.Bad{} T.Fuel{}:
+      {==}
+    case T.Fuel{} T.Fuel{} T.Base{c}:
+      {==}
+    case T.Fuel{} T.Fuel{} T.Ext{rz, iz, dz}:
+      {==}
+    case T.Fuel{} T.Fuel{} T.Bad{}:
+      {==}
+    case T.Fuel{} T.Fuel{} T.Fuel{}:
+      {==}

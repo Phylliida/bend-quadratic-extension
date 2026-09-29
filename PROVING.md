@@ -6805,3 +6805,49 @@ evidence, does not close on its own because `mul.safe`'s recursion needs them fo
 sub-products. Recommended: (a), with `Tower.Safe` extended to carry the product's
 level facts beside `csafe`/`hdepth`. Counts unchanged: tower.bend 246,
 tower_helpers.bend 262; no gates touched.
+
+## Round sixty-one
+
+`Tower.add_assoc` lands -- the second of Step 2's five ring laws, and the first law
+to need both carriers. Stated in `tower.bend`:
+
+    law Tower.add_assoc:
+      for +x/+y/+z: Tower
+      for hx/hy/hz: Tower.clean(...)
+      for px/py/pz: Tower.pos(...)
+      for hxy: {Tower.depth(x) == Tower.depth(y) : Nat}
+      for hyz: {Tower.depth(y) == Tower.depth(z) : Nat}
+      {Tower.add(Tower.add(x, y), z) == Tower.add(x, Tower.add(y, z)) : Tower}
+
+No level hypothesis: `add` returns its first operand's radicand, x is first on both
+sides, so `dx` stands in the third field either way. This is precisely the boundary
+`add_comm` crossed and this law does not.
+
+The clean witnesses are load-bearing for *structure*: `hri: depth(re) == depth(im)`
+is how the imaginary-coordinate recursion gets `depth(ix) == depth(iy)` --
+`depth(ix) = depth(rx)` (x's witness), `= depth(ry)` (the operand equation after
+`succ_inj`), `= depth(iy)` (y's witness). The pos witnesses are load-bearing for
+*arithmetic*: `Rat.add_assoc.arb` needs each Rat leaf's denominator positive.
+
+The Ext/Ext/Ext arm is two recursive instances, two `Equal.cong`s (one per
+coordinate, the untouched coordinate spelled in each lambda) and one `Equal.trans`
+whose middle is spelled out -- house style, and it checked on the first run.
+
+**Measured: absurdity in a shape-table fill is a property of the hypotheses, not the
+conclusion.** Sixty-two of the sixty-four arms are `{==}`. Fuel arms reduce to
+`Fuel{}` on both sides and the remaining mixes to `Bad{}` on both, because `add`
+propagates markers and its catch-all gives `Bad{}`. `add_comm`'s fill, over the same
+shape table, needed twelve `Empty.absurd` arms -- its hypothesis `Tower.same(x, y)`
+is `Empty` at mixed shapes. Clean and pos are inhabited everywhere (markers get
+`CleanOk{}` and `PosOk{}`), so no arm has to be refuted.
+
+One mechanical note: the fill calls `RH.Rat.add_assoc.arb`, so `tower_proofs.bend`
+now imports `rat_helpers.bend` (round fifty-six had added it and the revert took it
+with it).
+
+Counts: tower.bend 247, tower_helpers.bend 263, README 161 readable / 140 helpers /
+301 total. All eleven gates green -- nat 0.47, int 0.57, rat 2.86, qrat 5.12, qext
+0.34, tower 3.21, probe 3.18, payoff 6.71, tower.depth 2.69, mul.depth.arm 2.50,
+scratch 2.58 s with the inversion triple unchanged. `tower_proofs.bend` is 0.3 s
+slower than before the fill; still over the one-second rule, backlogged with the
+fast-path item.

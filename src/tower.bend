@@ -539,3 +539,25 @@ law Tower.add_comm:
   for +y: Tower
   for hs: Tower.same(x, y)
   {Tower.add(x, y) == Tower.add(y, x) : Tower}
+
+# The associativity of add, and the two carriers its coordinates need. The clean
+# witness supplies the depth equations the induction consumes -- a per-value clean
+# carries level(re, im), so depth(ix) == depth(iy) is in hand from x's and y's own
+# witnesses plus the operand-level equation -- and the pos witness supplies the
+# positivity of the Rat leaves that Rat.add_assoc.arb asks for. Both sides keep dx
+# (add returns its *first* operand's radicand, and x is first on both sides), so
+# unlike add_comm this law needs no level hypothesis at all.
+
+law Tower.add_assoc:
+  for +x: Tower
+  for +y: Tower
+  for +z: Tower
+  for hx: Tower.clean(x)
+  for hy: Tower.clean(y)
+  for hz: Tower.clean(z)
+  for px: Tower.pos(x)
+  for py: Tower.pos(y)
+  for pz: Tower.pos(z)
+  for hxy: {Tower.depth(x) == Tower.depth(y) : Nat}
+  for hyz: {Tower.depth(y) == Tower.depth(z) : Nat}
+  {Tower.add(Tower.add(x, y), z) == Tower.add(x, Tower.add(y, z)) : Tower}

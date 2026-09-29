@@ -83,8 +83,8 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 17 / 7, qrat 36 / none, qext 2 / none -- 160 readable
-  laws, 140 helpers, 300 in total (the split itself landed 282; the product's pair
+  13, rat 40 / 28, tower 18 / 7, qrat 36 / none, qext 2 / none -- 161 readable
+  laws, 140 helpers, 301 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
   `mul.fuel.ext` to the helper tier, round forty-eight).
@@ -187,7 +187,7 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   evidence family with its two transport defs, and Step 2's level arithmetic:
   `Tower.add(x, y)`, `Tower.neg(x)`, `Tower.mul(+f, x, y)` and `Tower.one(t)`,
   with the radicand read off the first operand's own third field (intrinsic,
-  round thirty-nine) and `mul` descending on a `Nat` fuel. Seventeen laws: the
+  round thirty-nine) and `mul` descending on a `Nat` fuel. Eighteen laws: the
   level arithmetic (`add.depth`, `add.clean`, `mul.depth`, `mul.clean`),
   `zero.base`, `depth.zero`, `depth.lift`, `lift.zero`, `add.base`, `add.ext`,
   `neg.ext`, `sub_eq_add_neg`, `mul.base`, `mul.ext` (the
@@ -201,7 +201,14 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   (rounds forty-six and fifty). The family agrees on markers as well as on values
   (a `Bad` or `Fuel` operand pairs with itself), which is what makes composition
   provable: the operations are total even where they cannot do their job, so a
-  closure law has to say something about those arms.
+  closure law has to say something about those arms. The second ring law,
+  `add_assoc`, needs the two carriers its coordinates use and no level witness at
+  all: both sides of the equation keep `dx` (x is the first operand on both), so
+  the clean witnesses supply the internal depth equations the recursion consumes
+  and the `Tower.pos` witnesses supply the positivity of the Rat leaves; of its
+  sixty-four shape arms, sixty-two are definitional, because clean and pos are
+  inhabited in every arm -- unlike `add_comm`, whose `Empty` arms made twelve
+  absurdities necessary (round sixty-one).
 - `src/tower_helpers.bend` — the helper laws split out of tower.bend (round
   forty-three): `mul.fuel.zero` and `mul.fuel.base`, the termination-fuel
   obligation, which says nothing about tower values; and `mul.safe` (round
@@ -282,8 +289,8 @@ computes instead of that line. The count is
 transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
 QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 265 = 129 Nat +
 32 Int + 68 Rat + 36 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own thirty-six laws), tower.bend 246 = rat.bend's 229 plus
-its own seventeen, and tower_helpers.bend 262 = tower.bend's 246 plus its own sixteen.
+rat.bend's plus its own thirty-six laws), tower.bend 247 = rat.bend's 229 plus
+its own eighteen, and tower_helpers.bend 263 = tower.bend's 247 plus its own sixteen.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
