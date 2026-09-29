@@ -1923,15 +1923,24 @@ witnesses, and the Ext/Ext arm rebuilding `LevelExt` from two recursive instance
 `Equal.sym(T.Tower, dx, dy, ld)`.
 
 Both are additive: `tower.bend` stays at 246 TODOs and the eleven gates stay green
-(`tower_proofs.bend` 2.79 s). Counts now 160 readable / 135 helpers / 295 total.
+(`tower_proofs.bend` 2.79 s). Counts now 160 readable / 136 helpers / 296 total.
 
 The design this lands is the per-value route with a pairwise *level* relation on the side:
 `CleanExt` gains `level(re, im)` and `level(re, d)` (its current fields relate depths,
 never levels), and then the cross pair `(rx, iy)` that `mul_comm`'s recursive instance
 needs is assembled from the aligned pairs around it -- `level(rx, ry)` across the
-operands, `level(ry, iy)` inside y -- through `level.sym` and a `level.trans` still to be
-proved. The blast radius of the `CleanExt` strengthening is measured: three construction
+operands, `level(ry, iy)` inside y -- through `level.sym` and `level.trans`, both now proved. The blast radius of the `CleanExt` strengthening is measured: three construction
 sites (`tower_proofs.bend` lines 148, 311, 596) and six destructuring sites.
+
+`level.trans` is a twenty-eight arm fill: the outer `match x y` settles sixteen shape
+pairs, twelve of them disagreeing and absurd through the first hypothesis; the four
+agreeing arms match the third value in turn, four arms each, and there the *second*
+hypothesis is the contradiction -- `level(y, z)` with y and z of different shapes is
+`Empty` -- except the diagonal arm (trivial witness) and Ext/Ext/Ext, which destructures
+both hypotheses and rebuilds from two recursive calls plus
+`Equal.trans(T.Tower, dx, dy, dz, ld, md)`. A disagreeing (x, y) pair already reduces
+`level(x, z)` to `Empty` whatever z is, which is why z is scrutinished only in the
+agreeing arms and the table is 28 arms rather than 64.
 
 ## 8. Deliberately out of scope for now
 

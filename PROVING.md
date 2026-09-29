@@ -6567,3 +6567,37 @@ Three mechanics, all worth keeping:
 then the ring laws restate on `clean(x)`, `clean(y)`, `level(x, y)`. The blast radius of
 the `CleanExt` change is measured: three construction sites (lines 148, 311, 596 of
 `tower_proofs.bend`) and six destructuring sites.
+
+## Round fifty-five (docs follow-up) -- Level is an equivalence, and the cross pair is now reachable
+
+`Tower.level.trans` is stated in the helper tier and fills on the first run, so the level
+relation is reflexive, symmetric and transitive -- an equivalence on values, and the first
+piece of the ring laws' hypothesis bundle that behaves like one.
+
+The fill is twenty-eight arms, and the shape is what keeps it that small: the outer
+`match x y` settles sixteen shape pairs, twelve of which are disagreeing and close with
+`Empty.absurd(T.Tower.level(x, z), hxy)`. The four agreeing arms then `match z` in turn,
+four arms each, and in those the *second* hypothesis is the contradiction -- `hyz` has
+type `level(y, z)` with y of one shape and z of another, so it is `Empty` -- except the
+diagonal arm, where the goal is the trivial witness (`T.LevelBase{}`), and Ext/Ext/Ext,
+which destructures both hypotheses (`T.LevelExt{+lre, +lim, +ld} = hxy`,
+`T.LevelExt{+mre, +mim, +md} = hyz`) and rebuilds:
+
+    T.LevelExt{TH.Tower.level.trans(rx, ry, rz, lre, mre),
+               TH.Tower.level.trans(ix, iy, iz, lim, mim),
+               Equal.trans(T.Tower, dx, dy, dz, ld, md)}
+
+`Equal.trans` takes six arguments (type, three endpoints, two equations), the same shape
+as `Equal.sym`'s four.
+
+All eleven gates green (tower_proofs 2.76 s, scratch's inversion triple unchanged);
+`tower.bend` 246 TODOs, `tower_helpers.bend` 258 = 246 + its own twelve; counts 160
+readable / 136 helpers / 296 total. What remains of the design is unchanged and now
+reachable: `CleanExt` gains `level(re, im)` and `level(re, d)` beside its depth equations
+(blast radius: three construction sites, six destructuring sites) and the ring laws
+restate on `clean(x)`, `clean(y)`, `level(x, y)`.
+
+This file's own lesson, hit twice now: an assert-based docs patch must read the *exact*
+current text first -- this round's README patch matched and the TOWER-PLAN one did not
+(the prose had rewrapped when it was written), so the plan section and this round entry
+arrive in their own commit rather than the code commit.
