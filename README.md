@@ -83,9 +83,10 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 15 / 3, qrat 36 / none, qext 2 / none -- 158 readable
-  laws, 127 helpers, 285 in total (the split itself landed 282; the product's pair
-  law added two readable statements and one helper, PROVING.md round forty-five).
+  13, rat 40 / 28, tower 16 / 3, qrat 36 / none, qext 2 / none -- 159 readable
+  laws, 127 helpers, 286 in total (the split itself landed 282; the product's pair
+  law added two readable statements and one helper, PROVING.md round forty-five; round
+  forty-seven added `Tower.sub_eq_add_neg`).
 
 - `src/int.bend` — `Int` type, the ops (`Int.zero`, `Int.one`, `Int.add`,
   `Int.neg`, `Int.sub`, `Int.mul`), `Int.canon` (the canonical
@@ -241,8 +242,8 @@ computes instead of that line. The count is
 transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
 QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 265 = 129 Nat +
 32 Int + 68 Rat + 36 QExt (it imports rat.bend itself, so its count is
-rat.bend's plus its own thirty-six laws), and tower.bend 233 = rat.bend's 229 plus
-its own eleven.
+rat.bend's plus its own thirty-six laws), and tower.bend 245 = rat.bend's 229 plus
+its own sixteen.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.
