@@ -6421,3 +6421,51 @@ argument was shadowed and the checker reported a *termination* failure
 
 Next: `same.mul` (the same closure law with the fuel's `0n`/`1n+g` split in front of
 the shape induction), then `mul_comm`.
+
+## Round fifty-two -- Closure under mul, and the `%` rewrite aimed at a type
+
+`Tower.same.mul` and `Tower.same.of_eq` are proved (helper tier, fills in
+`tower_proofs.bend`), so the witness is closed under both operations and convertible
+from an equation. `tower.bend` is 246 TODOs and `tower_helpers.bend` 255 (tower.bend's
+246 plus its own nine); tiers are 160 readable / 133 helpers / 293 total; all eleven
+gates green, `tower_proofs.bend` 2.39 s.
+
+`same.mul` is a fuel split in front of the shape induction: at `0n` both sides are
+`Fuel{}` and the witness is trivial; at `1n+g` the sixteen-by-sixteen arm table runs,
+with the twelve outer disagreeing arms absurd through `hx` and the inner ones through
+`hu`. The one arm with work is Ext/Ext/Ext/Ext, and it is heavier than the shape of the
+law suggests. `mul`'s Ext/Ext coordinates mix the operands --
+`add(mul(g, rx, ru), mul(g, mul(g, ix, iu), dx))` and `add(mul(g, rx, iu), mul(g, ix,
+ru))` -- and its third recursive call takes `mul(g, ix, iu)` as its first argument, so
+the instance the arm needs is the law at the pair of *products* `(mul(g, ix, ui),
+mul(g, iy, vi))` paired with `(dx, dy)`. Its first hypothesis is the recursive instance
+at `(ix, iy)` and its second is the outer radicand equation, which is an equation and
+not a witness -- that is what `same.of_eq` is for. Five recursive instances feed two
+`same.add` calls, and the marker arms are trivial because `mul` makes any `Fuel` operand
+`Fuel{}` (whichever side it is on) and anything else mixed `Bad{}`, identically on both
+sides.
+
+`same.of_eq` is J-elimination, and it took four measurements to find the spelling. The
+`%` statement works on a goal that is a *type*, with the ascription written as the goal
+itself and the replaced occurrence as a hole -- `%h : T.Tower.same(T.Base{a}, _)` -- and
+not in the equation-goal form (`{x == _ : T.Tower}`), which makes the checker read the
+type goal as a term of that equation type and report `expected : tower.Tower.same(...) /
+observed : {tower.Base{a} == y : tower.Tower}`. A bare `%h` with no ascription is a
+parse error (`expected : ':'`), and `match h: case {==}:` fails at the pattern
+(`expected : a pattern ... / observed : {==}`): an equation cannot be destructured.
+
+Ordering matters as usual -- a fill that calls another law's fill must come after it, so
+`same.of_eq` had to move above `same.mul` (`a filled definition (an unfilled law is a
+dead claim: live code cannot use it)`). One editing slip deleted `same.mul`'s fill
+mid-round and the checker reported it only as `1 TODO found.`
+
+**Open, with the reading to check.** `mul_comm`'s imaginary coordinate wants
+`mul(g, rx, iy) == mul(g, iy, rx)` -- the law's instance at the *cross* pair `(rx, iy)`
+-- while `same(x, y)` supplies only the aligned pairs `(rx, ry)` and `(ix, iy)` and the
+radicand equation. A four-field family stays closed under `add` on paper (the extra
+fields pair the left operand's real part with the right's imaginary part on both sides,
+exactly what `same.add` at the input fields gives), so the expected repair is
+`same(rx, iy)` and `same(ix, ry)` as two more fields of `SameExt`, the four witness laws
+re-proved at the wider family, and then `mul_comm`. That is analysis from the coordinates
+of `Tower.mul`, not yet a measurement; the next round should state `mul_comm` and read
+where its Ext/Ext arm stops.

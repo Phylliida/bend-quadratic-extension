@@ -1812,6 +1812,47 @@ Still to come on this route: `same.mul`, the same closure law with the fuel's
 `0n`/`1n+g` split in front of it, and then `mul_comm`, whose third recursive call
 needs the witness for a pair of products.
 
+### Closure under mul, and a `%` rewrite aimed at a type (round fifty-two)
+
+`Tower.same.mul` and `Tower.same.of_eq` are proved, so the witness is closed under both
+operations and can be read off an equation.
+
+The composition law needs a witness for a pair of *products*. `mul`'s Ext/Ext
+coordinates mix the operands -- the real part is `add(mul(g, rx, ru), mul(g, mul(g, ix,
+iu), dx))` and the imaginary part `add(mul(g, rx, iu), mul(g, ix, ru))` -- and its third
+recursive call takes `mul(g, ix, iu)` as its *first* argument. So the instance the
+Ext/Ext arm needs is the law at `(mul(g, ix, ui), mul(g, iy, vi))` paired with
+`(dx, dy)`: a pair of products, not a pair of inputs. That is the closure round fifty
+predicted, and it is why the law cannot be folded into the ring laws.
+
+The radicand field of `SameExt` is an *equation*, because that is what makes `add_comm`
+true -- the result's third field is literally the first operand's. A law holding the
+equation but needing a *witness* for that pair has to convert, and the conversion
+(`Tower.same.of_eq`, `{x == y} -> same(x, y)`) is J-elimination. In bend that is the `%`
+statement, and aimed at a goal that is a *type* rather than an equation its ascription
+is the goal itself with the replaced occurrence as a hole:
+
+    case T.Base{a}:
+      %h : T.Tower.same(T.Base{a}, _)
+      T.SameBase{}
+
+Three spellings that do *not* work, all measured: a bare `%h` with no ascription (the
+parser wants a `:` after it); the equation-goal form `{x == _ : T.Tower}`, which makes
+the checker read the type goal as a term of that equation type (`expected :
+tower.Tower.same(...) / observed : {...}`); and `match h: case {==}:`, since an equation
+is not a matchable pattern (`expected : a pattern ... / observed : {==}`).
+
+**The cross-pair question, which is the next thing to settle.** `mul_comm`'s imaginary
+coordinate needs `mul(g, rx, iy) == mul(g, iy, rx)`, i.e. the law's own instance at the
+*cross* pair `(rx, iy)`, while `same(x, y)` hands over only `(rx, ry)` and `(ix, iy)`
+plus the radicand equation. By the same reading, a four-field family stays closed under
+`add`: the extra fields pair the left operand's real part with the right's imaginary
+part on both sides, which is exactly what `same.add` at the input fields gives. So the
+likely repair is two more fields in `SameExt` -- `same(rx, iy)` and `same(ix, ry)` --
+the four witness laws re-proved at the wider family, and then `mul_comm`. That is
+*analysis, not measurement*: the next round's first job is to state `mul_comm` and watch
+where its Ext/Ext arm actually stops.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a
