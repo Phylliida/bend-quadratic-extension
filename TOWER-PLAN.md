@@ -2590,6 +2590,24 @@ the law still takes a single hypothesis, the canon witness.
 stated: at closed leaves with denominator 1 all three fields are `{==}`, and the law then
 delivers both at a leaf and at depth 2.
 
+The ring laws' entry point, re-read but not yet measured (round seventy-one reconnaissance).
+Round sixty left all three of item (2)'s remaining laws behind one wall: the cross-level facts a
+*computed* value would have to hand back cannot be produced inside `add.clean`/`mul.clean`/
+`mul.safe` -- that is route (a), and it is a design change. The hypothesis side is a different
+question, and for `mul_comm` at least the definitions suggest a cheaper answer. `Tower.mul` keeps
+the first operand's radicand (`Ext{..., dx}` on both sides of the swap), so the law's conclusion
+needs `dx == dy`, which `Level.Ext`'s `ld` supplies; its `lre`/`lim` are the across-operand pairs
+`level(rx, ry)` and `level(ix, iy)`; and `Canon.Ext`'s `lri` is the inside pair `level(ry, iy)`.
+With those in hand every coordinate instance's level fact is one `level.trans` -- the two cross
+pairs included, `level(rx, iy)` from `lre` then `lri` of y, `level(ix, ry)` from `sym(lri)` of x
+then `lre` -- and the sub-products run at `g` with `f = 1n+g` and `depth(x) = 1n+depth(rx)`, so the
+fuel each instance needs is a `succ_inj` away, `level.depth` doing the depth half. That would put
+`mul_comm`'s statement at `level(x, y)` plus `canon(x)`/`canon(y)` -- a caller who knows its
+operands' levels and has canonical data, which is the same price the identity block already
+charges. This is reasoning from the definitions, not a measurement: the fill is the measurement,
+and it is the next unit. `mul_assoc` and `mul_distrib` mix coordinates through a *product*, so they
+still look like route (a).
+
 Item (3) is closed. The three ring laws of item (2) -- `mul_comm`, `mul_assoc`, `mul_distrib` --
 still wait on round sixty's cross-operand fact (route (a): thread it through
 `add.clean`/`mul.clean`/`mul.safe` and extend `Tower.Safe`), which is the only objective work
