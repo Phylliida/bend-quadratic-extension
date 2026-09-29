@@ -1,6 +1,7 @@
 import Base
 import ./nat.bend as N
 import ./int.bend as I
+import ./int_helpers.bend as IH
 
 # Rat: rationals as canonical pairs
 # =================================

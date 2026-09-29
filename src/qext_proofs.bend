@@ -1,6 +1,7 @@
 import Base
 import ./qext.bend as Q
 import ./int.bend as I
+import ./int_helpers.bend as IH
 import ./int_proofs.bend as IP
 
 # QExt proofs
@@ -24,7 +25,7 @@ def Q.QExt.mul_comm(d, x, y):
   match x y:
     case Q.QExt{xr, xi} Q.QExt{yr, yi}:
       %I.Int.mul_comm(xr, yr) : {Q.QExt{I.Int.add(I.Int.mul(xr, yr), I.Int.mul(I.Int.mul(I.Int{d, 0n}, xi), yi)), I.Int.add(I.Int.mul(xr, yi), I.Int.mul(xi, yr))} == Q.QExt{I.Int.add(_, I.Int.mul(I.Int.mul(I.Int{d, 0n}, yi), xi)), I.Int.add(I.Int.mul(yr, xi), I.Int.mul(yi, xr))} : Q.QExt}
-      %I.Int.mul_swap(I.Int{d, 0n}, xi, yi) : {Q.QExt{I.Int.add(I.Int.mul(xr, yr), I.Int.mul(I.Int.mul(I.Int{d, 0n}, xi), yi)), I.Int.add(I.Int.mul(xr, yi), I.Int.mul(xi, yr))} == Q.QExt{I.Int.add(I.Int.mul(xr, yr), _), I.Int.add(I.Int.mul(yr, xi), I.Int.mul(yi, xr))} : Q.QExt}
+      %IH.Int.mul_swap(I.Int{d, 0n}, xi, yi) : {Q.QExt{I.Int.add(I.Int.mul(xr, yr), I.Int.mul(I.Int.mul(I.Int{d, 0n}, xi), yi)), I.Int.add(I.Int.mul(xr, yi), I.Int.mul(xi, yr))} == Q.QExt{I.Int.add(I.Int.mul(xr, yr), _), I.Int.add(I.Int.mul(yr, xi), I.Int.mul(yi, xr))} : Q.QExt}
       %I.Int.mul_comm(yr, xi) : {Q.QExt{I.Int.add(I.Int.mul(xr, yr), I.Int.mul(I.Int.mul(I.Int{d, 0n}, xi), yi)), I.Int.add(I.Int.mul(xr, yi), _)} == Q.QExt{I.Int.add(I.Int.mul(xr, yr), I.Int.mul(I.Int.mul(I.Int{d, 0n}, xi), yi)), I.Int.add(I.Int.mul(yr, xi), I.Int.mul(yi, xr))} : Q.QExt}
       %I.Int.mul_comm(yi, xr) : {Q.QExt{I.Int.add(I.Int.mul(xr, yr), I.Int.mul(I.Int.mul(I.Int{d, 0n}, xi), yi)), I.Int.add(_, I.Int.mul(yr, xi))} == Q.QExt{I.Int.add(I.Int.mul(xr, yr), I.Int.mul(I.Int.mul(I.Int{d, 0n}, xi), yi)), I.Int.add(I.Int.mul(yr, xi), I.Int.mul(yi, xr))} : Q.QExt}
       %I.Int.add_comm(I.Int.mul(yi, xr), I.Int.mul(yr, xi)) : {Q.QExt{I.Int.add(I.Int.mul(xr, yr), I.Int.mul(I.Int.mul(I.Int{d, 0n}, xi), yi)), I.Int.add(I.Int.mul(yi, xr), I.Int.mul(yr, xi))} == Q.QExt{I.Int.add(I.Int.mul(xr, yr), I.Int.mul(I.Int.mul(I.Int{d, 0n}, xi), yi)), _} : Q.QExt}

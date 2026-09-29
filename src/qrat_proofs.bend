@@ -1,6 +1,7 @@
 import Base
 import ./nat.bend as N
 import ./int.bend as I
+import ./int_helpers.bend as IH
 import ./rat.bend as R
 import ./qrat.bend as Q
 import ./nat_proofs.bend as NP

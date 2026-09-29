@@ -1,5 +1,6 @@
 import Base
 import ./int.bend as I
+import ./int_helpers.bend as IH
 
 # QExt: quadratic extensions Q(sqrt d)
 # ====================================

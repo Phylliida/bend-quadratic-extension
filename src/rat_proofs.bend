@@ -1,6 +1,7 @@
 import Base
 import ./rat.bend as R
 import ./int.bend as I
+import ./int_helpers.bend as IH
 import ./int_proofs.bend as IP
 import ./nat.bend as N
 import ./nat_proofs.bend as NP
@@ -801,7 +802,7 @@ def R.Rat.mk.value(c, np, nn, d, e, pd):
     I.Int.mul(R.Rat.numof(R.Rat.mk(I.Int{np, nn}, d)), I.Int{d, 0n}),
     I.Int{Nat.mul(A, d), Nat.mul(B, d)},
     I.Int.mul(R.Rat.num(np, nn), I.Int{R.Rat.denof(R.Rat.mk(I.Int{np, nn}, d)), 0n}),
-    I.Int.mul_scale(A, B, d),
+    IH.Int.mul_scale(A, B, d),
     Equal.trans(I.Int,
       I.Int{Nat.mul(A, d), Nat.mul(B, d)},
       I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
@@ -812,7 +813,7 @@ def R.Rat.mk.value(c, np, nn, d, e, pd):
       Equal.sym(I.Int,
         I.Int.mul(R.Rat.num(np, nn), I.Int{R.Rat.denof(R.Rat.mk(I.Int{np, nn}, d)), 0n}),
         I.Int{Nat.mul(P, Rr), Nat.mul(Q, Rr)},
-        I.Int.mul_scale(P, Q, Rr))))
+        IH.Int.mul_scale(P, Q, Rr))))
 
 # Rat.mk_idem.raw: the goal's two sides are
 #   mk(numof(M), denof(M))   and   mk(Rat.num(np,nn), d)
@@ -1141,7 +1142,7 @@ def R.Rat.mk.eqv.val(xp, xn, d1, p1, yp, yn, d2, p2, e):
         R.Rat.mk(I.Int.canon.go(cx, Nat.mul(xp, db), Nat.mul(xn, db)), D),
         Equal.cong(I.Int, R.Rat, u => R.Rat.mk(u, D),
           I.Int.mul(I.Int{xp, xn}, I.Int.unit(db)), I.Int{Nat.mul(xp, db), Nat.mul(xn, db)},
-          I.Int.mul_scale(xp, xn, db)),
+          IH.Int.mul_scale(xp, xn, db)),
         R.Rat.mk.canon.go(cx, Nat.mul(xp, db), Nat.mul(xn, db), D, {==}))))
   +chainR = Equal.trans(R.Rat,
     R.Rat.mk(I.Int{yp, yn}, d2),
@@ -1160,7 +1161,7 @@ def R.Rat.mk.eqv.val(xp, xn, d1, p1, yp, yn, d2, p2, e):
         R.Rat.mk(I.Int.canon.go(cy, Nat.mul(yp, da), Nat.mul(yn, da)), D),
         Equal.cong(I.Int, R.Rat, u => R.Rat.mk(u, D2),
           I.Int.mul(I.Int{yp, yn}, I.Int.unit(da)), I.Int{Nat.mul(yp, da), Nat.mul(yn, da)},
-          I.Int.mul_scale(yp, yn, da)),
+          IH.Int.mul_scale(yp, yn, da)),
         Equal.trans(R.Rat,
           R.Rat.mk(I.Int{Nat.mul(yp, da), Nat.mul(yn, da)}, D2),
           R.Rat.mk(I.Int{Nat.mul(yp, da), Nat.mul(yn, da)}, D),
@@ -1477,8 +1478,8 @@ def R.Rat.mul_assoc(c1, np1, nn1, e1, dp1, c2, np2, nn2, e2, dp2, c3, np3, nn3, 
     R.Rat.num.mul(c1, np1, nn1, e1, c2, np2, nn2, e2))
   +s2 = Equal.sym(I.Int, I.Int.mul(yn, zn), R2,
     R.Rat.num.mul(c2, np2, nn2, e2, c3, np3, nn3, e3))
-  +cr = I.Int.scale_cross(A, R1, B, R2, xn, yn, zn, a, b, xd, zd, dp2, v1, v2, s1, s2)
-  +w = I.Int.scale.cancel(I.Int.mul(I.Int.mul(A, zn), I.Int.unit(Nat.mul(xd, b))),
+  +cr = IH.Int.scale_cross(A, R1, B, R2, xn, yn, zn, a, b, xd, zd, dp2, v1, v2, s1, s2)
+  +w = IH.Int.scale.cancel(I.Int.mul(I.Int.mul(A, zn), I.Int.unit(Nat.mul(xd, b))),
     I.Int.mul(I.Int.mul(xn, B), I.Int.unit(Nat.mul(a, zd))), dp2, cr)
   R.Rat.mk.eqv.raw(I.Int.mul(A, zn), Nat.mul(a, zd), I.Int.mul(xn, B), Nat.mul(xd, b), p1, p2, w)
 
@@ -1549,7 +1550,7 @@ def Rat.add.piece(+A: I.Int, +r: I.Int, +u: I.Int, +e: Nat, +f: Nat, +g: Nat, +h
   +H = I.Int.unit(h)
   +EF = I.Int.unit(Nat.mul(e, f))
   +HG = I.Int.unit(Nat.mul(h, g))
-  %Equal.sym(I.Int, EF, I.Int.mul(E, F), I.Int.scale.pair(e, f))
+  %Equal.sym(I.Int, EF, I.Int.mul(E, F), IH.Int.scale.pair(e, f))
     : {I.Int.mul(I.Int.mul(A, G), _) == I.Int.mul(I.Int.mul(u, F), HG) : I.Int}
   %Equal.sym(I.Int, I.Int.mul(I.Int.mul(A, G), I.Int.mul(E, F)), I.Int.mul(A, I.Int.mul(G, I.Int.mul(E, F))),
       I.Int.mul_assoc(A, G, I.Int.mul(E, F)))
@@ -1568,18 +1569,18 @@ def Rat.add.piece(+A: I.Int, +r: I.Int, +u: I.Int, +e: Nat, +f: Nat, +g: Nat, +h
       Equal.cong(I.Int, I.Int, w => I.Int.mul(w, H), r, u, s))
     : {I.Int.mul(_, I.Int.mul(G, F)) == I.Int.mul(I.Int.mul(u, F), HG) : I.Int}
   %Equal.sym(I.Int, I.Int.mul(I.Int.mul(u, H), I.Int.mul(G, F)), I.Int.mul(I.Int.mul(u, I.Int.mul(G, F)), H),
-      I.Int.mul_swap(u, H, I.Int.mul(G, F)))
+      IH.Int.mul_swap(u, H, I.Int.mul(G, F)))
     : {_ == I.Int.mul(I.Int.mul(u, F), HG) : I.Int}
   %I.Int.mul_assoc(u, G, F)
     : {I.Int.mul(_, H) == I.Int.mul(I.Int.mul(u, F), HG) : I.Int}
-  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(u, G), F), I.Int.mul(I.Int.mul(u, F), G), I.Int.mul_swap(u, G, F))
+  %Equal.sym(I.Int, I.Int.mul(I.Int.mul(u, G), F), I.Int.mul(I.Int.mul(u, F), G), IH.Int.mul_swap(u, G, F))
     : {I.Int.mul(_, H) == I.Int.mul(I.Int.mul(u, F), HG) : I.Int}
   %Equal.sym(I.Int, I.Int.mul(I.Int.mul(I.Int.mul(u, F), G), H), I.Int.mul(I.Int.mul(u, F), I.Int.mul(G, H)),
       I.Int.mul_assoc(I.Int.mul(u, F), G, H))
     : {_ == I.Int.mul(I.Int.mul(u, F), HG) : I.Int}
   %Equal.sym(I.Int, I.Int.mul(G, H), I.Int.mul(H, G), I.Int.mul_comm(G, H))
     : {I.Int.mul(I.Int.mul(u, F), _) == I.Int.mul(I.Int.mul(u, F), HG) : I.Int}
-  %I.Int.scale.pair(h, g)
+  %IH.Int.scale.pair(h, g)
     : {I.Int.mul(I.Int.mul(u, F), _) == I.Int.mul(I.Int.mul(u, F), HG) : I.Int}
   {==}
 
@@ -1750,20 +1751,20 @@ def Rat.add.mixed.cross(+A: I.Int, +R: I.Int, +C: I.Int, +d: Nat, +Yd: Nat, +k1:
       N.mul_assoc(d, k1, Yd)))
   +e_u1 = Equal.trans(I.Int, I.Int.mul(Yu, Duu), I.Int.unit(Nat.mul(Yd, Nat.mul(d, Yd))), I.Int.unit(DYY),
     Equal.sym(I.Int, I.Int.unit(Nat.mul(Yd, Nat.mul(d, Yd))), I.Int.mul(Yu, Duu),
-      I.Int.scale.pair(Yd, Nat.mul(d, Yd))),
+      IH.Int.scale.pair(Yd, Nat.mul(d, Yd))),
     Equal.cong(Nat, I.Int, u => I.Int.unit(u), Nat.mul(Yd, Nat.mul(d, Yd)), DYY, n1))
-  +e_u2 = Equal.sym(I.Int, I.Int.unit(KDY), I.Int.mul(Ku, Duu), I.Int.scale.pair(k1, Nat.mul(d, Yd)))
+  +e_u2 = Equal.sym(I.Int, I.Int.unit(KDY), I.Int.mul(Ku, Duu), IH.Int.scale.pair(k1, Nat.mul(d, Yd)))
   +e_u3 = Equal.trans(I.Int, I.Int.mul(Yu, Kuu), I.Int.unit(Nat.mul(Yd, Nat.mul(k1, Yd))), I.Int.unit(KYY),
     Equal.sym(I.Int, I.Int.unit(Nat.mul(Yd, Nat.mul(k1, Yd))), I.Int.mul(Yu, Kuu),
-      I.Int.scale.pair(Yd, Nat.mul(k1, Yd))),
+      IH.Int.scale.pair(Yd, Nat.mul(k1, Yd))),
     Equal.cong(Nat, I.Int, u => I.Int.unit(u), Nat.mul(Yd, Nat.mul(k1, Yd)), KYY, n2))
-  +e_u4 = Equal.sym(I.Int, I.Int.unit(DKY), I.Int.mul(du, Kuu), I.Int.scale.pair(d, Nat.mul(k1, Yd)))
+  +e_u4 = Equal.sym(I.Int, I.Int.unit(DKY), I.Int.mul(du, Kuu), IH.Int.scale.pair(d, Nat.mul(k1, Yd)))
   +e_sv = Equal.trans(I.Int, I.Int.mul(A, I.Int.unit(DYY)), I.Int.mul(I.Int.mul(A, du), I.Int.unit(YY)),
     I.Int.mul(R, I.Int.unit(KYY)),
     Equal.trans(I.Int, I.Int.mul(A, I.Int.unit(DYY)), I.Int.mul(A, I.Int.mul(du, I.Int.unit(YY))),
       I.Int.mul(I.Int.mul(A, du), I.Int.unit(YY)),
       Equal.cong(I.Int, I.Int, u => I.Int.mul(A, u), I.Int.unit(DYY), I.Int.mul(du, I.Int.unit(YY)),
-        I.Int.scale.pair(d, YY)),
+        IH.Int.scale.pair(d, YY)),
       Equal.sym(I.Int, I.Int.mul(I.Int.mul(A, du), I.Int.unit(YY)),
         I.Int.mul(A, I.Int.mul(du, I.Int.unit(YY))), I.Int.mul_assoc(A, du, I.Int.unit(YY)))),
     Equal.trans(I.Int, I.Int.mul(I.Int.mul(A, du), I.Int.unit(YY)),
@@ -1773,7 +1774,7 @@ def Rat.add.mixed.cross(+A: I.Int, +R: I.Int, +C: I.Int, +d: Nat, +Yd: Nat, +k1:
         I.Int.mul(R, I.Int.unit(KYY)),
         I.Int.mul_assoc(R, Ku, I.Int.unit(YY)),
         Equal.cong(I.Int, I.Int, u => I.Int.mul(R, u), I.Int.mul(Ku, I.Int.unit(YY)), I.Int.unit(KYY),
-          Equal.sym(I.Int, I.Int.unit(KYY), I.Int.mul(Ku, I.Int.unit(YY)), I.Int.scale.pair(k1, YY))))))
+          Equal.sym(I.Int, I.Int.unit(KYY), I.Int.mul(Ku, I.Int.unit(YY)), IH.Int.scale.pair(k1, YY))))))
   Equal.trans(I.Int,
     I.Int.mul(I.Int.add(AY, CK), Duu),
     LX1,
@@ -2343,9 +2344,9 @@ def Rat.add.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int, +Xd: Nat, +Yd: Nat, +
         I.Int.add(I.Int{Nat.mul(a1, Yd), Nat.mul(b1, Yd)}, I.Int.mul(yn, I.Int.unit(Xd))),
         I.Int{U1, V1},
         Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(yn, I.Int.unit(Xd))),
-          I.Int.mul(xn, I.Int.unit(Yd)), I.Int{Nat.mul(a1, Yd), Nat.mul(b1, Yd)}, I.Int.mul_scale(a1, b1, Yd)),
+          I.Int.mul(xn, I.Int.unit(Yd)), I.Int{Nat.mul(a1, Yd), Nat.mul(b1, Yd)}, IH.Int.mul_scale(a1, b1, Yd)),
         Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int{Nat.mul(a1, Yd), Nat.mul(b1, Yd)}, u),
-          I.Int.mul(yn, I.Int.unit(Xd)), I.Int{Nat.mul(a2, Xd), Nat.mul(b2, Xd)}, I.Int.mul_scale(a2, b2, Xd)))
+          I.Int.mul(yn, I.Int.unit(Xd)), I.Int{Nat.mul(a2, Xd), Nat.mul(b2, Xd)}, IH.Int.mul_scale(a2, b2, Xd)))
       +eXY = Equal.trans(R.Rat,
         R.Rat.add(R.Rat{xn, Xd}, R.Rat{yn, Yd}),
         R.Rat.mk(rawXY, d1),
@@ -2357,9 +2358,9 @@ def Rat.add.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int, +Xd: Nat, +Yd: Nat, +
         I.Int.add(I.Int{Nat.mul(a2, Zd), Nat.mul(b2, Zd)}, I.Int.mul(zn, I.Int.unit(Yd))),
         I.Int{U2, V2},
         Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(zn, I.Int.unit(Yd))),
-          I.Int.mul(yn, I.Int.unit(Zd)), I.Int{Nat.mul(a2, Zd), Nat.mul(b2, Zd)}, I.Int.mul_scale(a2, b2, Zd)),
+          I.Int.mul(yn, I.Int.unit(Zd)), I.Int{Nat.mul(a2, Zd), Nat.mul(b2, Zd)}, IH.Int.mul_scale(a2, b2, Zd)),
         Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int{Nat.mul(a2, Zd), Nat.mul(b2, Zd)}, u),
-          I.Int.mul(zn, I.Int.unit(Yd)), I.Int{Nat.mul(a3, Yd), Nat.mul(b3, Yd)}, I.Int.mul_scale(a3, b3, Yd)))
+          I.Int.mul(zn, I.Int.unit(Yd)), I.Int{Nat.mul(a3, Yd), Nat.mul(b3, Yd)}, IH.Int.mul_scale(a3, b3, Yd)))
       +eYZ = Equal.trans(R.Rat,
         R.Rat.add(R.Rat{yn, Yd}, R.Rat{zn, Zd}),
         R.Rat.mk(rawYZ, d2),
@@ -2392,10 +2393,10 @@ def Rat.add.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int, +Xd: Nat, +Yd: Nat, +
           I.Int{TLp, TLn},
           Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(I.Int{a3, b3}, I.Int.unit(d1))),
             I.Int.mul(I.Int{P1, Q1}, I.Int.unit(Zd)), I.Int{Nat.mul(P1, Zd), Nat.mul(Q1, Zd)},
-            I.Int.mul_scale(P1, Q1, Zd)),
+            IH.Int.mul_scale(P1, Q1, Zd)),
           Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int{Nat.mul(P1, Zd), Nat.mul(Q1, Zd)}, u),
             I.Int.mul(I.Int{a3, b3}, I.Int.unit(d1)), I.Int{Nat.mul(a3, d1), Nat.mul(b3, d1)},
-            I.Int.mul_scale(a3, b3, d1))))
+            IH.Int.mul_scale(a3, b3, d1))))
       +L4 = Equal.trans(R.Rat,
         R.Rat.mk(rawL, Nat.mul(d1, Zd)),
         R.Rat.mk(I.Int{TLp, TLn}, Nat.mul(d1, Zd)),
@@ -2442,10 +2443,10 @@ def Rat.add.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int, +Xd: Nat, +Yd: Nat, +
           I.Int{TRp, TRn},
           Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(I.Int{a1, b1}, I.Int.unit(d2))),
             I.Int.mul(I.Int{P2, Q2}, I.Int.unit(Xd)), I.Int{Nat.mul(P2, Xd), Nat.mul(Q2, Xd)},
-            I.Int.mul_scale(P2, Q2, Xd)),
+            IH.Int.mul_scale(P2, Q2, Xd)),
           Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int{Nat.mul(P2, Xd), Nat.mul(Q2, Xd)}, u),
             I.Int.mul(I.Int{a1, b1}, I.Int.unit(d2)), I.Int{Nat.mul(a1, d2), Nat.mul(b1, d2)},
-            I.Int.mul_scale(a1, b1, d2))))
+            IH.Int.mul_scale(a1, b1, d2))))
       +R4 = Equal.trans(R.Rat,
         R.Rat.mk(rawR, Nat.mul(d2, Xd)),
         R.Rat.mk(I.Int{TRp, TRn}, Nat.mul(d2, Xd)),
@@ -2556,7 +2557,7 @@ def Rat.value.coords.pos(+ap: Nat, +an: Nat, +rp: Nat, +rn: Nat, +d: Nat, +b: Na
                 == I.Int{Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)),
                          Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b))} : I.Int})
   -> {Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)) == Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)) : Nat}:
-  I.Int.eq.pos(Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)), Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d)),
+  IH.Int.eq.pos(Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)), Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d)),
     Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)), Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b)), v)
 
 def Rat.value.coords.neg(+ap: Nat, +an: Nat, +rp: Nat, +rn: Nat, +d: Nat, +b: Nat,
@@ -2565,7 +2566,7 @@ def Rat.value.coords.neg(+ap: Nat, +an: Nat, +rp: Nat, +rn: Nat, +d: Nat, +b: Na
                 == I.Int{Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)),
                          Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b))} : I.Int})
   -> {Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d)) == Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b)) : Nat}:
-  I.Int.eq.neg(Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)), Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d)),
+  IH.Int.eq.neg(Nat.add(Nat.mul(ap, d), Nat.mul(an, 0n)), Nat.add(Nat.mul(ap, 0n), Nat.mul(an, d)),
     Nat.add(Nat.mul(rp, b), Nat.mul(rn, 0n)), Nat.add(Nat.mul(rp, 0n), Nat.mul(rn, b)), v)
 
 
@@ -2691,7 +2692,7 @@ def Rat.value.scaled.pos(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Na
       Nat.mul(yp, Nat.mul(b, C)),
       Equal.cong(Nat, Nat, u => Nat.mul(u, C),
         Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)),
-        I.Int.eq.pos(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)),
+        IH.Int.eq.pos(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)),
           Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)), v)),
       Rat.nat.coord.first(yp, yn, b, C)))
 
@@ -2711,7 +2712,7 @@ def Rat.value.scaled.neg(+xp: Nat, +xn: Nat, +yp: Nat, +yn: Nat, +d: Nat, +b: Na
       Nat.mul(yn, Nat.mul(b, C)),
       Equal.cong(Nat, Nat, u => Nat.mul(u, C),
         Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)),
-        I.Int.eq.neg(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)),
+        IH.Int.eq.neg(Nat.add(Nat.mul(xp, d), Nat.mul(xn, 0n)), Nat.add(Nat.mul(xp, 0n), Nat.mul(xn, d)),
           Nat.add(Nat.mul(yp, b), Nat.mul(yn, 0n)), Nat.add(Nat.mul(yp, 0n), Nat.mul(yn, b)), v)),
       Rat.nat.coord.second(yp, yn, b, C)))
 
@@ -3344,9 +3345,9 @@ def R.Rat.mul_distrib(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
     I.Int.add(I.Int{Nat.mul(a2, Zd), Nat.mul(b2, Zd)}, I.Int.mul(zn, I.Int.unit(Yd))),
     I.Int{U2, V2},
     Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(zn, I.Int.unit(Yd))),
-      I.Int.mul(yn, I.Int.unit(Zd)), I.Int{Nat.mul(a2, Zd), Nat.mul(b2, Zd)}, I.Int.mul_scale(a2, b2, Zd)),
+      I.Int.mul(yn, I.Int.unit(Zd)), I.Int{Nat.mul(a2, Zd), Nat.mul(b2, Zd)}, IH.Int.mul_scale(a2, b2, Zd)),
     Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int{Nat.mul(a2, Zd), Nat.mul(b2, Zd)}, u),
-      I.Int.mul(zn, I.Int.unit(Yd)), I.Int{Nat.mul(a3, Yd), Nat.mul(b3, Yd)}, I.Int.mul_scale(a3, b3, Yd)))
+      I.Int.mul(zn, I.Int.unit(Yd)), I.Int{Nat.mul(a3, Yd), Nat.mul(b3, Yd)}, IH.Int.mul_scale(a3, b3, Yd)))
   +eYZ = Equal.trans(R.Rat,
     R.Rat.add(R.Rat{yn, Yd}, R.Rat{zn, Zd}),
     R.Rat.mk(rawYZ, d2),
@@ -3427,10 +3428,10 @@ def R.Rat.mul_distrib(np1, nn1, dp1, np2, nn2, dp2, np3, nn3, dp3):
       I.Int{URp, URn},
       Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(I.Int{P3, Q3}, I.Int.unit(d1))),
         I.Int.mul(I.Int{P1, Q1}, I.Int.unit(d3)), I.Int{Nat.mul(P1, d3), Nat.mul(Q1, d3)},
-        I.Int.mul_scale(P1, Q1, d3)),
+        IH.Int.mul_scale(P1, Q1, d3)),
       Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int{Nat.mul(P1, d3), Nat.mul(Q1, d3)}, u),
         I.Int.mul(I.Int{P3, Q3}, I.Int.unit(d1)), I.Int{Nat.mul(P3, d1), Nat.mul(Q3, d1)},
-        I.Int.mul_scale(P3, Q3, d1))))
+        IH.Int.mul_scale(P3, Q3, d1))))
   +r3d = Equal.trans(Nat,
     Nat.mul(ds1, ds3),
     Nat.mul(d1, ds3),
@@ -3582,7 +3583,7 @@ def Rat.mul.mixed.cross(+A: I.Int, +Rr: I.Int, +C: I.Int, +d: Nat, +D: Nat, +k1:
   +Cd = I.Int.mul(C, du)
   +dC = I.Int.mul(du, C)
   +Au = I.Int.mul(A, du)
-  %Equal.sym(I.Int, dDu, I.Int.mul(du, Du), I.Int.scale.pair(d, D))
+  %Equal.sym(I.Int, dDu, I.Int.mul(du, Du), IH.Int.scale.pair(d, D))
     : {I.Int.mul(AC, _) == I.Int.mul(RC, kDu) : I.Int}
   %I.Int.mul_assoc(AC, du, Du)
     : {_ == I.Int.mul(RC, kDu) : I.Int}
@@ -3608,7 +3609,7 @@ def Rat.mul.mixed.cross(+A: I.Int, +Rr: I.Int, +C: I.Int, +d: Nat, +D: Nat, +k1:
   %Equal.sym(I.Int, I.Int.mul(I.Int.mul(RC, Ku), Du), I.Int.mul(RC, I.Int.mul(Ku, Du)),
       I.Int.mul_assoc(RC, Ku, Du))
     : {_ == I.Int.mul(RC, kDu) : I.Int}
-  %I.Int.scale.pair(k1, D)
+  %IH.Int.scale.pair(k1, D)
     : {I.Int.mul(RC, _) == I.Int.mul(RC, kDu) : I.Int}
   {==}
 
@@ -3797,7 +3798,7 @@ def Rat.nat.mul3(+a1: Nat, +b1: Nat, +a2: Nat, +b2: Nat, +a3: Nat, +b3: Nat)
     Nat.add(Nat.add(A1, B1), W2),
     Nat.add(Nat.add(A1, B1), Nat.add(A2, B2)),
     Equal.cong(Nat, Nat, w => Nat.add(w, W2), W1, Nat.add(A1, B1),
-      I.Int.mul_assoc.neg(a1, b1, a2, b2, a3, b3)),
+      IH.Int.mul_assoc.neg(a1, b1, a2, b2, a3, b3)),
     Equal.trans(Nat,
       Nat.add(Nat.add(A1, B1), W2),
       Nat.add(Nat.add(A1, B1), Nat.add(A2, B2)),
@@ -3823,7 +3824,7 @@ def Rat.nat.mul3(+a1: Nat, +b1: Nat, +a2: Nat, +b2: Nat, +a3: Nat, +b3: Nat)
     Nat.add(W1f, Nat.add(A1, B1)),
     Nat.add(W1f, W2f),
     Equal.cong(Nat, Nat, w => Nat.add(w, Nat.add(A1, B1)), Nat.add(A2, B2), W1f,
-      Equal.sym(Nat, W1f, Nat.add(A2, B2), I.Int.mul_assoc.pos(a1, b1, a2, b2, a3, b3))),
+      Equal.sym(Nat, W1f, Nat.add(A2, B2), IH.Int.mul_assoc.pos(a1, b1, a2, b2, a3, b3))),
     Equal.trans(Nat,
       Nat.add(W1f, Nat.add(A1, B1)),
       Nat.add(W1f, Nat.add(Nat.mul(U2, b1), Nat.mul(V2, a1))),
@@ -4094,10 +4095,10 @@ def Rat.mul_distrib.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int,
         I.Int{U2, V2},
         Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(zn, I.Int.unit(Yd))),
           I.Int.mul(yn, I.Int.unit(Zd)), I.Int{Nat.mul(a2, Zd), Nat.mul(b2, Zd)},
-          I.Int.mul_scale(a2, b2, Zd)),
+          IH.Int.mul_scale(a2, b2, Zd)),
         Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int{Nat.mul(a2, Zd), Nat.mul(b2, Zd)}, u),
           I.Int.mul(zn, I.Int.unit(Yd)), I.Int{Nat.mul(a3, Yd), Nat.mul(b3, Yd)},
-          I.Int.mul_scale(a3, b3, Yd)))
+          IH.Int.mul_scale(a3, b3, Yd)))
       +eYZ = Equal.trans(R.Rat,
         R.Rat.add(R.Rat{yn, Yd}, R.Rat{zn, Zd}),
         R.Rat.mk(rawYZ, d2),
@@ -4224,10 +4225,10 @@ def Rat.mul_distrib.arb.coords(+xn: I.Int, +yn: I.Int, +zn: I.Int,
           I.Int{URp, URn},
           Equal.cong(I.Int, I.Int, u => I.Int.add(u, I.Int.mul(I.Int{P3, Q3}, I.Int.unit(d1))),
             I.Int.mul(I.Int{P1, Q1}, I.Int.unit(d3)), I.Int{Nat.mul(P1, d3), Nat.mul(Q1, d3)},
-            I.Int.mul_scale(P1, Q1, d3)),
+            IH.Int.mul_scale(P1, Q1, d3)),
           Equal.cong(I.Int, I.Int, u => I.Int.add(I.Int{Nat.mul(P1, d3), Nat.mul(Q1, d3)}, u),
             I.Int.mul(I.Int{P3, Q3}, I.Int.unit(d1)), I.Int{Nat.mul(P3, d1), Nat.mul(Q3, d1)},
-            I.Int.mul_scale(P3, Q3, d1))))
+            IH.Int.mul_scale(P3, Q3, d1))))
       +r3d = Equal.trans(Nat,
         Nat.mul(ds1, ds3),
         Nat.mul(d1, ds3),

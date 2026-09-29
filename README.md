@@ -34,8 +34,25 @@ case analysis, and that case analysis is what the switch removed. See
 
 ## Layout
 
-Laws and proofs live in separate files; each `*_proofs.bend` fills every
-law of its sibling via `def <alias>.<name>(...)`:
+Laws and proofs live in separate files, and the laws come in three tiers:
+
+- `src/<lib>.bend` --- the readable layer: the data types, their operations, and
+  the laws a reader of that layer needs. Nothing in it is stated for a proof's
+  convenience.
+- `src/<lib>_helpers.bend` --- the helper layer: sign, direction and spelling
+  variants of those laws, rearrangement rules, and the structural plumbing the
+  layer above leans on. Same laws, same statements; a reader of `<lib>.bend`
+  never needs them.
+- `src/<lib>_proofs.bend` --- the fills (`def <alias>.<name>(...)`), not meant
+  to be read. It fills both tiers.
+
+`<lib>.bend` does not import `<lib>_helpers.bend`, and cannot: a helper law is
+stated over the readable layer's types and operations, so the import only ever
+goes one way. A file that wants the whole surface imports both, as
+`import ./<lib>_helpers.bend as <alias>H`. The point of the split is that this
+costs nothing measurable: every consumer's cumulative TODO count is unchanged.
+
+The files:
 
 - `src/nat.bend` — the 129 Nat/Cmp laws (including the `Nat.divmod` and
   `Nat.gcd` blocks, the exact-division block, the difference-pair helpers, the
@@ -51,12 +68,20 @@ law of its sibling via `def <alias>.<name>(...)`:
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 - `src/int.bend` — `Int` type, the ops (`Int.zero`, `Int.one`, `Int.add`,
   `Int.neg`, `Int.sub`, `Int.mul`), `Int.canon` (the canonical
-  representative, which is what makes `==` decide integer equality), and
-  the Int laws — including `Int.mul_scale`, the shape law that unfolds the raw
-  scaling spelling `Int.mul(x, Int{d, 0n})` into the coordinate pair
-  `(xp*d, xn*d)` the Rat value lemma is stated in.
-- `src/int_proofs.bend` — fills every int.bend law (Nat evidence via
-  nat.bend, filled by the nat_proofs.bend import).
+  representative, which is what makes `==` decide integer equality), and the 19
+  readable Int laws: the ring laws, `sub_eq_add_neg`, and the canonical-form
+  interface (`canon.pos`, `canon.neg`, `canon.eqv.fwd`, `canon.eqv.bwd`).
+- `src/int_helpers.bend` — the 13 helper laws split out of int.bend (round
+  forty-three): the sign-split and direction variants (`mul_assoc.pos`,
+  `mul_assoc.neg`, `eq.pos`, `eq.neg`), the rearrangements (`add_exchange`,
+  `mul_swap`), the scaling plumbing the Rat layer leans on (`mul_scale`,
+  `scale.pair`, `scale.cancel`, `scale_cross`), and the canonical-form internals
+  (`canon.idem`, `canon.scale`, `canon.scale.go`) — `Int.mul_scale` among
+  them, the shape law that unfolds the raw scaling spelling
+  `Int.mul(x, Int{d, 0n})` into the coordinate pair `(xp*d, xn*d)` the Rat value
+  lemma is stated in.
+- `src/int_proofs.bend` — fills every int.bend and int_helpers.bend law (Nat
+  evidence via nat.bend, filled by the nat_proofs.bend import).
 - `src/qext.bend` — `QExt` type, `QExt.nat`/`add`/`mul`, and the two laws.
 - `src/qext_proofs.bend` — fills both qext.bend laws.
 - `src/qrat.bend` — `QExt` over `Rat`: the type, `QExt.nat`/`zero`/`one`/

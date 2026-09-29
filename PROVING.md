@@ -5835,3 +5835,76 @@ six proof files `All terms check.`, counts 129/32/34/229/265/244, the three cons
 both tower gates green; `main` untouched at `5dd79dc`. The measurement, the threading fix, its
 checked gate, and the intrinsic-radicand redesign are all landed; the fuel obligation has two of
 its three facts landed and the third's recipe pinned down to the hypothesis.
+
+## Round forty-three -- The int split, piloted: three tiers, and no consumer count moves
+
+The three-tier split, piloted on `Int` on branch `three-tier-split` (off
+`radicand-intrinsic` @ `2619b40`, `main` untouched).
+
+**The convention.** `src/<lib>.bend` is the readable layer (types, operations,
+the laws a reader needs). `src/<lib>_helpers.bend` holds the helper laws ---
+sign/direction/spelling variants, rearrangements, structural plumbing. The fills
+stay in `src/<lib>_proofs.bend`, which fills both tiers. The import only goes one
+way: `<lib>_helpers.bend` imports `<lib>.bend`, because a helper law is stated
+over the readable layer's types and operations; `<lib>.bend` does not import its
+helpers, so a reader of the readable layer never sees them. A consumer that wants
+the whole surface imports both (`import ./<lib>_helpers.bend as <alias>H`).
+
+**Why the one-way import is forced.** The obvious shape --- `<lib>.bend` imports
+its helpers, so that importing the readable file brings the whole surface --- is
+impossible: the helper laws mention `Int` and `Int.mul`, which are defined in
+`int.bend`, so the helper file must import `int.bend`. Importing both ways would
+be a cycle. The helper layer therefore sits *above* the readable layer, not below
+it, and the consumer pays one extra import line.
+
+**The boundary for Int (19 readable / 13 helpers).** Readable: `add_comm`,
+`add_assoc`, `add_zero`, `zero_add`, `neg_invol`, `neg_add`, `neg_mul`,
+`sub_eq_add_neg`, `mul_comm`, `mul_assoc`, `mul_distrib`, `mul_add_left`,
+`mul_zero`, `mul_one`, `one_mul`, plus the canonical-form interface `canon.pos`,
+`canon.neg`, `canon.eqv.fwd`, `canon.eqv.bwd`. Helpers: `add_exchange`,
+`mul_assoc.pos`, `mul_assoc.neg`, `mul_swap`, `mul_scale`, `scale.pair`,
+`scale.cancel`, `scale_cross`, `canon.idem`, `canon.scale`, `canon.scale.go`,
+`eq.pos`, `eq.neg`. The rule of thumb applied: a law is readable if it says
+something a user of the layer would want to know; it is a helper if it exists to
+make a proof go through (a sign split, a mirrored direction, a rearrangement, a
+canonical-form step).
+
+**The mechanics, measured.** A fill attaches to a law by its qualified name:
+`def I.Int.mul_swap(...)` fills `I.Int.mul_swap`. So moving a law re-aliases its
+fill declaration *and* every call site. The pilot moved 13 law units (each with
+its comment block, parsed by walking back over contiguous `#` lines), qualified
+the moved statements (`Int.mul` -> `I.Int.mul`; the `law Int.x:` declaration line
+itself stays unqualified, since a module declares its own names locally), and
+rewrote the qualified references longest-first with a boundary guard --- 85
+references in all: 44 in `int_proofs.bend`, 40 in `rat_proofs.bend`, 1 in
+`qext_proofs.bend`. Every file importing `int.bend` gained
+`import ./int_helpers.bend as IH` (7 files).
+
+**The count invariant, before -> after.** Every proof file and every consumer is
+byte-identical; only the split pair changes, and it sums to what was there:
+
+| file | before | after |
+|---|---|---|
+| `src/int.bend` | 32 | **19** |
+| `src/int_helpers.bend` | --- | **32** (19 imported + its own 13) |
+| `src/nat.bend` | 129 | 129 |
+| `src/qext.bend` | 34 | 34 |
+| `src/rat.bend` | 229 | 229 |
+| `src/qrat.bend` | 265 | 265 |
+| `src/tower.bend` | 244 | 244 |
+
+The intermediate measurement is what shows the invariant is real and not
+vacuous: with the helper import missing, `rat.bend` reads 216, `qext.bend` 21 and
+`qrat.bend` 252 --- each exactly 13 short. Adding the import restores all three.
+
+**Gates.** All six proof files `All terms check.` (the re-aliased fills all
+attach --- `int_proofs.bend` was green on the first run after the move);
+`probe.bend`, `probe.payoff.bend`, `probe.tower.depth.bend`,
+`probe.mul.depth.arm.bend` all check; `scratch.bend` still prints the
+`Int{7,0}/2, Int{0,7}/2, Int{0,0}/0` triple.
+
+**Open.** The boundary above is the pilot's proposal, put to the user for review
+before it is rolled over nat, rat, qrat, tower and qext. One naming question left
+open: `Int.canon.go` is a *def* (the match on the `Nat.cmp` result) and stayed in
+the readable file with the other operations, although it is arguably plumbing;
+the same question will come back for `Tower.rad` and the `Int.canon` block.
