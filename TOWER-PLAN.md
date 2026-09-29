@@ -2101,6 +2101,59 @@ Next: `level.mul`, the same induction with the fuel split, and then the carrier
 strengthening at the three `CleanExt` construction sites (round fifty-four's blast
 radius), which is what the five ring laws wait on.
 
+### The level carrier's second wall: the cross fact is not derivable inside the closure laws (round sixty)
+
+Two probes, run and deleted, settle how the level fields of `CleanExt` can be built.
+
+**1. `level.mul` cannot be stated in `level.add`'s shape.** The natural mirror of
+`level.add` is four cross hypotheses -- `level(x, y)`, `level(u, v)`, `level(x, u)`,
+`level(y, v)` entailing `level(mul(f, x, y), mul(f, u, v))` -- and its
+Ext/Ext/Ext/Ext arm needs `level(Q1, Q2)` for the *radicand-slot* summands
+`Q1 = mul(f, mul(f, ix, iy), dx)` and `Q2 = mul(f, mul(f, iu, iv), du)`. That
+obligation is not an instance of the same shape: the recursive instance would have
+to pair `mul(f, ix, iy)` with `dx` -- a value at the operands' level with the
+radicand one level up -- so its first hypothesis would be
+`level(mul(f, ix, iy), dx)`, which those two values do not inhabit (their
+radicands live at different levels). No shape built from aligned-pair hypotheses
+closes over this step.
+
+**2. The wiring is otherwise exactly one `level.add` call.** A probe law taking the
+four mixed-level facts as explicit hypotheses checked on the first run:
+`level(P1, Q1)`, `level(P2, Q2)`, `level(P1, P2)`, `level(Q1, Q2)` -- with
+`P1 = mul(f, rx, ry)`, `Q1 = mul(f, mul(f, ix, iy), dx)`, `P2 = mul(f, rx, iy)`,
+`Q2 = mul(f, ix, ry)` -- entail `level(add(P1, Q1), add(P2, Q2))`, which is the
+product's `lre` field, by a single call to this round's `Tower.level.add`. So the
+re-coordinate obligation is *not* where the difficulty is; supplying those four
+facts is.
+
+**3. `add.clean`'s present hypotheses cannot produce the new field.** A probe asking
+for `level(add(rx, ry), add(ix, iy))` from x's and y's own level fields alone --
+`hx: level(rx, ix)`, `hy: level(ry, iy)`, which is what strengthening `CleanExt`
+would give it -- was refused, naming the gap verbatim:
+
+    expected : src/tower.Tower.level(rx, ry)
+    observed : src/tower.Tower.level(rx, ix)
+
+`level.add`'s third hypothesis is the *cross* fact, and a per-value witness cannot
+carry it (round fifty-six's finding, in its level form). The same argument applies
+to `mul.clean` and `mul.safe`.
+
+**Consequence.** The level fields cannot be added to `CleanExt` and filled inside
+the existing closure laws. Two designs are available:
+
+- (a) thread a cross-level hypothesis through `add.clean`, `mul.clean` and
+  `mul.safe` -- a signature change, blast radius: three construction sites, six
+  destructuring sites, and every caller of those laws; the fills then have the fact
+  at exactly the place this round's probe (2) shows it is needed;
+- (b) carry the level facts in a separate evidence type built by the *ring laws*
+  themselves, which already have the cross hypothesis -- but `mul.safe`'s recursion
+  needs them for sub-products, which no ring law can supply, so (b) alone does not
+  close; (a) plus the pair evidence is the shape that does.
+
+Recommended: (a), with `Tower.Safe` extended to carry the product's level facts
+beside `csafe`/`hdepth`, since that induction already has each sub-product's
+evidence in hand and is the only place the radicand-slot obligation can be met.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

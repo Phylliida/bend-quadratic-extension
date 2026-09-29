@@ -6765,3 +6765,43 @@ tower_proofs 2.91s, probe.bend 2.52s, probe.payoff 6.67s, probe.tower.depth 2.46
 probe.mul.depth.arm 3.05s, scratch 3.02s with the inversion triple unchanged. Next:
 `Tower.level.mul` (the same induction with the fuel split), then `CleanExt`'s level fields
 at the three construction sites, then the ring laws.
+
+## Round sixty
+
+The level carrier's second wall, measured rather than forced. Three probes, run and
+deleted.
+
+**`level.mul` in `level.add`'s shape does not close.** Four cross hypotheses
+(`level(x, y)`, `level(u, v)`, `level(x, u)`, `level(y, v)`) entailing
+`level(mul(f, x, y), mul(f, u, v))`: the Ext/Ext/Ext/Ext arm's `lre` field needs
+`level(Q1, Q2)` for the radicand-slot summands, whose own recursion would need
+`level(mul(f, ix, iy), dx)` -- a lower-level product against the radicand. That is
+not an instance of the aligned-pair shape, and no variant with only aligned-pair
+hypotheses closes over it.
+
+**The wiring, once the four facts are in hand, is one call.** A probe law taking
+`level(P1, Q1)`, `level(P2, Q2)`, `level(P1, P2)`, `level(Q1, Q2)` as hypotheses
+(`P1 = mul(f, rx, ry)`, `Q1 = mul(f, mul(f, ix, iy), dx)`, `P2 = mul(f, rx, iy)`,
+`Q2 = mul(f, ix, ry)`) and concluding `level(add(P1, Q1), add(P2, Q2))` checked on
+the first run -- one application of round fifty-nine's `Tower.level.add`. So the
+product's `lre` field is not the difficulty; supplying those four facts is.
+
+**A per-value witness cannot carry the cross fact.** Asked for
+`level(add(rx, ry), add(ix, iy))` from `hx: level(rx, ix)` and `hy: level(ry, iy)`
+-- exactly what a strengthened `CleanExt` would offer -- the checker refused:
+
+    expected : src/tower.Tower.level(rx, ry)
+    observed : src/tower.Tower.level(rx, ix)
+
+The third hypothesis of `Tower.level.add` is the cross fact `level(rx, ry)`, which
+per-operand fields do not contain. Round fifty-six's finding again, now in the
+level form; it applies to `mul.clean` and `mul.safe` unchanged.
+
+**Design, not proof.** The level fields cannot be filled inside the existing
+closure laws. Route (a): thread a cross-level hypothesis through `add.clean`,
+`mul.clean`, `mul.safe` (three construction sites, six destructuring sites, and
+their callers). Route (b), carrying the facts in a separate ring-law-built
+evidence, does not close on its own because `mul.safe`'s recursion needs them for
+sub-products. Recommended: (a), with `Tower.Safe` extended to carry the product's
+level facts beside `csafe`/`hdepth`. Counts unchanged: tower.bend 246,
+tower_helpers.bend 262; no gates touched.
