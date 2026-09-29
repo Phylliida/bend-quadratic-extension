@@ -48,24 +48,45 @@ Laws and proofs live in separate files, and the laws come in three tiers:
 
 `<lib>.bend` does not import `<lib>_helpers.bend`, and cannot: a helper law is
 stated over the readable layer's types and operations, so the import only ever
-goes one way. A file that wants the whole surface imports both, as
+goes one way. Two libraries have no helper file, and that is a measured outcome
+rather than an omission: `qext` (both laws are the headline commutativity) and
+`qrat` (all 36 laws are the layer's algebra -- ring, conjugation, norm,
+division -- with the sign splits being the theorems themselves, exactly as in
+rat). A file that wants the whole surface imports both, as
 `import ./<lib>_helpers.bend as <alias>H`. The point of the split is that this
 costs nothing measurable: every consumer's cumulative TODO count is unchanged.
 
 The files:
 
-- `src/nat.bend` — the 129 Nat/Cmp laws (including the `Nat.divmod` and
-  `Nat.gcd` blocks, the exact-division block, the difference-pair helpers, the
-  scaling/divisibility bridges, `div_cross` -- the exact-division cross
-  product the Rat value lemma is built from -- the cross-sum lemmas the Int
-  quotient lemma rests on, and the three additive-block helpers `sub_cross` (the
-  cross sum of a truncation pair, `(a-b) + b = (b-a) + a`), `cross_add` (two
-  equations with a common padding combine criss-cross) and `sub_diag_rev` (the
-  flipped twin of `sub_diag`, so a rewrite under a division's dividend can take
-  its evidence directly)),
+- `src/nat.bend` — the 46 readable Nat/Cmp laws: the definitional recursions
+  (`add_zero`, `add_succ`, `mul_zero`, `mul_succ`, `mul_one`), the ring, the
+  subtraction laws, the comparison primitives (`cmp_refl`, `cmp_eq`,
+  `cmp_antisym`, `cmp_lt_add`, `cmp_gt_add`, `cmp_add_right`, `cmp_add_left`,
+  `cmp_mul_right`, `cmp_eq_sub_add`), the successor facts, the division surface
+  (`div_add_mod`, `mod_lt`, `div_unique`, `div_exact`, `div_exact_mul`,
+  `div_one`, `div_zero`, `div_self`, `div_self.pos`, `div_self_scale`),
+  positivity and the gcd interface (`gcd_scale`, `gcd_self`, `gcd_divides`),
   plus `Cmp.flip`, the gcd defs and the `Nat.Div` witness type. No proofs.
+- `src/nat_helpers.bend` — the 83 helper laws split out of nat.bend (round
+  forty-four): the `ci1`..`ci10` cross-multiplication steps, the `Cmp`
+  constructor-discrimination levers (`lt_ne_eq`, `gt_ne_eq`, `eq_ne_gt`,
+  `lt_ne_gt`), the derived comparison rules (`cmp_gt_succ`, `cmp_lt_sub`,
+  `cmp_sub_flip`, `cmp_add_same_left`, ...21 of them), the
+  `divmod.go`/`gcd.go`/`slack` recursion machinery, the sub/cross/evidence
+  plumbing (`sub_of_add`, `sub_of_lt`, `cross_cmp`, `sub_diag`,
+  `pos_witness`, `mul_right_cancel`, `div_cross` -- the exact-division cross
+  product the Rat value lemma is built from -- the cross-sum lemmas the Int
+  quotient lemma rests on, and the three additive-block helpers `sub_cross`
+  (`(a-b) + b = (b-a) + a`), `cross_add` and `sub_diag_rev`), the
+  rearrangements (`add_exchange`, `add_comm_succ`, `add_assoc_rev`), and
+  `gcd.divides_lt`/`gt`, the two sign branches of the readable `gcd_divides`.
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
+The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
+  13, rat 40 / 28, tower 13 / 2, qrat 36 / none, qext 2 / none -- 156 readable
+  laws, 126 helpers, 282 in total, the number the repo had before the split
+  (PROVING.md, rounds forty-three and forty-four).
+
 - `src/int.bend` — `Int` type, the ops (`Int.zero`, `Int.one`, `Int.add`,
   `Int.neg`, `Int.sub`, `Int.mul`), `Int.canon` (the canonical
   representative, which is what makes `==` decide integer equality), and the 19
@@ -133,6 +154,15 @@ The files:
   `R.Rat.add_assoc`, `R.Rat.neg_neg`) are rat.bend's own, filled by the
   `rat_proofs.bend` import — the same three-file arrangement
   `int_proofs.bend` uses for nat.bend.
+- `src/rat_helpers.bend` — the 28 helper laws split out of rat.bend (round
+  forty-four): the `Rat.mk` canonical-form machinery (`mk.scale` and its three
+  coordinate steps, `mk.canon.go`, `mk.value`, `mk.value.go`, `mk_idem`,
+  `mk_idem.raw`, `mk.rep`, `mk.trunc`, `mk.diag`), the spelling bridges
+  (`dp.eq.left`, `dp.eq.right`, `num.mul`, `mk.eqv.raw`, `mk.eqv.val`), the
+  arbitrary-presentation variants of the readable laws (`add_assoc.arb`,
+  `mul_assoc.arb`, `mul_distrib.arb`, `mul_add_left.arb`, `neg_add.arb`, and
+  the two `.mixed` value laws), the rearrangement `add_exchange` and the
+  reduced-pair twins `neg.reduced`/`mul.neg_neg.reduced`.
 - `src/rat.bend` — `Rat{num, den}` with the field projections `Rat.numof` /
   `Rat.denof`, `Rat.mk` (gcd normalization, match-free), `Rat.of` (the raw
   positive-pair spelling a divisor is named in, the abbreviation that lets a
@@ -142,12 +172,12 @@ The files:
   including the two `Rat.mul_inv` branches, the ten division laws, whose
   statements put the divisor's sign in its *spelling* (PROVING.md, round four),
   and the two denominator/multiplication closure laws `Rat.neg.den.pos` and
-  `Rat.neg_mul` the payoff's rearrangements need. `Rat.neg_add.arb` is the
-  rung-2 form of the additive negation, `-(x+y) = (-x)+(-y)` at arbitrary
-  values -- the law the `QExt` negation block reaches for, because there the
-  summands are operation outputs and the canonical `Rat.neg_add` cannot apply to
-  them.
-- `src/rat_proofs.bend` — fills every rat.bend law.
+  `Rat.neg_mul` the payoff's rearrangements need. (`Rat.neg_add.arb`, the
+  rung-2 form of the additive negation that the `QExt` negation block reaches
+  for, is in `rat_helpers.bend`; `div.value.gt`/`.lt` stay here on purpose --
+  they are the theorems, and there is no unqualified `div.value` for them to be
+  variants of.)
+- `src/rat_proofs.bend` — fills every rat.bend and rat_helpers.bend law.
 - `src/tower.bend` — Step 1 of TOWER-PLAN: the `Tower` type (an element *is* a tower
   value -- `Base{value}` a rational, `Ext{re, im, d}` = re + im*sqrt(d) with all three
   parts at the level below), `Tower.depth`, `Tower.zero`, `Tower.lift` (one
@@ -159,7 +189,10 @@ The files:
   fuel. Eleven laws: `zero.base`, `depth.zero`, `depth.lift`, `lift.zero`,
   `add.base`, `add.ext`, `neg.ext`, `mul.base`, `mul.ext` (the
   `sqrt(d) * sqrt(d) = d` unfolding), `one.base`, `one.ext`.
-- `src/tower_proofs.bend` — fills all four tower.bend laws: `depth.zero` is a
+- `src/tower_helpers.bend` — the two helper laws split out of tower.bend (round
+  forty-three): `mul.fuel.zero` and `mul.fuel.base`, the termination-fuel
+  obligation, which says nothing about tower values.
+- `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law: `depth.zero` is a
   structural induction in the fill (the match refines the law at the branch and the
   Ext branch calls the fill itself on the tail), the other three are definitional.
 - `probe.bend` — consumer check for the ten division laws.

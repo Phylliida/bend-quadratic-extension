@@ -5908,3 +5908,106 @@ before it is rolled over nat, rat, qrat, tower and qext. One naming question lef
 open: `Int.canon.go` is a *def* (the match on the `Nat.cmp` result) and stayed in
 the readable file with the other operations, although it is arguably plumbing;
 the same question will come back for `Tower.rad` and the `Int.canon` block.
+
+## Round forty-four -- The rest of the split: rat, nat, and two libraries that need no helper file
+
+The pilot's boundary was approved ("Roll it out as proposed"), so the three-tier
+convention went over the remaining libraries in order: tower, rat, nat, then the
+two small ones.
+
+**Rat: 40 readable, 28 helpers** (`b7e0032`). The helpers are the `Rat.mk`
+canonical-form machinery (`mk.scale` and its three coordinate steps,
+`mk.canon.go`, `mk.value`, `mk.value.go`, `mk_idem`, `mk_idem.raw`, `mk.rep`,
+`mk.trunc`, `mk.diag`), the spelling bridges (`dp.eq.left`, `dp.eq.right`,
+`num.mul`, `mk.eqv.raw`, `mk.eqv.val`), the arbitrary-presentation variants of
+the readable laws (`add_assoc.arb`, `mul_assoc.arb`, `mul_distrib.arb`,
+`mul_add_left.arb`, `neg_add.arb`, the two `.mixed` value laws), `add_exchange`
+and the reduced-pair twins `neg.reduced`/`mul.neg_neg.reduced`. The readable
+layer keeps the ring laws, the presentation interface a caller actually uses
+(`mk.canon`, `mk.fixed`, `mk.zero`, `mk.eqv`, `mk.den.pos`), the value laws
+(`add.value`), positivity, the whole division surface and `mul_eq_zero`.
+
+The boundary test that decides the sign splits: `Rat.div.value.gt`/`.lt` stay
+readable because there is *no* unqualified `Rat.div.value` for them to be
+variants of -- they are the theorems. The same test made `Int.mul_assoc.pos` a
+helper (there is a plain `Int.mul_assoc`) and keeps `Rat.mul_inv.gt`/`.lt`
+readable.
+
+**Tower: 13 readable, 2 helpers** (`1ba3c1f`). The two helpers are
+`Tower.mul.fuel.zero` and `Tower.mul.fuel.base` -- the termination-fuel
+obligation, which says nothing about tower values. Two script bugs, both paid
+for here:
+
+* The first run duplicated every moved law's declaration line (a mis-indented
+  append in the rebuilt `qualify_text`); fixed, after a `git checkout` reset and
+  deleting the bad helper file.
+* Then a real semantic catch: `Fuel{}` and `Base{a}` in the moved statements
+  failed with `expected : a declared constructor (tower.Tower declares
+  tower.Base, tower.Ext, tower.Bad, tower.Fuel) / observed : Fuel{}`.
+  **Tower's constructors do not carry the type name**, so a moved statement needs
+  `T.Fuel{}` and `T.Base{a}` explicitly. Rat/Int/QExt constructors do carry it,
+  so qualifying the type covers them -- which is why the same rewrite worked for
+  the earlier libraries.
+
+**Nat: 46 readable, 83 helpers** (`9b93b45`). `nat.bend` is the library
+everything leans on and it is mostly plumbing: 129 laws, 46 of them the
+interface. Readable are the definitional recursions, the ring, the subtraction
+laws, the comparison primitives, the successor facts, the division surface,
+positivity and the gcd interface. Helpers are the `ci1`..`ci10`
+cross-multiplication steps (18), the `Cmp` constructor-discrimination levers, 21
+derived comparison rules, the `divmod.go`/`gcd.go`/`slack` machinery, the
+sub/cross/evidence plumbing, the rearrangements and `gcd.divides_lt`/`gt` (the
+two sign branches of the readable `gcd_divides`).
+
+Three more script bugs, all three found by measurement rather than by reading:
+
+1. **The rebuild dropped interleaved defs.** Building the new library as
+   `header + kept units` silently lost every def sitting between two moved laws.
+   `nat.bend` has five of them (`type Nat.Div`, `Nat.divides`,
+   `Nat.divides_both`, `Nat.gcd.go`, `Nat.gcd`), so `Nat.gcd` became undefined:
+   `expected : a defined name / observed : Nat.gcd` at `gcd_scale`, in *both*
+   output files. The rebuild is now a deletion of the moved spans from the
+   original text, so nothing else can be lost.
+2. **A unit's span ran to the next law, not to the end of its own body.** So the
+   five defs above were swallowed a second time (only `Cmp.flip` survived), and
+   the patch that fixed it crashed first with `KeyError: 'a'` -- the parsed units
+   carry `s`/`e`, not the declaration index. A law body is its declaration line
+   plus its indented continuations, and the body now ends at the first line back
+   at column 0. Verified afterwards by counting: six `def`/`type` lines still in
+   `nat.bend`, and the file checks.
+3. **The reference rewriter used the spec's alias, not each importer's.**
+   `nat_proofs.bend` imports nat as `NL` -- every other file uses `N` -- so its
+   282 references, the fill declarations included, still pointed at laws that had
+   moved, and **every gate went red** (`expected : '->' (a def with no return
+   type fills a law; no law named NL.add_exchange is in scope)`). The rewriter now
+   reads the alias out of the importer's own import line:
+   `def NLH.add_exchange(a, b, c)` and `import ./nat_helpers.bend as NLH`.
+
+Bug 3 is the interesting one, because of what it says about the acceptance test.
+With the alias wrong, `nat.bend` still read 46 and `nat_helpers.bend` still read
+129 -- the count invariant held while the library was unusable. The counts and
+the gates are independent tests and both are needed; the counts catch a mis-wired
+import graph, the gates catch a mis-aliased fill.
+
+**Counts, measured.** `nat.bend` 129 -> 46, `nat_helpers.bend` 129 (= 46
+imported + its own 83); `rat.bend` 229 -> 201, `rat_helpers.bend` 229 (= 201 +
+28); `tower.bend` 244 -> 242, `tower_helpers.bend` 244 (= 242 + 2). Every
+consumer byte-identical: int 19, int_helpers 32, qrat 265, qext 34.
+(`int.bend` imports only `Base` -- `Int` is built from builtin Nat operations --
+so the int counts are untouched by a nat change.)
+
+All ten gates check: the six `*_proofs.bend` files, `probe.bend`,
+`probe.payoff.bend`, both tower probes, and `scratch.bend` still prints its
+inversion triple.
+
+**Two libraries need no helper file, and that is a measurement.** `qext.bend`
+has two laws and both are the headline commutativity; `qrat.bend` has 36 and
+every one is the layer's algebra -- ring, conjugation, norm, division, the
+zero-product law, the d = 4 boundary pair -- with the sign splits being the
+theorems themselves, exactly as in rat. There is no `qext_helpers.bend` and no
+`qrat_helpers.bend`, and the README says so explicitly rather than leaving it to
+be inferred.
+
+**Where the three tiers ended up:** int 19/13, rat 40/28, tower 13/2, nat 46/83,
+qrat 36/0, qext 2/0 -- 156 readable laws, 126 helpers, 282 in total, which is the
+number the repo had before the split.
