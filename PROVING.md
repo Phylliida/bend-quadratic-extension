@@ -7210,3 +7210,47 @@ tower.depth 2.93, mul.depth.arm 2.67, scratch 2.20 s; the inversion triple uncha
 Next: `Tower.zero.mul` and `Tower.mul_zero` on this carrier -- five recursive instances
 in the Ext/Ext arm, whose level combinations come from the witness's own fields through
 `sym`/`trans`.
+
+## Round sixty-eight -- zero.mul: the fuel read at the spelled coordinate, and evidence taken apart by binding
+
+`Tower.zero.mul` -- `mul(f, zero(u), v) == zero(u)` from `level(u, v)`, `canon(u)`,
+`canon(v)`, `pos(u)`, `pos(v)` and the fuel equation -- is the zero block's step 3, and
+it is the first law where all of the round-sixty-seven machinery meets: five recursive
+instances, two of them at cross pairs assembled from `Canon`'s own sibling fields
+through `level.sym`/`level.trans`, and `level.depth` turning a level witness into the
+fuel equation each instance needs. It closes on the run after the endpoint slips below.
+
+Two checker rules cost the round, both measured with probes rather than guessed.
+
+**A term read consumes a value, and evidence indexed by that value then cannot be
+destructured.** `match u v` was refused with `a match on a parameter or field (this
+name is a def or a consumed binder: give the value its own def)`. Probe A removed the
+one statement before the match, `+hfg = N.succ_inj(g, T.Tower.depth(u), hf)`; the error
+disappeared, and the checker moved on to `hfg` being undefined -- so the read of `u`
+was the whole cause. Probe B emptied the `case 0n:` arm's goal of `u` and `v`, and the
+error stayed -- so *type* mentions do not consume, only term reads do. The trap is
+that the fuel equation must relate `g` to `depth(u)`, while `cu`, `pu` and `h` are all
+indexed by `u`; deriving it as `N.succ_inj(g, Nat.add(1n, T.Tower.depth(ru)), hf)` --
+at the spelled coordinate -- leaves `u` unread, and the destructuring then works.
+That is the same wall as round forty-five's "a match cannot scrutinize a computed
+value", seen from the other side.
+
+**Evidence families are destructured by binding, not by match.** `match cu cv` with
+`T.CanonExt{...}`/`T.CanonExt{...}` arms was refused by the same message, one statement
+further on. `T.CanonExt{+cre, +cim, +cd, +lri, +lrd} = cu` (the form every existing fill
+uses for `CleanExt`, `PosExt` and `LevelExt`) is accepted at once.
+
+The remaining errors were endpoint slips in my own generator: an alias bound as
+`ZI = zero(ru)` instead of `zero(iu)` put the wrong operand into the second coordinate
+of `L1`, `L2` and the target, six, three and one occurrence respectively, and the
+checker's complaint named them precisely -- `expected : {... mul(g, mul(g, zero(ru),
+iv), du)) ...}` against `observed : {... mul(g, mul(g, zero(iu), iv), du)) ...}`. The
+last one was the outer `Equal.trans`'s endpoint still carrying the double-zero form:
+the target of the whole law is `Ext{zero(ru), zero(iu), du}`, and the intermediate
+`Ext{zero(ru), zero(ru), du}` is only the middle.
+
+Counts: `tower.bend` 253, `tower_helpers.bend` 274 (253 plus twenty-one own laws). All
+eleven gates green: nat 0.50, int 0.58, rat 2.95, qrat 5.70, qext 0.50,
+tower_proofs 3.42, probe.bend 3.20, probe.payoff 7.01, probe.tower.depth 3.11,
+probe.mul.depth.arm 3.28, scratch 2.63 s, inversion triple unchanged. Next: step 4
+`mul_zero` at `level.refl`, then `mul_one`/`one_mul` on the same carrier.

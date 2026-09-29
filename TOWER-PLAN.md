@@ -2512,5 +2512,32 @@ Then the two that consume them:
 5. `Tower.mul_zero` -- `mul(f, x, zero(x)) == zero(x)`, the same law at `level(x, x)`
    (`level.refl`); its coordinates consume (4) twice and `add.zero` twice.
 
-State: `tower.bend` 253, `tower_helpers.bend` 273, all eleven gates green, `main`
+### The zero block's step 4, and the two checker rules it measured (round sixty-eight)
+
+`Tower.zero.mul` landed: `mul(f, zero(u), v) == zero(u)` from `level(u, v)`, both canon
+witnesses, both pos witnesses and the fuel equation. It is the first law in which the
+whole carrier set meets -- five recursive instances, the cross pairs `(iu, rv)` and
+`(ru, iv)` assembled from the aligned ones, `(iu, du)` from `Canon`'s own sibling
+field, and `level.depth` converting a level witness into the fuel each recursive
+instance needs. Its Base/Base arm is `R.Rat.zero_mul` read at the other operand's
+denominator positivity, exactly as `Rat.zero_mul` states it.
+
+Two rules the round measured, both worth carrying forward:
+
+1. **A term read consumes a value, and the evidence indexed by it then cannot be
+   destructured.** `match u v` is refused when `u` has already been read as a term --
+   and since `canon(u)`, `pos(u)` and `level(u, v)` are all indexed by `u`, the order
+   is forced: destructure the evidence first, then derive. The fuel equation was the
+   only reason to read `u` at all, and writing it at the spelled coordinate
+   (`N.succ_inj(g, Nat.add(1n, T.Tower.depth(ru)), hf)`) removes the read entirely.
+   Type mentions do not consume; probes A and B settled both halves.
+2. **Evidence families are destructured by binding, not by match.** `T.CanonExt{...} =
+   cu` is accepted; `match cu cv` with constructor arms is refused with "a match on a
+   parameter or field". This is the rule the earlier fills had been obeying by habit.
+
+Both are the round-forty-five wall ("a match cannot scrutinize a computed value") seen
+from the consumer's side: what a fill may scrutinize and when it may do so are
+separate obligations, and the order of an arm's statements is part of the proof.
+
+State: `tower.bend` 253, `tower_helpers.bend` 274, all eleven gates green, `main`
 untouched at `5dd79dc`.

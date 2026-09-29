@@ -374,3 +374,27 @@ law Tower.level.depth:
   for +v: T.Tower
   for h: T.Tower.level(u, v)
   {T.Tower.depth(u) == T.Tower.depth(v) : Nat}
+
+# The multiplication by zero laws are not shape facts, and this is the measurement that
+# says so: mul's second coordinate comes back as add(mul(g, rx, zero(iy)), mul(g, ix,
+# zero(ry))), and add keeps its *first* operand's radicand, so the result carries rx's
+# while zero(x) carries ix's. Round sixty-six's counterexample is that mismatch, one field
+# wide. The hypothesis that closes it is a level relation between the *two operands* --
+# level(u, v) -- plus the canonical witness, whose own lri/lrd fields give the
+# within-value pairs the cross instances need. canon is what makes this law stateable at
+# all: level(iu, du) and level(ru, iv) are not derivable from level(u, v) alone.
+#
+# Stated at an arbitrary pair rather than at (x, x) because that is what the recursion
+# consumes: the coordinates of the two operands meet in cross pairs. mul_zero is this law
+# at (x, x), with level.refl supplying the witness.
+law Tower.zero.mul:
+  for +f: Nat
+  for +u: T.Tower
+  for +v: T.Tower
+  for +cu: T.Tower.canon(u)
+  for +cv: T.Tower.canon(v)
+  for pu: T.Tower.pos(u)
+  for pv: T.Tower.pos(v)
+  for +h: T.Tower.level(u, v)
+  for +hf: {f == Nat.add(1n, T.Tower.depth(u)) : Nat}
+  {T.Tower.mul(f, T.Tower.zero(u), v) == T.Tower.zero(u) : T.Tower}
