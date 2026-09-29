@@ -2465,6 +2465,13 @@ destructuring sites, plus a preservation argument per producing law; `level.add`
 binary precedent). A separate carrier keeps `CleanExt` untouched but moves the same
 obligation to whoever constructs the witness.
 
+**Superseded, round sixty-seven.** Both options above were written before the producer
+obligation was checked. It cannot be met: the field a product would have to hand back is
+round sixty's `level(mul(f, ix, iy), dx)`, which those values do not inhabit -- so putting
+the fields in `Clean` makes three filled laws unprovable, and the "separate carrier" is
+the only feasible one of the two. The fields went into `Tower.Canon` (handed in, produced
+by nobody); see "The sibling facts go into Canon" below.
+
 `mul_one`/`one_mul` sit behind the same three lemmas; `neg_neg` behind a different
 extension of the same kind (per-coefficient `{c == cmp(np, nn)}` plus the gcd evidence);
 the ring laws behind round sixty's cross-operand fact. Nothing landed in round
