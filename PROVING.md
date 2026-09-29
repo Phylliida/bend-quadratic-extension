@@ -6482,3 +6482,48 @@ So the wider family is confirmed rather than predicted. The probe also re-taught
 standing rule: a probe calling a filled law must import that law's proofs file, or the
 law reads as `a filled definition (an unfilled law is a dead claim: live code cannot use
 it)` -- it was the first error this probe produced.
+
+## Round fifty-three -- The cross fields kill reflexivity, so the pairwise route is dead
+
+Round fifty-two ended with the wider family as "confirmed rather than predicted". This
+round measured that it cannot be built, which changes the route rather than the next
+tactic.
+
+`probe.crossrefl.bend` (untracked, now deleted) writes the four-field family out and asks
+whether it is reflexive:
+
+    type Probe.S4.Ext<-rx, -ix, -dx, -ry, -iy, -dy> is Data:
+      S4Ext{sre: Probe.s4(rx, ry), sim: Probe.s4(ix, iy),
+            scr: Probe.s4(rx, iy), sci: Probe.s4(ix, ry), sd: {dx == dy : T.Tower}}
+
+with `Probe.Refl(+x: T.Tower) -> Probe.s4(x, x)` filling the Ext arm by recursion. The
+refusal is the whole finding:
+
+    expected : Probe.s4(rx, ix)
+    observed : Probe.s4(rx, rx)
+
+A cross field relates a value's real part to its own imaginary part; recursion supplies
+only aligned pairs, so `same(x, x)` is unprovable once the cross fields are there. Two
+one-step consequences: `same.of_eq` -- whose Ext arm reaches exactly `same(x, x)` after
+its `%` rewrite -- becomes unprovable, and `same.mul` calls `of_eq` for the product pair's
+radicand, so the closure law dies with it. The extension is not available at any price,
+and the pairwise witness is not the carrier the ring laws need. Two smaller lessons from
+the same runs: a `type`'s parameter list spells the type (`-rx: T.Tower`, not `-rx`),
+and a def whose declared return is `Data` rejects a witness of the narrow family type
+(`expected : Data / observed : Probe.S4.Ext`), so such a def declares the family
+application as its return type and spells the trivial arms with the *constructor*
+(`S4Base{}`), not the type name.
+
+**The per-value route is the live one, and it is half-built.** `Tower.clean` is per-value
+evidence -- `CleanOk{}` at Base, `CleanExt{cre, cim, cd, hri: {depth(re) == depth(im)},
+hrd: {depth(re) == depth(d)}}` at Ext, `Empty` at Bad/Fuel -- and `Tower.add.clean` and
+`Tower.mul.clean` are already proved at exactly the hypothesis shape the ring laws want:
+`clean(x)`, `clean(y)`, `{depth(x) == depth(y)}`. What is missing is one thing: those
+fields relate the components by *depths*, never by *levels*, and the ring laws need the
+level form because `mul` mixes a value's own coordinates (the `mul_comm(g, rx, iy)`
+instance is at a within-value pair). So the next round is a design decision with a
+measurable blast radius: strengthen `CleanExt` with level-coherence fields (the first
+measurement is how many fills construct a `CleanExt` and would have to supply them) or put
+the level coherence in its own evidence type beside `clean`.
+
+Recorded in TOWER-PLAN as "The cross fields kill reflexivity..." before section 8.

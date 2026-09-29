@@ -1856,6 +1856,55 @@ wants `same(rx, iy)`, and the checker refused with `expected : src/tower.Tower.s
 iy) / observed : src/tower.Tower.same(ix, iy)` -- the missing fact by name. The wider
 family is therefore the repair, and the next round starts there.
 
+### The cross fields kill reflexivity, so the pairwise witness cannot carry the ring laws (round fifty-three)
+
+Round fifty-two measured that `mul_comm`'s imaginary coordinate needs the witness at the
+*cross* pair `(rx, iy)` -- `same.mul`'s first hypothesis slot refused the aligned
+`same(ix, iy)` with `expected : src/tower.Tower.same(rx, iy)`. The obvious repair was two
+more fields of `SameExt`. Measured, that repair does not survive:
+
+    type Probe.S4.Ext<-rx, -ix, -dx, -ry, -iy, -dy>:
+      S4Ext{sre: s4(rx, ry), sim: s4(ix, iy), scr: s4(rx, iy), sci: s4(ix, ry),
+            sd: {dx == dy}}
+
+`probe.crossrefl.bend` asks the one question a witness family has to answer -- is it
+reflexive? -- and the recursive call cannot fill the cross slots:
+
+    expected : Probe.s4(rx, ix)
+    observed : Probe.s4(rx, rx)
+
+A cross field relates a *within-value* pair (a value's real part to its own imaginary
+part). Recursion only ever supplies aligned pairs, so `same(x, x)` is unprovable at the
+wider family. Two consequences follow immediately, and both are one step each: `same.of_eq`,
+whose Ext arm ends at exactly that goal after its `%` rewrite, becomes unprovable; and
+`same.mul` calls `of_eq` for the product pair's radicand, so the closure law goes with it.
+The extension is therefore not available at any price -- the pairwise witness is the wrong
+carrier for the ring laws, and round forty-six's worry ("a pairwise co-recursive fact
+cannot be carried by per-value evidence") was pointing the other way: it is the pairwise
+family that cannot express the within-value facts, not the per-value one that cannot
+express the pairwise ones.
+
+**What is already in the library for the per-value route** (read, not guessed):
+`Tower.clean` is the per-value coherence evidence -- `CleanOk{}` at Base, `CleanExt{cre,
+cim, cd, hri: {depth(re) == depth(im)}, hrd: {depth(re) == depth(d)}}` at Ext, `Empty` at
+Bad and Fuel -- and its closure laws are already green: `Tower.add.clean` and
+`Tower.mul.clean`, both stated `clean(x), clean(y), {depth(x) == depth(y)} -> clean(op)`.
+That is exactly the hypothesis shape the ring laws want, and it is fail-loud (a
+non-clean operand has no witness at all).
+
+**What is missing, and it is one thing.** The fields of `CleanExt` relate the components
+by *depths*, not by *levels*: they say `depth(re) == depth(im)` and `depth(re) ==
+depth(d)`, never that `re` and `im` sit at the same level. The ring laws need the level
+form, because `mul` mixes the coordinates within one operand -- `mul_comm(g, rx, iy)` is
+an instance at a within-value pair -- and a value whose components merely have equal
+depths can still have components at different levels. So the next round is a design
+decision, not a proof: either `CleanExt` gains level-coherence fields (then every fill
+that *builds* a `CleanExt` -- `add.clean`, `mul.clean`, the `mul.safe`/`mul.above` pair,
+the lifts -- has to supply them, all provable, all mechanical), or the level coherence
+becomes its own evidence type beside `clean`. The blast radius of the first option is
+measurable by counting the fills that construct `CleanExt`; that count is the next
+measurement.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a
