@@ -6733,3 +6733,35 @@ laws), `src/tower_helpers.bend` 261 = 246 + its own fifteen. Gates green: nat 0.
 probe.payoff 6.81s, probe.tower.depth 2.21s, probe.mul.depth.arm 2.81s, scratch 2.81s
 with the inversion triple unchanged. Next: `CleanExt`'s level fields and their propagation
 under add and mul, then the ring laws with the bundle `clean` + `pos` + `level`.
+
+## Round fifty-nine
+
+`Tower.level.add` lands in the helper tier with its fill: `level(x, y)`, `level(u, v)`,
+`level(x, u)`, `level(y, v)` entail `level(add(x, y), add(u, v))`. Four hypotheses for the
+round-fifty-six reason in its level form: `add` keeps its first operand's radicand, so the
+two results carry `x`'s `dx` and `u`'s `du`, and the goal's `ld` field is `hxu`'s. The
+Ext/Ext/Ext/Ext arm is two recursive instances (re coordinates, im coordinates) plus
+`ldx` from `hxu`; everything else is absurdity or `LevelBase{}`.
+
+The fill is a sixteen-arm outer match with a nested sixteen-arm match inside each
+same-shape arm -- 76 arms in all. It cannot be compressed with wildcards: `Tower.level`
+unfolds only when *both* sides are spelled, so an unspelled scrutinee leaves the
+hypothesis standing at `level(x, u)` and `Empty.absurd` has nothing to take.
+
+Measured, three faces of one rule (which hypothesis is the empty one):
+
+- `x`/`y` disagree -> `hxy`; `u`/`v` disagree -> `huv`; `u`/`v` agree but differ from
+  `x`/`y` -> `hxu`. The second case was first written citing `hxu`, and the checker
+  answered `expected : Empty / observed : tower.Tower.Level.Base` with `huv : Empty`
+  visible in the context -- `hxu` is inhabited there (`Base` vs `Base`).
+- the generator's first cut sent `(Base, Base) x (Ext, Ext)` to `LevelBase{}`; that goal
+  is `level(Base{...}, Bad{})`, which is `Empty`, and the empty hypothesis there is `hxu`.
+- all four the same shape gives `LevelBase{}` for Base, Bad and Fuel, and the real work
+  only for Ext.
+
+Counts: `src/tower.bend` 246 TODOs (unchanged), `src/tower_helpers.bend` 262 = 246 + its
+own sixteen. Gates green: nat 0.36s, int 0.52s, rat 3.02s, qrat 5.99s, qext 0.39s,
+tower_proofs 2.91s, probe.bend 2.52s, probe.payoff 6.67s, probe.tower.depth 2.46s,
+probe.mul.depth.arm 3.05s, scratch 3.02s with the inversion triple unchanged. Next:
+`Tower.level.mul` (the same induction with the fuel split), then `CleanExt`'s level fields
+at the three construction sites, then the ring laws.

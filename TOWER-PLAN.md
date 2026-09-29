@@ -2060,6 +2060,47 @@ application never unfolds and no witness can be right. Spelling all four Fuel ar
 with them every marker mix, thirteen arms in all) checks first run. Wildcards in a
 *fill's* match are not shorthand: they are a stuck goal.
 
+### Level propagates through add: four hypotheses, and a shape table that has to be spelled (round fifty-nine)
+
+    law Tower.level.add:
+      for +x: T.Tower
+      for +y: T.Tower
+      for +u: T.Tower
+      for +v: T.Tower
+      for hxy: T.Tower.level(x, y)
+      for huv: T.Tower.level(u, v)
+      for hxu: T.Tower.level(x, u)
+      for hyv: T.Tower.level(y, v)
+      T.Tower.level(T.Tower.add(x, y), T.Tower.add(u, v))
+
+Four hypotheses, not two, and the reason is the same fact that made `add_comm` need the
+level fork: `add` keeps its *first* operand's radicand, so `add(x, y)` carries `x`'s `dx`
+and `add(u, v)` carries `u`'s `du`, and the conclusion's `ld` field is `{dx == du}` --
+exactly `hxu`'s. The cross facts are also what the recursion consumes (the Ext case
+rebuilds with recursive instances at `(rx, ry, ru, rv)` and `(ix, iy, iu, iv)`, whose own
+hypotheses are the four `lre`/`lim` fields), so the law is neither stronger nor weaker
+than its induction.
+
+The fill is sixteen outer arms, each with a nested sixteen-arm match, and the shape table
+cannot be shortened: every hypothesis has to be spelled on *both* sides before
+`Tower.level` unfolds, so a wildcard leaves the reduction stuck. The absurdity routing is
+worth stating once, because all three cases look alike and take different hypotheses:
+
+- `x` and `y` of different shapes -> `hxy` is `Empty`;
+- `u` and `v` of different shapes -> `huv` is `Empty`;
+- `u` and `v` agree but disagree with `x` and `y` -> `hxu` is `Empty`;
+- all four the same shape -> `LevelBase{}` for Base, Bad and Fuel, and the real work only
+  for Ext.
+
+Measured on the way: the second case first cited `hxu`, which is *inhabited* there
+(`expected : Empty / observed : tower.Tower.Level.Base`, with `huv : Empty` visible in the
+context), and the generator's own first cut sent `(Base, Base) x (Ext, Ext)` down the
+`LevelBase` path when that goal is `level(Base{...}, Bad{})` -- also `Empty`.
+
+Next: `level.mul`, the same induction with the fuel split, and then the carrier
+strengthening at the three `CleanExt` construction sites (round fifty-four's blast
+radius), which is what the five ring laws wait on.
+
 ## 8. Deliberately out of scope for now
 
 - **D5 as a correctness mechanism.** Not needed here (§3.1). Tower shrinking is a

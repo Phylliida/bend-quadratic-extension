@@ -281,3 +281,21 @@ law Tower.pos.mul:
   for hx: T.Tower.pos(x)
   for hy: T.Tower.pos(y)
   T.Tower.pos(T.Tower.mul(f, x, y))
+
+# Level propagates through add. Four hypotheses, not two: add keeps its *first*
+# operand's radicand, so add(x, y) and add(u, v) carry x's and u's radicands
+# respectively and the conclusion needs {dx == du} -- that is hxu's ld field. The
+# cross facts hxu/hyv are also what the Ext/Ext/Ext/Ext recursion consumes, so the
+# law is exactly as strong as its own induction. E.g. the site that strengthens
+# add.clean uses it at (rx, ry, ix, iy) with hxy = x's own level(re, im),
+# huv = y's own, hxu = the law's cross level(rx, ry), hyv = level(ry, iy).
+law Tower.level.add:
+  for +x: T.Tower
+  for +y: T.Tower
+  for +u: T.Tower
+  for +v: T.Tower
+  for hxy: T.Tower.level(x, y)
+  for huv: T.Tower.level(u, v)
+  for hxu: T.Tower.level(x, u)
+  for hyv: T.Tower.level(y, v)
+  T.Tower.level(T.Tower.add(x, y), T.Tower.add(u, v))
