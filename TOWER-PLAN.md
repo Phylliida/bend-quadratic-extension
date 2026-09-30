@@ -2643,3 +2643,21 @@ include a level fact between two computed products.
 So route (a) is confirmed for `mul_assoc` and `mul_distrib`, and the carrier extension has to hand
 back level (or same) facts *for products*, not only the cross-operand facts round sixty described.
 Item (3) is closed, `mul_comm` is done, and these two are the objective's remaining ring laws.
+
+**Round seventy-four: the wall is a family, and its first member is proved without any carrier.**
+Working out what the missing producer has to deliver turns the wall into three level *shapes*: a value
+against a sum, a value against a product, and a product against a product. They are mutual -- each
+one's induction asks for the others at its coordinates -- which is why one law cannot be proved
+before the others, and why the library's answer (a carrier holding the halves, as `Tower.Safe` holds
+`mul.clean`/`mul.depth` and `Tower.NegPair` holds `mul_neg`/`neg_mul`) is the shape the remaining
+work takes. The first shape, however, is *not* mutual: `Tower.level.of.add` is stated with the
+triangle `level(x,u)`, `level(x,v)`, `level(u,v)` and proved by a plain structural induction, because
+`add` mixes nothing -- the sum's first two slots are coordinatewise adds of the operands' and its
+third is the first operand's, so the radicand equation the goal asks for is already in `level(x,u)`,
+and the Ext arm's recursive calls read their hypotheses off the three witnesses' `lre` and `lim`
+fields. It landed in the helper tier with a sixty-four-arm fill (four inhabited, sixty absurd).
+
+That leaves two shapes to close as a mutual pair -- value-vs-product and product-vs-product -- with
+the `level.add` call in each requiring the four pairwise facts around a sum, so the carrier has to
+hold a square rather than a triangle. Next: a probe for the exact hypothesis set of that carrier
+before any law is stated.

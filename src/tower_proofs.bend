@@ -3064,3 +3064,138 @@ def TH.Tower.level.of.same(x, y, h):
       Empty.absurd(T.Tower.level(x, y), h)
     case T.Fuel{} T.Bad{}:
       Empty.absurd(T.Tower.level(x, y), h)
+
+def TH.Tower.level.of.add(x, u, v, hxu, hxv, huv):
+  match x u v:
+    case T.Base{q1} T.Base{q2} T.Base{q3}:
+      T.LevelBase{}
+    case T.Base{q1} T.Base{q2} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxv)
+    case T.Base{q1} T.Base{q2} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxv)
+    case T.Base{q1} T.Base{q2} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxv)
+    case T.Base{q1} T.Ext{r2, i2, d2} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Base{q1} T.Ext{r2, i2, d2} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Base{q1} T.Ext{r2, i2, d2} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Base{q1} T.Ext{r2, i2, d2} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Base{q1} T.Bad{} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Base{q1} T.Bad{} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Base{q1} T.Bad{} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Base{q1} T.Bad{} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Base{q1} T.Fuel{} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Base{q1} T.Fuel{} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Base{q1} T.Fuel{} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Base{q1} T.Fuel{} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Ext{r1, i1, d1} T.Base{q2} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Ext{r1, i1, d1} T.Base{q2} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Ext{r1, i1, d1} T.Base{q2} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Ext{r1, i1, d1} T.Base{q2} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Ext{r1, i1, d1} T.Ext{r2, i2, d2} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxv)
+    case T.Ext{r1, i1, d1} T.Ext{r2, i2, d2} T.Ext{r3, i3, d3}:
+      T.LevelExt{+lre_xu, +lim_xu, +ld_xu} = hxu
+      T.LevelExt{+lre_xv, +lim_xv, +ld_xv} = hxv
+      T.LevelExt{+lre_uv, +lim_uv, +ld_uv} = huv
+      T.LevelExt{TH.Tower.level.of.add(r1, r2, r3, lre_xu, lre_xv, lre_uv),
+        TH.Tower.level.of.add(i1, i2, i3, lim_xu, lim_xv, lim_uv), ld_xu}
+    case T.Ext{r1, i1, d1} T.Ext{r2, i2, d2} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxv)
+    case T.Ext{r1, i1, d1} T.Ext{r2, i2, d2} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxv)
+    case T.Ext{r1, i1, d1} T.Bad{} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Ext{r1, i1, d1} T.Bad{} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Ext{r1, i1, d1} T.Bad{} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Ext{r1, i1, d1} T.Bad{} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Ext{r1, i1, d1} T.Fuel{} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Ext{r1, i1, d1} T.Fuel{} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Ext{r1, i1, d1} T.Fuel{} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Ext{r1, i1, d1} T.Fuel{} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Bad{} T.Base{q2} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Bad{} T.Base{q2} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Bad{} T.Base{q2} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Bad{} T.Base{q2} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Bad{} T.Ext{r2, i2, d2} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Bad{} T.Ext{r2, i2, d2} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Bad{} T.Ext{r2, i2, d2} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Bad{} T.Ext{r2, i2, d2} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Bad{} T.Bad{} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxv)
+    case T.Bad{} T.Bad{} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxv)
+    case T.Bad{} T.Bad{} T.Bad{}:
+      T.LevelBase{}
+    case T.Bad{} T.Bad{} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxv)
+    case T.Bad{} T.Fuel{} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Bad{} T.Fuel{} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Bad{} T.Fuel{} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Bad{} T.Fuel{} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Base{q2} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Base{q2} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Base{q2} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Base{q2} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Ext{r2, i2, d2} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Ext{r2, i2, d2} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Ext{r2, i2, d2} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Ext{r2, i2, d2} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Bad{} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Bad{} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Bad{} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Bad{} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxu)
+    case T.Fuel{} T.Fuel{} T.Base{q3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxv)
+    case T.Fuel{} T.Fuel{} T.Ext{r3, i3, d3}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxv)
+    case T.Fuel{} T.Fuel{} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, T.Tower.add(u, v)), hxv)
+    case T.Fuel{} T.Fuel{} T.Fuel{}:
+      T.LevelBase{}

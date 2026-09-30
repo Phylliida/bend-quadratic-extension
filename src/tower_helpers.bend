@@ -290,6 +290,23 @@ law Tower.level.of.same:
   for h: T.Tower.same(x, y)
   T.Tower.level(x, y)
 
+# Level reaches a *sum* from the value: if x sits at the same level as both summands,
+# it sits at the level of their sum. This is the first member of the family that the last
+# two ring laws need -- the others are a value against a *product* and a product against a
+# product -- and unlike them it is a plain structural induction, because add mixes nothing:
+# its result's first two slots are coordinatewise adds of the operands' and its third slot
+# is the *first* operand's, so the radicand equation the goal asks for is the one hxu
+# already carries. The Ext arm recursions take their own hypotheses straight off the three
+# witnesses' lre and lim fields, which is why the triangle is enough.
+law Tower.level.of.add:
+  for +x: T.Tower
+  for +u: T.Tower
+  for +v: T.Tower
+  for hxu: T.Tower.level(x, u)
+  for hxv: T.Tower.level(x, v)
+  for huv: T.Tower.level(u, v)
+  T.Tower.level(x, T.Tower.add(u, v))
+
 law Tower.level.refl:
   for +x: T.Tower
   T.Tower.level(x, x)

@@ -7527,3 +7527,49 @@ round sixty pinned, which relate the coordinates of one product rather than rela
 value. Recorded in TOWER-PLAN.md; the four probes stay untracked (`probe.assoc3.bend`,
 `probe.distrib.first.bend`, `probe.levelofsame.bend`, `probe.distrib.fill.bend`), alongside
 `probe.mulcomm.bend` from the previous round.
+
+## Round seventy-four -- level.of.add: dismantling the wall into shapes, and proving the first
+
+Round seventeen's finding was that the last two ring laws need level facts *about products*, which no
+law produces. This round worked out what such a producer would have to be, and landed the one member
+of it that is provable on its own.
+
+**The wall is a family of three shapes.** Writing down what each induction demands at its coordinates
+gives exactly three statements: `level(x, add(u,v))` (a value against a sum), `level(x, mul(f,y,z))`
+(a value against a product), and `level(mul(f,x,u), mul(f,y,v))` (a product against a product). They
+are *mutual*: the value-against-product induction compares the value's coordinates with the product's
+coordinate *sums*, so it calls the value-against-sum law and asks for the products' level relation;
+the value-against-sum induction is self-recursive; and the product-against-product induction's
+`level.add` call needs the four pairwise facts around each coordinate sum -- the square, not the
+triangle. That is why no single law among them can be proved first, and it is the same cycle
+`Tower.Safe` and `Tower.NegPair` exist to break: a carrier holds the halves and one induction fills
+it.
+
+**The first shape is not mutual, and it is in.** `Tower.level.of.add` (helper tier, fill at the end of
+`src/tower_proofs.bend`) says: if x sits at the level of both summands, it sits at the level of their
+sum. Statement: `Tower.level(x, Tower.add(u, v))` from `level(x,u)`, `level(x,v)` and `level(u,v)`.
+The fill is a sixty-four-arm shape table -- four inhabited (Base/Base/Base, Ext/Ext/Ext, and the two
+marker diagonals, since `add` propagates `Bad` and `Fuel`) and sixty `Empty.absurd`, each citing the
+first mismatched pair's witness. It took the check first run.
+
+Why it is provable where the others are not: `add` mixes nothing. Its result's first two slots are
+coordinatewise adds of the operands' and its third slot is the *first* operand's radicand, so the goal
+`level(Ext{xr,xi,xd}, Ext{add(ur,vr), add(ui,vi), ud})` has exactly the shape `LevelExt` wants, its
+third field is literally `level(x,u)`'s `ld`, and its two recursive instances read their hypotheses
+straight off the three witnesses' `lre` and `lim` fields -- `level(xr,ur)` from `hxu`, `level(xr,vr)`
+from `hxv`, `level(ur,vr)` from `huv`. No new hypothesis, no carrier, no fuel.
+
+**Counts, gates and timings, all re-measured this run.** `tower_helpers.bend` 26 (= 25 + this law),
+`tower.bend` unchanged at 28; transitive 257 and 283; tiers 171 readable / 150 helpers / 321 total.
+Eleven gates green: nat_proofs 0.34 s, int_proofs 0.37 s, rat_proofs 2.02 s, qrat_proofs 3.50 s,
+qext_proofs 0.37 s, tower_proofs 2.28 s, probe.bend 1.99 s, probe.payoff.bend 4.33 s,
+probe.tower.depth.bend 1.89 s, probe.mul.depth.arm.bend 1.87 s, scratch.bend with the `Rat.inv`
+triple. The law-tier checks -- what the one-second rule is about -- are all near 0.2 s: nat 0.18, int
+0.17, rat 0.19, tower 0.20, qrat 0.22, qext 0.18, tower_helpers 0.21, rat_helpers 0.20. The proofs
+files remain over it (rat 2.02, qrat 3.50, tower 2.28) and stay backlogged; `probe.payoff.bend` at
+4.33 s with them.
+
+**Next.** The remaining pair needs the square-shaped carrier. Before stating it, probe its exact
+hypothesis set -- which of the pairwise facts around a sum the value-against-product and
+product-against-product inductions actually consume, and whether the radicand slot's `ld` has to be
+carried as well as the four level fields.
