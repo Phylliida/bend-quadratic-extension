@@ -83,8 +83,8 @@ The files:
 - `src/nat_proofs.bend` — fills every nat.bend law; also hosts the
   proof-only machinery (`CmpIsEQ`, `CmpIsGT`, `NatIsPos`, `Nat.pred`).
 The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
-  13, rat 40 / 28, tower 28 / 24, qrat 36 / none, qext 2 / none -- 171 readable
-  laws, 148 helpers, 319 in total (the split itself landed 282; the product's pair
+  13, rat 40 / 28, tower 28 / 25, qrat 36 / none, qext 2 / none -- 171 readable
+  laws, 149 helpers, 320 in total (the split itself landed 282; the product's pair
   law added two readable statements and one helper, PROVING.md round forty-five; round
   forty-seven added `Tower.sub_eq_add_neg`; the fuel law added `mul.above` and
   `mul.fuel.ext` to the helper tier, round forty-eight; the negation pair added
@@ -94,7 +94,8 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   `Tower.zero_add`; round seventy added `Tower.one.level` to the helper tier and
   `Tower.mul_one`/`Tower.one_mul` to the readable tier; round seventy-one added `Tower.neg_neg`
   to the readable tier and the canon leaf's third field, `cneg`; round seventy-two added
-  `Tower.mul_comm` to the readable tier and `Tower.same.of.level` to the helper one). The per-library numbers are the
+  `Tower.mul_comm` to the readable tier and `Tower.same.of.level` to the helper one; round
+  seventy-three added its converse, `Tower.level.of.same`, to the helper tier). The per-library numbers are the
   own law counts of that library's tier files (`grep -c '^law '`), which is why they sum
   to the totals.
 
@@ -323,8 +324,14 @@ The tiers, per library, as they ended up: nat 46 readable / 83 helpers, int 19 /
   is what the law does *not* ask for: a same witness of the products, never a level fact
   about them, so round sixty's wall -- the radicand field a *product* would have to hand
   back -- is not in its way. That wall is about level evidence for computed values;
-  `mul_comm` takes its evidence from the operands instead. `mul_assoc` and `mul_distrib`
-  mix coordinates through a product, so they still look like route (a).
+  `mul_comm` takes its evidence from the operands instead. Round seventy-three closed the other
+  direction of that bridge, `Tower.level.of.same`: `Same.Ext`'s three fields are exactly
+  `Level.Ext`'s, so the induction is `same.of.level` read backwards, and the two families are
+  interchangeable at every pair the tower's statements can name -- which matters because the
+  carriers hand over level facts while `add_comm` asks for same. It closes the loop but not the
+  gap: `mul_assoc` and `mul_distrib` need a level fact between two computed *products* whose
+  arguments pair a value with a product, which `same.mul` cannot compose and `level.mul` -- round
+  sixty's wall -- does not produce.
 - `src/tower_proofs.bend` — fills every tower.bend and tower_helpers.bend law.
   `depth.zero`, `add.depth`, `add.clean`, `mul.safe` and `mul.above` are structural
   inductions in the fill: the match refines the law at each branch, and each arm
@@ -386,8 +393,8 @@ transitive over imports: nat.bend 129, int.bend 32, qext.bend 34 = 32 Int + 2
 QExt, rat.bend 229 = 129 Nat + 32 Int + 68 Rat, qrat.bend 265 = 129 Nat +
 32 Int + 68 Rat + 36 QExt (it imports rat.bend itself, so its count is
 rat.bend's plus its own thirty-six laws), tower.bend 257 = rat.bend's 229 plus
-its own twenty-eight, and tower_helpers.bend 281 = tower.bend's 257 plus its own
-twenty-four.
+its own twenty-eight, and tower_helpers.bend 282 = tower.bend's 257 plus its own
+twenty-five.
 
 Nat division is proved (`div_add_mod`, `mod_lt`), including the
 `Nat.divmod.go` loop invariant it rests on.

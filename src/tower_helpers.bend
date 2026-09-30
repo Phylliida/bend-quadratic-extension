@@ -278,6 +278,18 @@ law Tower.same.of.level:
   for h: T.Tower.level(x, y)
   T.Tower.same(x, y)
 
+# ... and the converse, the mirror of the induction above: Same.Ext's three fields are
+# exactly Level.Ext's, so a same witness *is* a level witness once the induction has been
+# carried out. The direction matters to the ring laws. What the carriers hand over for a
+# value's own coordinates is level (Canon's lri and lrd), while add_comm asks for same --
+# so a caller holding either family can reach the other, and the two bridges together make
+# them interchangeable at every pair the tower's statements can name.
+law Tower.level.of.same:
+  for +x: T.Tower
+  for +y: T.Tower
+  for h: T.Tower.same(x, y)
+  T.Tower.level(x, y)
+
 law Tower.level.refl:
   for +x: T.Tower
   T.Tower.level(x, x)

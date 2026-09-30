@@ -7470,3 +7470,60 @@ Eleven gates green -- nat_proofs, int_proofs, rat_proofs, qrat_proofs, qext_proo
 tower_proofs 3.54 s, probe.bend, probe.payoff.bend, probe.tower.depth.bend,
 probe.mul.depth.arm.bend, and scratch.bend with its usual `Rat.inv` triple. Items (1) and (3) of
 the goal are closed; item (2) has `mul_assoc` and `mul_distrib` left.
+
+## Round seventy-three -- level.of.same, and the measurement that says the ring laws need route (a)
+
+Two things this round: one law landed, and the reconnaissance that decides how the last two ring
+laws get proved.
+
+**Landed: `Tower.level.of.same`** (helper tier, fill in `src/tower_proofs.bend`). `Same.Ext`'s three
+fields are exactly `Level.Ext`'s, one level down, so the induction is `same.of.level` read backwards
+and the checker takes it first run: a same witness *is* a level witness. It is worth stating because
+the two families are reached from opposite ends -- what the carriers hand over about a value's own
+coordinates is level (`Canon`'s `lri` and `lrd`), while `add_comm` asks for same -- so with both
+bridges in place either family can be turned into the other at any pair the tower's statements can
+name. Counts: `tower_helpers.bend` 25 (= 24 + this law), `tower.bend` unchanged at 28; transitive
+257 and 282, both re-measured; tiers 171 readable / 149 helpers / 320 total. All eleven gates green,
+timed this run: `tower_proofs.bend` 2.74 s, `probe.bend` 1.92 s, `probe.payoff.bend` 4.29 s,
+`scratch.bend` printing the usual `Rat.inv` triple.
+
+**The reconnaissance: four probes, and the last two ring laws are behind route (a).** This corrects
+last round's reading, which was too optimistic -- the green fill probe measures the *closure* given
+the facts, not the facts' production, and the production is where the wall is.
+
+- `probe.assoc3.bend` dumped `mul_assoc`'s Ext/Ext/Ext arm at spelled operands with the fuel written
+  `1n+g` so both sides reduce. Writing `A1,A2` for the coordinates of `x·y` and `B1,B2` for those of
+  `y·z`: `(xy)z` is `Ext{add(mul(g,A1,rz), mul(g,mul(g,A2,iz),d)), add(mul(g,A1,iz), mul(g,A2,rz)), d}`
+  and `x(yz)` is `Ext{add(mul(g,rx,B1), mul(g,mul(g,ix,B2),d)), add(mul(g,rx,B2), mul(g,ix,B1)), d}`.
+  Not definitional, and the outer `mul` receives the *coordinates* of an inner product -- which are
+  sums -- so the arm cannot close without distributing a product over a sum.
+- `probe.distrib.first.bend` dumped the distribution arm: `mul(g, add(u,v), w)` leaves `add(ru,rv)`
+  alive inside the stuck `mul`s (`mul` is stuck on a neutral scrutinee, not `Bad`), while
+  `add(mul(u,w), mul(v,w))` is the fully expanded four-term coordinate form.
+- `probe.levelofsame.bend` measured the bridge that is now the landed law.
+- `probe.distrib.fill.bend` measured the closure, and it is green: a law whose hypotheses are exactly
+  three distributivity instances -- at `(ru,rv,rw)`, at `(iu,iv,iw)`, and at the *computed* sum
+  `(mul(g,iu,iw), mul(g,iv,iw), d)` -- plus one four-term shuffle closes the dumped real coordinate
+  by four `Equal.cong`/`Equal.trans` legs: distribute the first summand, distribute the inner factor
+  of the second and then the outer product over that sum, and exchange the middle pair. No level,
+  clean, pos or depth evidence is needed beyond those four facts.
+
+**The gap, precisely.** `mul_distrib`'s real coordinate is `(P1+P2)+(A+B)` against `(P1+A)+(P2+B)`:
+the same four summands with the middle two exchanged. `add` is not commutative by definition, and
+reassociation preserves the order of the leaves, so no chain of `add_assoc` steps bridges that
+permutation: some step must transpose across the two groups, and the only law that permutes summands
+is `add_comm`, which asks for a `same` witness for the pair it swaps. Here that pair is
+`(mul(g, rv, rw), mul(g, mul(g, iu, iw), d))` -- two products whose arguments pair `rv` with a
+*product* and `rw` with a radicand. `same.mul` composes per-argument witnesses and cannot build it
+(one argument is not a product), and the level route is `level.mul`, which is round sixty's measured
+wall: no variant with only aligned-pair hypotheses closes. The same requirement shows up one step
+earlier, in the instance `mul_distrib` must instantiate at `(mul(g,iu,iw), mul(g,iv,iw), d)` -- that
+instance's hypotheses include a level fact between two computed products, and `same` between them
+would need a self-witness the non-reflexive family cannot give.
+
+So the objective's last two ring laws need the design change, not a cleverer fill: the carriers must
+hand back level (or same) facts *for products* -- a stronger obligation than the cross-operand facts
+round sixty pinned, which relate the coordinates of one product rather than relating a product to a
+value. Recorded in TOWER-PLAN.md; the four probes stay untracked (`probe.assoc3.bend`,
+`probe.distrib.first.bend`, `probe.levelofsame.bend`, `probe.distrib.fill.bend`), alongside
+`probe.mulcomm.bend` from the previous round.

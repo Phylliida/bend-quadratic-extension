@@ -3025,3 +3025,42 @@ def T.Tower.mul_comm(x, y, hl, cx, cy):
       Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
     case T.Fuel{} T.Bad{}:
       Empty.absurd({T.Tower.mul(1n+T.Tower.depth(x), x, y) == T.Tower.mul(1n+T.Tower.depth(x), y, x) : T.Tower}, hl)
+
+def TH.Tower.level.of.same(x, y, h):
+  match x y:
+    case T.Base{a} T.Base{b}:
+      T.LevelBase{}
+    case T.Ext{rx, ix, dx} T.Ext{ry, iy, dy}:
+      match h:
+        case T.SameExt{+sre, +sim, +sd}:
+          T.LevelExt{TH.Tower.level.of.same(rx, ry, sre),
+                     TH.Tower.level.of.same(ix, iy, sim),
+                     sd}
+    case T.Bad{} T.Bad{}:
+      T.LevelBase{}
+    case T.Fuel{} T.Fuel{}:
+      T.LevelBase{}
+    case T.Base{a} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.level(x, y), h)
+    case T.Base{a} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, y), h)
+    case T.Base{a} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, y), h)
+    case T.Ext{rx, ix, dx} T.Base{b}:
+      Empty.absurd(T.Tower.level(x, y), h)
+    case T.Ext{rx, ix, dx} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, y), h)
+    case T.Ext{rx, ix, dx} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, y), h)
+    case T.Bad{} T.Base{b}:
+      Empty.absurd(T.Tower.level(x, y), h)
+    case T.Bad{} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.level(x, y), h)
+    case T.Bad{} T.Fuel{}:
+      Empty.absurd(T.Tower.level(x, y), h)
+    case T.Fuel{} T.Base{b}:
+      Empty.absurd(T.Tower.level(x, y), h)
+    case T.Fuel{} T.Ext{ry, iy, dy}:
+      Empty.absurd(T.Tower.level(x, y), h)
+    case T.Fuel{} T.Bad{}:
+      Empty.absurd(T.Tower.level(x, y), h)

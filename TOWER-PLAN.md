@@ -2618,7 +2618,28 @@ The finding worth keeping: the products' *same* witness is buildable, while a *l
 them is the wall. Round sixty's obstruction is specifically about level evidence for computed
 values -- `same` is the weaker question and it has a producer.
 
-Item (3) is closed. Of item (2)'s three ring laws, `mul_comm` is now done; `mul_assoc` and
-`mul_distrib` mix coordinates through a *product*, so they still look like route (a): thread the
-cross-operand fact through `add.clean`/`mul.clean`/`mul.safe` and extend `Tower.Safe`. That is the
-only objective work left.
+**Measured, round seventy-three: the other two ring laws do need route (a), and here is the exact
+gap.** Four probes settled it. `probe.assoc3.bend` and `probe.distrib.first.bend` dumped the two
+arms (associativity's outer product receives the inner product's *coordinates*, which are sums;
+distribution's left side keeps `add(ru,rv)` alive inside a stuck `mul`). `probe.levelofsame.bend`
+measured that level follows from same -- an identity induction, now the helper law
+`Tower.level.of.same`. And `probe.distrib.fill.bend` measured the closure, and it is green: three
+distributivity instances (one at a *computed* sum, `mul(g, add(mul(g,iu,iw), mul(g,iv,iw)), d)`) plus
+one four-term shuffle close `mul_distrib`'s real coordinate exactly, with no clean, pos or depth
+evidence beyond them. What that probe did not measure is where those four facts come from, and that
+is where the wall is.
+
+The gap is one missing producer: **a level (or same) fact about two products whose arguments pair a
+value with a product.** `mul_distrib`'s real coordinate is `(P1+P2)+(A+B)` against `(P1+A)+(P2+B)` --
+the same four summands with the middle two exchanged. `add` is not commutative by definition, so no
+amount of reassociation bridges that: some step must transpose across the two groups, the only
+permutation law is `add_comm`, and `add_comm` demands a `same` witness for the pair it swaps. That
+pair is `(mul(g, rv, rw), mul(g, mul(g, iu, iw), d))`: `same.mul` cannot compose it (it needs a
+per-argument witness, and one argument is a product rather than a value), and the level route is
+`level.mul` -- round sixty's measured wall. The same need appears a step earlier, in the instance
+`mul_distrib` must instantiate at `(mul(g,iu,iw), mul(g,iv,iw), d)`: that instance's own hypotheses
+include a level fact between two computed products.
+
+So route (a) is confirmed for `mul_assoc` and `mul_distrib`, and the carrier extension has to hand
+back level (or same) facts *for products*, not only the cross-operand facts round sixty described.
+Item (3) is closed, `mul_comm` is done, and these two are the objective's remaining ring laws.
