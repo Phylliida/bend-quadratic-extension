@@ -2676,5 +2676,22 @@ are sum-against-sum, so they are `level.add` (eight arguments), not `level.of.ad
 
 The open design question is where the within-value facts come from at depth: `Canon` carries
 `level(re,im)` and `level(re,d)` one level down, and a recursive instance's arguments are coordinates
-of coordinates, so either a new carrier (`Tower.InLevel<x>`) or `Canon` extended with recursive fields
-is needed. For a product those facts are in the family itself. Next: pick one and write the producer.
+of coordinates. For a product those facts are in the family itself.
+
+**The criterion, from the project owner (round nineteen).** Changing existing definitions and adding
+new ones are both fine. What the tower's laws have to be is *minimal and auditable*, no larger than
+the functionality needs; and correctness has to be **forced** -- a caller must never have to be
+careful to call something the right way. Evidence that only some call sites can construct is
+therefore not evidence: a hypothesis is acceptable only when the operations themselves hand it over.
+
+**The design that follows.** Take the within-value facts off the caller's hands and put them in the
+carrier the operations already thread: extend `Tower.Clean` -- today "the parts are clean and their
+depths agree" -- with the two level fields `lri: level(re, im)` and `lrd: level(re, d)`, recursive
+through its existing recursive coordinate fields. Then a `Clean` witness carries the within-value
+level facts at *every* depth by construction, `add.clean` fills the new fields with `level.add` plus
+one `level.of.add` (it gains a `level(x,y)` hypothesis, which every caller already holds), and
+`mul.clean`/`mul.depth`/the level pair become one mutual induction carried by an extended
+`Tower.Safe`, exactly as `mul.clean` and `mul.depth` are one induction today. After that
+`mul_distrib` and `mul_assoc` take the library's standard carriers -- `Clean`, `level`, `canon` --
+all of them produced by the operations' own laws, and their fills close with the six- and
+eight-sub-fact recipes the two arm probes measured.
