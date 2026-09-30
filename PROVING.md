@@ -7573,3 +7573,52 @@ files remain over it (rat 2.02, qrat 3.50, tower 2.28) and stay backlogged; `pro
 hypothesis set -- which of the pairwise facts around a sum the value-against-product and
 product-against-product inductions actually consume, and whether the radicand slot's `ld` has to be
 carried as well as the four level fields.
+
+## Round seventy-five -- the level pair's two arms, measured arm by arm
+
+Round nineteen's design question was what the missing producer's carrier has to hold. This round
+answered it by measuring each arm in isolation: hand every coordinate sub-fact in as a hypothesis,
+spell all operands as `Ext` triples so the reduction is total, and see whether the arm's goal
+follows. Two probes, both now green, and along the way a spelling error that had been wrong twice.
+
+**`probe.s1arm.bend` -- the value-against-product arm.** Goal `level(Ext{xr,xi,xd},
+mul(1n+g, Ext{yr,yi,yd}, Ext{zr,zi,zd}))`. It closes from six sub-facts plus the radicand equation:
+three value-against-product instances -- `level(xr, mul(g,yr,zr))`, `level(xr, mul(g, mul(g,yi,zi),
+yd))` and the two for the imaginary sum, `level(xi, mul(g,yr,zi))`, `level(xi, mul(g,yi,zr))` -- and
+two product-against-product instances, `level(mul(g,yr,zr), mul(g, mul(g,yi,zi), yd))` and
+`level(mul(g,yr,zi), mul(g,yi,zr))`, plus `{xd == yd}`. The fill is two `Tower.level.of.add` calls --
+one triangle per coordinate sum -- assembled into `LevelExt`. Nothing else.
+
+**`probe.s2arm.bend` -- the product-against-product arm.** Goal `level(mul(1n+g, X, U),
+mul(1n+g, Y, V))`. It closes from eight sub-facts plus `{xd == yd}`: for the real coordinate
+`level(mul(g,xr,ur), mul(g,mul(g,xi,ui),xd))`, `level(mul(g,yr,vr), mul(g,mul(g,yi,vi),yd))`,
+`level(mul(g,xr,ur), mul(g,yr,vr))`, `level(mul(g,mul(g,xi,ui),xd), mul(g,mul(g,yi,vi),yd))`, and the
+four mirroring ones for the imaginary coordinate; the fill is two `Tower.level.add` calls (eight
+arguments each: the four summands and `hxy`, `huv`, `hxu`, `hyv`). Every sub-fact is again
+product-against-product, so this arm is self-recursive at the level of its own statements; the mutual
+dependence on the value-against-product law appears one step down, in the hypotheses of those
+recursive instances.
+
+**The spelling error, twice over.** Both probes were written with the inner product's radicand taken
+from the *second* operand. The checker refused both times, and the same correction fixed both: in
+`mul`'s Ext/Ext formula the result's third slot and the inner `mul(g, mul(g, i·, i·), ·)` radicand are
+*both* the **first** operand's. Every earlier dump had both operands sharing a radicand, so the two
+slots were indistinguishable and the mistake survived three rounds of reading. The second error was
+mine in the probe's plumbing: the arms' coordinate goals are sum-against-sum, so the law is
+`Tower.level.add` (eight arguments, the four summands and four level hypotheses), not
+`Tower.level.of.add` (six, a value against a sum) -- which is exactly what the two laws are for.
+
+**What this settles.** The carrier's content is now measured rather than guessed:
+`Tower.LevelPair<f, x, y, u, v>` holding `hmul: level(mul(f,x,u), mul(f,y,v))` and
+`hval: level(x, mul(f,y,v))`, with one producer law whose hypotheses are the level square among the
+four operands and, for the recursive instances, the within-value level facts of the values involved.
+The square is available from level hypotheses by projection. The within-value facts -- `level(re, im)`,
+`level(re, d)`, `level(im, d)` and their recursive counterparts -- are not: they are what `Canon`
+carries one level deep today, and the recursive instances need them at every depth, since the
+arguments of a recursive instance are coordinates of coordinates. For a *product* they are themselves
+in the family (`level.add` over the products' coordinate facts), which is the sense in which the
+carrier's producer is closed; for an arbitrary value they have to be handed in. So the remaining
+design decision is whether that recursion rides on a new carrier (`Tower.InLevel<x>`, holding the
+within-value facts recursively) or on `Tower.Canon` extended with recursive fields. Both arms are
+otherwise ready to be written; nothing was landed this round beyond the two probes, which stay
+untracked.

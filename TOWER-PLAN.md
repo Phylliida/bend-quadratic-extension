@@ -2659,5 +2659,22 @@ fields. It landed in the helper tier with a sixty-four-arm fill (four inhabited,
 
 That leaves two shapes to close as a mutual pair -- value-vs-product and product-vs-product -- with
 the `level.add` call in each requiring the four pairwise facts around a sum, so the carrier has to
-hold a square rather than a triangle. Next: a probe for the exact hypothesis set of that carrier
-before any law is stated.
+hold a square rather than a triangle.
+
+**Round seventy-five: the carrier's content, measured arm by arm.** Two probes hand every coordinate
+sub-fact in as a hypothesis and spell the operands as `Ext` triples, so the checker measures the
+assembly rather than the induction, and both are green. The value-against-product arm closes from six
+sub-facts plus `{xd == yd}` (three value-against-product instances and two product-against-product
+ones, one triangle per coordinate sum, two `level.of.add` calls). The product-against-product arm
+closes from eight sub-facts plus `{xd == yd}` (all eight product-against-product, two `level.add`
+calls). So `Tower.LevelPair<f, x, y, u, v>` holding `level(mul(f,x,u), mul(f,y,v))` and
+`level(x, mul(f,y,v))` is the carrier, its hypotheses the level square among the four operands and the
+within-value facts of the values involved. Two lessons worth keeping: in `mul`'s Ext/Ext formula the
+result's third slot *and* the inner radicand are both the **first** operand's (every earlier dump had
+the operands sharing a radicand, so the mistake survived three rounds), and the arms' coordinate goals
+are sum-against-sum, so they are `level.add` (eight arguments), not `level.of.add` (six).
+
+The open design question is where the within-value facts come from at depth: `Canon` carries
+`level(re,im)` and `level(re,d)` one level down, and a recursive instance's arguments are coordinates
+of coordinates, so either a new carrier (`Tower.InLevel<x>`) or `Canon` extended with recursive fields
+is needed. For a product those facts are in the family itself. Next: pick one and write the producer.
